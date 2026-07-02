@@ -15,13 +15,13 @@ router.get('/Bill_Checked_Step13', async (req, res) => {
     // Step 13: BY(76)=PLANNED, BZ(77)=ACTUAL
     const filteredData = data
       .filter(row => {
-        const planned13 = row[76] || '';
-        const actual13  = row[77] || '';
+        const planned13 = row[72] || '';
+        const actual13  = row[73] || '';
         return planned13 && !actual13;
       })
       .map(row => ({
         // Step 13 specific
-        planned13:             row[76] || '',
+        planned13:             row[72] || '',
 
         // ── SAME row mapping as Bill_Checked_18Step ──
         UID:                   row[1]  || '',
@@ -96,14 +96,14 @@ router.post('/bill_checked_status_Step13', async (req, res) => {
         // CA(78) = STATUS_13
         if (STATUS_13 !== undefined) {
           requests.push({
-            range: `Billing_FMS!CA${rowNumber}`,
+            range: `Billing_FMS!BW${rowNumber}`,
             values: [[STATUS_13]],
           });
         }
         // CC(80) = REMARK_13
         if (REMARK_13 !== undefined) {
           requests.push({
-            range: `Billing_FMS!CC${rowNumber}`,
+            range: `Billing_FMS!BY${rowNumber}`,
             values: [[REMARK_13]],
           });
         }

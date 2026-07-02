@@ -750,8 +750,8 @@ router.post('/save-MRN-data', async (req, res) => {
 
     materialRows.forEach(row => {
       const uid = (row[1] || '').trim();
-      const challan = (row[15] || '').trim();
-      const receivedDate = (row[17] || '').trim();  // ✅ R column = index 17
+     const challan = (row[18] || '').trim();  // ✅ S column = index 18 (Challan Number)
+const receivedDate = (row[14] || '').trim(); // ✅ R column = index 17
 
       if (uid && challan) {
         if (!uidToChallanMap.has(uid)) uidToChallanMap.set(uid, new Set());

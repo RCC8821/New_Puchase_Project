@@ -253,41 +253,67 @@ const Material_Received = () => {
   };
 
   // ✅ Save - receivedDate payload me
-  const handleSave = async () => {
-    if (!validate()) { setError('Fill all fields, date & qty for each UID.'); return; }
-    const uids = selectedRequest.selectedUIDs || [selectedRequest.uid];
+ // Save
+const handleSave = async () => {
+  if (!validate()) { setError('Fill all fields, date & qty for each UID.'); return; }
+  const uids = selectedRequest.selectedUIDs || [selectedRequest.uid];
 
-    try {
-      setIsSaving(true); setError(null);
-      for (const uid of uids) {
-        const item = selectedRequest.uidModalItems?.find(i => i.uid === uid) || selectedRequest;
-        const payload = {
-          uid, reqNo: item.reqNo, siteName: item.siteName,
-          supervisorName: item.supervisorName || '', materialType: item.materialType,
-          skuCode: item.skuCode, materialName: item.materialName,
-          unitName: item.unitName, receivedQty: parseFloat(receivedQuantities[uid]),
-          status: materialStatus, challanNo, qualityApproved: qualityCheck,
-          truckDelivery, googleFormCompleted, photo: photoData,
-          vendorName: item.vendorName || '',
-          receivedDate,  // ✅ NEW field
-        };
-        const response = await fetch(`${import.meta.env.VITE_BACKEND_URL}/api/save-material-receipt`, {
-          method: 'POST', headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify(payload),
-        });
-        const data = await response.json();
-        if (!response.ok) throw new Error(data.error || 'Failed');
-      }
-      setShowSuccess(true);
-      if (materialStatus === 'Full Material') {
-        setAllRequests(prev => prev.filter(r => !uids.includes(r.uid)));
-        setRequests(prev => prev.filter(r => !uids.includes(r.uid)));
-      }
-      setTimeout(async () => { closeModal(); await handleFilter(); }, 1500);
-    } catch (err) {
-      setError(err.message || 'Failed to save');
-    } finally { setIsSaving(false); }
-  };
+  try {
+    setIsSaving(true); setError(null);
+    for (const uid of uids) {
+      const item = selectedRequest.uidModalItems?.find(i => i.uid === uid) || selectedRequest;
+
+      // ✅ DEBUG - Console me check karo
+      console.log('=== Saving UID:', uid, '===');
+      console.log('Item:', item);
+      console.log('SKU Code:', item.skuCode);
+      console.log('Material Size:', item.materialSize);
+      console.log('Material Spec:', item.materialSpecification);
+
+      // ✅ COMPLETE Payload with ALL fields
+      const payload = {
+        uid: uid,
+        reqNo: item.reqNo || '',
+        siteName: item.siteName || '',
+        supervisorName: item.supervisorName || '',
+        materialType: item.materialType || '',
+        skuCode: item.skuCode || '',                          // ✅ SKU
+        materialName: item.materialName || '',
+        materialSize: item.materialSize || '',                // ✅ Size
+        materialSpecification: item.materialSpecification || '', // ✅ Spec
+        unitName: item.unitName || '',
+        receivedQty: parseFloat(receivedQuantities[uid]),
+        status: materialStatus,
+        challanNo: challanNo,
+        qualityApproved: qualityCheck,
+        truckDelivery: truckDelivery,
+        googleFormCompleted: googleFormCompleted,
+        photo: photoData,
+        vendorName: item.vendorName || '',
+        receivedDate: receivedDate,
+      };
+
+      console.log('=== Payload being sent ===');
+      console.log(payload);
+
+      const response = await fetch(`${import.meta.env.VITE_BACKEND_URL}/api/save-material-receipt`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(payload),
+      });
+      const data = await response.json();
+      if (!response.ok) throw new Error(data.error || 'Failed');
+    }
+    setShowSuccess(true);
+    if (materialStatus === 'Full Material') {
+      setAllRequests(prev => prev.filter(r => !uids.includes(r.uid)));
+      setRequests(prev => prev.filter(r => !uids.includes(r.uid)));
+    }
+    setTimeout(async () => { closeModal(); await handleFilter(); }, 1500);
+  } catch (err) {
+    setError(err.message || 'Failed to save');
+  } finally { setIsSaving(false); }
+};
 
   // ══════════════════════════════════════════════════════
   return (

@@ -17,11 +17,11 @@ router.get('/Bill_Checked_12', async (req, res) => {
     }
 
     // Step 12 columns (0-based)
-    const PLANNED_12 = 67; // BP
-    const ACTUAL_12  = 68; // BQ
-    const STATUS_12  = 69; // BR
-    const DELAY_12   = 70; // BS
-    const REMARK_12  = 71; // BT
+    const PLANNED_12 = 63; // BP
+    const ACTUAL_12  = 64; // BQ
+    const STATUS_12  = 65; // BR
+    const DELAY_12   = 66; // BS
+    const REMARK_12  = 67; // BT
 
     const filteredData = rows
       .filter(row => {
@@ -30,16 +30,7 @@ router.get('/Bill_Checked_12', async (req, res) => {
         return planned && !actual;
       })
       .map(row => ({
-        // ── EXACT Sheet Header Mapping ──
-        // A(0)=Timestamp, B(1)=UID, C(2)=ReqNo, D(3)=Project, E(4)=Engineer
-        // F(5)=MaterialType, G(6)=MaterialName, H(7)=MaterialSize
-        // I(8)=Specification, J(9)=BrandName, K(10)=SKU, L(11)=Qty
-        // M(12)=Unit, N(13)=Description, O(14)=RequireDays, P(15)=Contractor
-        // V(21)=IndentNo, W(22)=IndentPDF, X(23)=QuotationNo, Y(24)=QuotationPDF
-        // Z(25)=PODate, AA(26)=PONumber, AB(27)=POPDF
-        // AC(28)=MRNNo, AD(29)=MRNPDF
-        // AH(33)=VendorFirm, AI(34)=VendorContact
-        // AJ(35)=RevisedQty, AK(36)=FinalReceivedQty
+      
 
         planned12:             row[PLANNED_12] || '',
         UID:                   row[1]  || '',
@@ -122,13 +113,13 @@ router.post('/bill_checked_status_12', async (req, res) => {
 
         if (STATUS_12 !== undefined) {
           requests.push({
-            range: `Billing_FMS!BR${rowNumber}`,
+            range: `Billing_FMS!BN${rowNumber}`,
             values: [[STATUS_12]],
           });
         }
         if (REMARK_12 !== undefined) {
           requests.push({
-            range: `Billing_FMS!BT${rowNumber}`,
+            range: `Billing_FMS!BP${rowNumber}`,
             values: [[REMARK_12]],
           });
         }
