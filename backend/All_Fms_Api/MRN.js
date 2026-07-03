@@ -562,7 +562,7 @@ const generateMRNPDF = (rowDatas, mrnNo, poNumber, indentNo, deliveryDate) => {
   doc.setFont('helvetica', 'normal');
   doc.text('310 Saket Nagar, 9B Near Sagar Public School, Bhopal, 462026', pageWidth / 2, 22, { align: 'center' });
   doc.text('Contact: 9753432126 | Email: mayank@rcinfrastructure.com', pageWidth / 2, 28, { align: 'center' });
-  doc.text('GST: 23ABHFR3130L1ZA', pageWidth / 2, 34, { align: 'center' });
+  doc.text('GST: 23AARPC4273A2Z4', pageWidth / 2, 34, { align: 'center' });
 
   doc.setFontSize(16);
   doc.setFont('helvetica', 'bold');
@@ -741,7 +741,7 @@ router.post('/save-MRN-data', async (req, res) => {
     // ✅ Range A:R (R column = Received Date)
     const materialResponse = await sheets.spreadsheets.values.get({
       spreadsheetId,
-      range: 'Material_Received!A2:R',
+      range: 'Material_Received!A2:U',
     });
     const materialRows = materialResponse.data.values || [];
 
