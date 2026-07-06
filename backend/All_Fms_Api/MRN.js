@@ -859,7 +859,7 @@ const receivedDate = (row[14] || '').trim(); // ✅ R column = index 17
       const finalQty = finalReceivedQuantities[i] || rowDatas[i].finalReceivedQuantity;
 
       batchData.push(
-        { range: `Purchase_FMS!DK${sheetRow}`, values: [[today]] },
+        // { range: `Purchase_FMS!DK${sheetRow}`, values: [[today]] },
         { range: `Purchase_FMS!DL${sheetRow}`, values: [['Done']] },
         { range: `Purchase_FMS!DM${sheetRow}`, values: [[mrnNo]] },
         { range: `Purchase_FMS!DN${sheetRow}`, values: [[pdfUrl]] },

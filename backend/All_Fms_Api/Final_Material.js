@@ -3,7 +3,6 @@
 // const { sheets, spreadsheetId } = require('../config/googleSheet');
 // const router = express.Router();
 
-// // Helper - UID se comma clean karo
 // const cleanUID = (val) => {
 //   if (val === null || val === undefined) return '';
 //   return String(val).replace(/,/g, '').trim();
@@ -29,7 +28,6 @@
 
 //       if (!uid) return;
 
-//       // ✅ Filter: PLANNED filled + ACTUAL empty
 //       if (planned8 && !actual8) {
 //         purchaseDataMap.set(uid, {
 //           UID: uid,
@@ -39,6 +37,7 @@
 //           materialType:           row[5]?.toString().trim()  || '',
 //           materialName:           row[6]?.toString().trim()  || '',
 //           materialSize:           row[7]?.toString().trim()  || '',
+//           materialSpecification:  row[8]?.toString().trim()  || '',  // ✅ NEW
 //           skuCode:                row[10]?.toString().trim() || '',
 //           orderQty:               row[11]?.toString().trim() || '',
 //           unitName:               row[12]?.toString().trim() || '',
@@ -92,6 +91,7 @@
 //           skuCode:                row[6]?.toString().trim()  || '',
 //           materialName:           row[7]?.toString().trim()  || '',
 //           materialSize:           purchaseData.materialSize || '',
+//           materialSpecification:  purchaseData.materialSpecification || '',  // ✅ NEW
 //           brandName:              purchaseData.brandName || '',
 //           unitName:               row[8]?.toString().trim()  || '',
 //           totalReceivedQuantity:  row[9]?.toString().trim()  || '',
@@ -128,8 +128,6 @@
 //   }
 // });
 
-// // ─── SAVE FINAL RECEIPT (CY column hata diya) ──────────
-
 // router.post('/save-final-receipt', async (req, res) => {
 //   try {
 //     const {
@@ -161,12 +159,11 @@
 //     const challanUrls = Array.isArray(challan_urls) ? challan_urls : [challan_urls];
 //     const challanUrlsString = challanUrls.filter(Boolean).join(', ');
 
-//     // ✅ CY aur DF dono HATA diye - sirf CZ, DB, DC, DD update
 //     const updates = [
-//       { range: `Purchase_FMS!CZ${sheetRowNumber}`, values: [[status]] },              // STATUS_8
-//       { range: `Purchase_FMS!DB${sheetRowNumber}`, values: [[totalReceivedQuantity]] }, // FINAL_QTY
-//       { range: `Purchase_FMS!DC${sheetRowNumber}`, values: [[challanNo || '']] },     // CHALLAN_NO
-//       { range: `Purchase_FMS!DD${sheetRowNumber}`, values: [[challanUrlsString]] },   // CHALLAN_PHOTO
+//       { range: `Purchase_FMS!CZ${sheetRowNumber}`, values: [[status]] },
+//       { range: `Purchase_FMS!DB${sheetRowNumber}`, values: [[totalReceivedQuantity]] },
+//       { range: `Purchase_FMS!DC${sheetRowNumber}`, values: [[challanNo || '']] },
+//       { range: `Purchase_FMS!DD${sheetRowNumber}`, values: [[challanUrlsString]] },
 //     ];
 
 //     await sheets.spreadsheets.values.batchUpdate({
@@ -174,7 +171,6 @@
 //       resource: { valueInputOption: 'USER_ENTERED', data: updates },
 //     });
 
-//     console.log(`✅ Updated UID ${cleanedTarget} → Row ${sheetRowNumber} (CY & DF NOT updated)`);
 //     res.json({ success: true, message: 'Saved', updatedRow: sheetRowNumber, uid: cleanedTarget });
 
 //   } catch (error) {
@@ -199,6 +195,7 @@ const cleanUID = (val) => {
   return String(val).replace(/,/g, '').trim();
 };
 
+// ─── GET FINAL MATERIAL RECEIVED ──────────────────────────
 router.get('/get-Final-material-received', async (req, res) => {
   try {
     const response = await sheets.spreadsheets.values.get({
@@ -228,7 +225,7 @@ router.get('/get-Final-material-received', async (req, res) => {
           materialType:           row[5]?.toString().trim()  || '',
           materialName:           row[6]?.toString().trim()  || '',
           materialSize:           row[7]?.toString().trim()  || '',
-          materialSpecification:  row[8]?.toString().trim()  || '',  // ✅ NEW
+          materialSpecification:  row[8]?.toString().trim()  || '',
           skuCode:                row[10]?.toString().trim() || '',
           orderQty:               row[11]?.toString().trim() || '',
           unitName:               row[12]?.toString().trim() || '',
@@ -263,49 +260,49 @@ router.get('/get-Final-material-received', async (req, res) => {
     const materialData = materialResponse.data.values || [];
     if (!materialData.length) return res.json({ success: true, data: [] });
 
-    const filteredData = materialData
-      .map(row => {
-        const uid = cleanUID(row[1]);
-        if (!uid) return null;
+  const filteredData = materialData
+  .map(row => {
+    const uid = cleanUID(row[1]);
+    if (!uid) return null;
 
-        const purchaseData = purchaseDataMap.get(uid);
-        if (!purchaseData) return null;
+    const purchaseData = purchaseDataMap.get(uid);
+    if (!purchaseData) return null;
 
-        return {
-          Timestamp:              row[0]?.toString().trim()  || '',
-          uid:                    uid,
-          reqNo:                  row[2]?.toString().trim()  || '',
-          siteName:               row[3]?.toString().trim()  || '',
-          supervisorName:         row[4]?.toString().trim()  || '',
-          vendorName:             purchaseData.vendorFirmName5 || '',
-          materialType:           row[5]?.toString().trim()  || '',
-          skuCode:                row[6]?.toString().trim()  || '',
-          materialName:           row[7]?.toString().trim()  || '',
-          materialSize:           purchaseData.materialSize || '',
-          materialSpecification:  purchaseData.materialSpecification || '',  // ✅ NEW
-          brandName:              purchaseData.brandName || '',
-          unitName:               row[8]?.toString().trim()  || '',
-          totalReceivedQuantity:  row[9]?.toString().trim()  || '',
-          status:                 row[10]?.toString().trim() || '',
-          Challan_url:            row[11]?.toString().trim() || '',
-          challanNo:              row[15]?.toString().trim() || '',
-          qualityApproved:        row[16]?.toString().trim() || '',
-          revisedQuantity:        purchaseData.revisedQuantity || '',
-          orderQty:               purchaseData.orderQty || '',
-          planned8:               purchaseData.planned8 || '',
-          actual8:                purchaseData.actual8 || '',
-          status8:                purchaseData.status8 || '',
-          pdfUrl3:                purchaseData.pdfUrl3 || '',
-          pdfUrl5:                purchaseData.pdfUrl5 || '',
-          pdfUrl6:                purchaseData.pdfUrl6 || '',
-          finalReceivedQuantity8: purchaseData.finalReceivedQuantity8 || '',
-          indentNumber3:          purchaseData.indentNumber3 || '',
-          quotationNo:            purchaseData.quotationNo || '',
-          poNumber:               purchaseData.poNumber || '',
-          deliveryDate:           purchaseData.deliveryDate || '',
-        };
-      })
-      .filter(Boolean);
+    return {
+      Timestamp:              row[0]?.toString().trim()  || '',
+      uid:                    uid,
+      reqNo:                  row[2]?.toString().trim()  || '',
+      siteName:               row[3]?.toString().trim()  || '',
+      supervisorName:         row[4]?.toString().trim()  || '',
+      vendorName:             purchaseData.vendorFirmName5 || '',
+      materialType:           row[5]?.toString().trim()  || '',
+      skuCode:                row[6]?.toString().trim()  || '',
+      materialName:           row[7]?.toString().trim()  || '',
+      materialSize:           purchaseData.materialSize || '',
+      materialSpecification:  purchaseData.materialSpecification || '',
+      brandName:              purchaseData.brandName || '',
+      unitName:               row[8]?.toString().trim()  || '',
+      totalReceivedQuantity:  row[9]?.toString().trim()  || '',
+      status:                 row[10]?.toString().trim() || '',
+      Challan_url:            row[13]?.toString().trim() || '',   // ✅ N column (index 13)
+      challanNo:              row[15]?.toString().trim() || '',
+      qualityApproved:        row[16]?.toString().trim() || '',
+      revisedQuantity:        purchaseData.revisedQuantity || '',
+      orderQty:               purchaseData.orderQty || '',
+      planned8:               purchaseData.planned8 || '',
+      actual8:                purchaseData.actual8 || '',
+      status8:                purchaseData.status8 || '',
+      pdfUrl3:                purchaseData.pdfUrl3 || '',
+      pdfUrl5:                purchaseData.pdfUrl5 || '',
+      pdfUrl6:                purchaseData.pdfUrl6 || '',
+      finalReceivedQuantity8: purchaseData.finalReceivedQuantity8 || '',
+      indentNumber3:          purchaseData.indentNumber3 || '',
+      quotationNo:            purchaseData.quotationNo || '',
+      poNumber:               purchaseData.poNumber || '',
+      deliveryDate:           purchaseData.deliveryDate || '',
+    };
+  })
+  .filter(Boolean);
 
     return res.json({ success: true, data: filteredData });
 
@@ -319,19 +316,28 @@ router.get('/get-Final-material-received', async (req, res) => {
   }
 });
 
+// ─── SAVE FINAL RECEIPT ───────────────────────────────────
 router.post('/save-final-receipt', async (req, res) => {
   try {
     const {
-      uid, totalReceivedQuantity, status,
-      challan_urls, challanNo, qualityApproved
+      uid,
+      totalReceivedQuantity,  // ✅ Already summed from frontend (same UID ka total)
+      status,
+      challan_urls,
+      challanNo,
+      qualityApproved
     } = req.body;
 
     if (!uid || totalReceivedQuantity === undefined || !status) {
-      return res.status(400).json({ success: false, message: 'Missing required fields' });
+      return res.status(400).json({
+        success: false,
+        message: 'Missing required fields'
+      });
     }
 
     const spreadsheetIdFinal = process.env.SPREADSHEET_ID || spreadsheetId;
 
+    // Find UID row in Purchase_FMS
     const uidResponse = await sheets.spreadsheets.values.get({
       spreadsheetId: spreadsheetIdFinal,
       range: 'Purchase_FMS!B2:B',
@@ -342,14 +348,19 @@ router.post('/save-final-receipt', async (req, res) => {
     const rowIndex = uids.findIndex(row => cleanUID(row[0]) === cleanedTarget);
 
     if (rowIndex === -1) {
-      return res.status(404).json({ success: false, message: `UID ${uid} not found` });
+      return res.status(404).json({
+        success: false,
+        message: `UID ${uid} not found`
+      });
     }
 
     const sheetRowNumber = rowIndex + 2;
 
+    // Combine challan URLs
     const challanUrls = Array.isArray(challan_urls) ? challan_urls : [challan_urls];
     const challanUrlsString = challanUrls.filter(Boolean).join(', ');
 
+    // ✅ Save to Purchase_FMS
     const updates = [
       { range: `Purchase_FMS!CZ${sheetRowNumber}`, values: [[status]] },
       { range: `Purchase_FMS!DB${sheetRowNumber}`, values: [[totalReceivedQuantity]] },
@@ -359,14 +370,32 @@ router.post('/save-final-receipt', async (req, res) => {
 
     await sheets.spreadsheets.values.batchUpdate({
       spreadsheetId: spreadsheetIdFinal,
-      resource: { valueInputOption: 'USER_ENTERED', data: updates },
+      resource: {
+        valueInputOption: 'USER_ENTERED',
+        data: updates
+      },
     });
 
-    res.json({ success: true, message: 'Saved', updatedRow: sheetRowNumber, uid: cleanedTarget });
+    console.log(
+      `✅ UID ${cleanedTarget} → Row ${sheetRowNumber}: ` +
+      `Qty=${totalReceivedQuantity}, Status=${status}`
+    );
+
+    res.json({
+      success: true,
+      message: 'Saved successfully',
+      updatedRow: sheetRowNumber,
+      uid: cleanedTarget,
+      savedQty: totalReceivedQuantity
+    });
 
   } catch (error) {
     console.error('Save error:', error.message);
-    res.status(500).json({ success: false, message: 'Error', error: error.message });
+    res.status(500).json({
+      success: false,
+      message: 'Error',
+      error: error.message
+    });
   }
 });
 
