@@ -1,3 +1,5 @@
+
+
 import React, { useState, useEffect } from 'react';
 import {
   Loader2, AlertCircle, CheckCircle, X,
@@ -96,7 +98,6 @@ const BillTallyData14 = () => {
 
   useEffect(() => { fetchData(); }, []);
 
-  // ── Modal Handlers ─────────────────────────────────────
   const handleInvoiceSelect = (e) => {
     const invoice = e.target.value;
     setSelectedInvoice(invoice);
@@ -123,12 +124,27 @@ const BillTallyData14 = () => {
       const selectedItems = data.filter(
         item => item.invoice11 === selectedInvoice && item.vendorFirmName === selectedVendor
       );
+
+      // ✅ Initialize with rate + qty for calculation
       const initialItems = selectedItems.map((item, index) => ({
-        materialName: item.materialName || 'N/A',
-        uid: item.UID || `N/A-${index}`,
-        amount: '', cgst: 'None', sgst: 'None', igst: 'None',
-        cgstAmt: '0', sgstAmt: '0', igstAmt: '0', total: '0',
+        materialName:   item.materialName || 'N/A',
+        uid:            item.UID || `N/A-${index}`,
+        materialSize:   item.materialSize || '',
+        specification:  item.specification || '',
+        unitName:       item.unitName || '',
+        qty:            item.qty || '0',            // ✅ From Y column
+        poAmount:       item.poAmount || '',
+        rate:           '',                          // ✅ NEW - Rate input
+        amount:         '0',                         // ✅ Auto = qty × rate
+        cgst:           'None',
+        sgst:           'None',
+        igst:           'None',
+        cgstAmt:        '0',
+        sgstAmt:        '0',
+        igstAmt:        '0',
+        total:          '0',
       }));
+
       setFormData(prev => ({ ...prev, vendorFirmName: selectedVendor, items: initialItems }));
       setStep(2); setErrors({});
     }
@@ -147,30 +163,57 @@ const BillTallyData14 = () => {
       newItems[index].cgst = value; newItems[index].sgst = value; newItems[index].igst = 'None';
     } else if (name === 'igst') {
       newItems[index].igst = value; newItems[index].cgst = 'None'; newItems[index].sgst = 'None';
-    } else { newItems[index][name] = value; }
+    } else {
+      newItems[index][name] = value;
+    }
     setFormData(prev => ({ ...prev, items: newItems }));
   };
 
-  // ── Tax Calc ───────────────────────────────────────────
+  // ✅ Auto Calculation: Qty × Rate = Amount → GST → Total
   useEffect(() => {
     if (formData.items.length === 0) return;
+
     const updatedItems = formData.items.map(item => {
-      const amount = parseFloat(item.amount) || 0;
+      const qty = parseFloat(item.qty) || 0;
+      const rate = parseFloat(item.rate) || 0;
+
+      // ✅ Amount = Qty × Rate
+      const amount = qty * rate;
+
       let cgstAmt = 0, sgstAmt = 0, igstAmt = 0;
-      if (item.cgst !== 'None') { const rate = parseFloat(item.cgst) || 0; cgstAmt = amount * (rate / 200); sgstAmt = cgstAmt; }
-      else if (item.igst !== 'None') { const rate = parseFloat(item.igst) || 0; igstAmt = amount * (rate / 100); }
+
+      if (item.cgst !== 'None') {
+        const gstRate = parseFloat(item.cgst) || 0;
+        cgstAmt = amount * (gstRate / 200);  // Half for CGST
+        sgstAmt = cgstAmt;                    // Half for SGST
+      } else if (item.igst !== 'None') {
+        const gstRate = parseFloat(item.igst) || 0;
+        igstAmt = amount * (gstRate / 100);
+      }
+
       const total = amount + cgstAmt + sgstAmt + igstAmt;
-      return { ...item, cgstAmt: cgstAmt.toFixed(2), sgstAmt: sgstAmt.toFixed(2), igstAmt: igstAmt.toFixed(2), total: total.toFixed(2) };
+
+      return {
+        ...item,
+        amount: amount.toFixed(2),
+        cgstAmt: cgstAmt.toFixed(2),
+        sgstAmt: sgstAmt.toFixed(2),
+        igstAmt: igstAmt.toFixed(2),
+        total: total.toFixed(2),
+      };
     });
+
     const itemsTotal = updatedItems.reduce((sum, i) => sum + parseFloat(i.total || 0), 0);
     const transport = parseFloat(formData.transportWOGST || 0);
     const gstRate = parseFloat(formData.gstRate || 0);
     const transportGstOnly = (transport * (gstRate / 100)).toFixed(2);
     const adjustment = parseFloat(formData.adjustmentAmount || 0);
     const netAmount = (itemsTotal + transport + parseFloat(transportGstOnly) + adjustment).toFixed(2);
+
     setFormData(prev => ({ ...prev, items: updatedItems, netAmount }));
   }, [
-    formData.items.map(i => `${i.amount || 0}-${i.cgst}-${i.igst}`).join(','),
+    // ✅ Depend on qty + rate + gst
+    formData.items.map(i => `${i.qty || 0}-${i.rate || 0}-${i.cgst}-${i.igst}`).join(','),
     formData.transportWOGST, formData.gstRate, formData.adjustmentAmount,
   ]);
 
@@ -179,7 +222,7 @@ const BillTallyData14 = () => {
     if (!formData.status16) newErrors.status16 = 'Status is required';
     if (!formData.billNo) newErrors.billNo = 'Bill No is required';
     if (!formData.billDate) newErrors.billDate = 'Bill Date is required';
-    if (!formData.items.some(i => parseFloat(i.amount) > 0)) newErrors.items = 'At least one item must have amount';
+    if (!formData.items.some(i => parseFloat(i.amount) > 0)) newErrors.items = 'At least one item must have rate';
     setErrors(newErrors);
     return Object.keys(newErrors).length === 0;
   };
@@ -251,7 +294,6 @@ const BillTallyData14 = () => {
   const isSubmitDisabled = isSubmitting || !formData.status16 || !formData.billNo || !formData.billDate ||
     formData.items.every(i => !parseFloat(i.amount || 0));
 
-  // ── Table Columns ──────────────────────────────────────
   const tableCols = [
     { label: '#', w: 50 }, { label: 'Planned 14', w: 110 },
     { label: 'UID', w: 70 }, { label: 'Site Name', w: 130 },
@@ -267,11 +309,10 @@ const BillTallyData14 = () => {
     { label: 'Contact', w: 110 }, { label: 'Invoice 11', w: 110 },
   ];
 
-  // ══════════════════════════════════════════════════════
   return (
     <div style={{ width: '100%' }}>
 
-      {/* ── Header ─────────────────────────────────────── */}
+      {/* ── Header ── */}
       <div style={{
         background: T.card, borderRadius: 10, border: `1px solid ${T.border}`,
         padding: '16px 20px', marginBottom: 16,
@@ -279,25 +320,18 @@ const BillTallyData14 = () => {
         flexWrap: 'wrap', gap: 12,
       }}>
         <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
-          <div style={{
-            width: 36, height: 36, borderRadius: 8,
-            background: `linear-gradient(135deg, ${T.navy}, ${T.navyLight})`,
-            display: 'flex', alignItems: 'center', justifyContent: 'center',
-          }}>
+          <div style={{ width: 36, height: 36, borderRadius: 8, background: `linear-gradient(135deg, ${T.navy}, ${T.navyLight})`, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
             <Edit3 size={18} color={T.gold} />
           </div>
           <div>
-            <h2 style={{ fontSize: 16, fontWeight: 700, color: T.navy, margin: 0 }}>
-              Bill Tally — Step 14
-            </h2>
+            <h2 style={{ fontSize: 16, fontWeight: 700, color: T.navy, margin: 0 }}>Bill Tally — Step 14</h2>
             <p style={{ fontSize: 12, color: T.textMuted, margin: 0 }}>{data.length} pending</p>
           </div>
         </div>
         <div style={{ display: 'flex', gap: 10 }}>
           <button onClick={fetchData} style={{
             display: 'flex', alignItems: 'center', gap: 6, padding: '8px 14px', borderRadius: 8,
-            border: `1.5px solid ${T.border}`, background: T.card,
-            color: T.textLight, fontSize: 13, cursor: 'pointer',
+            border: `1.5px solid ${T.border}`, background: T.card, color: T.textLight, fontSize: 13, cursor: 'pointer',
           }}><RotateCcw size={14} /> Refresh</button>
           <button onClick={() => { setIsModalOpen(true); setStep(1); setErrors({}); }} style={{
             display: 'flex', alignItems: 'center', gap: 6, padding: '8px 18px', borderRadius: 8, border: 'none',
@@ -308,15 +342,11 @@ const BillTallyData14 = () => {
         </div>
       </div>
 
-      {/* ── Main Table (Navy+Gold) ─────────────────────── */}
-      <div style={{
-        background: T.card, borderRadius: 10,
-        border: `1px solid ${T.border}`, overflow: 'hidden',
-      }}>
+      {/* ── Main Table ── */}
+      <div style={{ background: T.card, borderRadius: 10, border: `1px solid ${T.border}`, overflow: 'hidden' }}>
         {loading ? (
           <div style={{ padding: '60px 20px', textAlign: 'center' }}>
-            <Loader2 size={28} color={T.gold}
-              style={{ animation: 'spin 1s linear infinite', margin: '0 auto 12px' }} />
+            <Loader2 size={28} color={T.gold} style={{ animation: 'spin 1s linear infinite', margin: '0 auto 12px' }} />
             <p style={{ color: T.textMuted }}>Loading...</p>
           </div>
         ) : data.length === 0 ? (
@@ -334,8 +364,7 @@ const BillTallyData14 = () => {
                       padding: '12px 14px', textAlign: 'left',
                       color: T.goldLight, fontSize: 11, fontWeight: 700,
                       textTransform: 'uppercase', letterSpacing: 0.5,
-                      whiteSpace: 'nowrap', minWidth: col.w,
-                      borderBottom: `2px solid ${T.gold}`,
+                      whiteSpace: 'nowrap', minWidth: col.w, borderBottom: `2px solid ${T.gold}`,
                     }}>{col.label}</th>
                   ))}
                 </tr>
@@ -346,11 +375,7 @@ const BillTallyData14 = () => {
                     style={{ background: idx % 2 === 0 ? T.card : T.borderLight }}
                     onMouseEnter={e => { e.currentTarget.style.background = `${T.gold}08`; }}
                     onMouseLeave={e => { e.currentTarget.style.background = idx % 2 === 0 ? T.card : T.borderLight; }}>
-                    <Td><span style={{
-                      display: 'inline-flex', alignItems: 'center', justifyContent: 'center',
-                      width: 26, height: 26, borderRadius: 6,
-                      background: T.borderLight, fontSize: 12, fontWeight: 600, color: T.textLight,
-                    }}>{idx + 1}</span></Td>
+                    <Td><span style={{ display: 'inline-flex', alignItems: 'center', justifyContent: 'center', width: 26, height: 26, borderRadius: 6, background: T.borderLight, fontSize: 12, fontWeight: 600, color: T.textLight }}>{idx + 1}</span></Td>
                     <Td>{r.planned14}</Td>
                     <Td><span style={{ background: `${T.navy}15`, color: T.navy, padding: '3px 8px', borderRadius: 6, fontSize: 12, fontWeight: 700 }}>{r.UID}</span></Td>
                     <Td maxW={130}>{r.siteName}</Td>
@@ -392,7 +417,7 @@ const BillTallyData14 = () => {
           <div style={{
             position: 'fixed', top: '50%', left: '50%',
             transform: 'translate(-50%, -50%)',
-            width: '95%', maxWidth: step === 1 ? 460 : 1100,
+            width: '95%', maxWidth: step === 1 ? 460 : 1400,
             background: T.card, borderRadius: 14,
             boxShadow: '0 20px 60px rgba(0,0,0,0.2)',
             zIndex: 101, display: 'flex', flexDirection: 'column',
@@ -419,22 +444,18 @@ const BillTallyData14 = () => {
             <div style={{ flex: 1, overflowY: 'auto', padding: '20px' }}>
 
               {saveSuccess && (
-                <div style={{
-                  display: 'flex', alignItems: 'center', gap: 8, padding: '10px 14px',
-                  background: T.successBg, border: `1px solid ${T.successBorder}`,
-                  borderRadius: 8, marginBottom: 16, fontSize: 13, color: '#065f46',
-                }}><CheckCircle size={16} color={T.success} /> Submitted successfully!</div>
+                <div style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '10px 14px', background: T.successBg, border: `1px solid ${T.successBorder}`, borderRadius: 8, marginBottom: 16, fontSize: 13, color: '#065f46' }}>
+                  <CheckCircle size={16} color={T.success} /> Submitted successfully!
+                </div>
               )}
 
               {error && (
-                <div style={{
-                  display: 'flex', alignItems: 'center', gap: 8, padding: '10px 14px',
-                  background: T.dangerBg, border: `1px solid ${T.dangerBorder}`,
-                  borderRadius: 8, marginBottom: 16, fontSize: 13, color: T.danger,
-                }}><AlertCircle size={16} /> {error}</div>
+                <div style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '10px 14px', background: T.dangerBg, border: `1px solid ${T.dangerBorder}`, borderRadius: 8, marginBottom: 16, fontSize: 13, color: T.danger }}>
+                  <AlertCircle size={16} /> {error}
+                </div>
               )}
 
-              {/* ── Step 1 ─────────────────────────────── */}
+              {/* Step 1 */}
               {step === 1 && (
                 <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
                   <div>
@@ -477,7 +498,7 @@ const BillTallyData14 = () => {
                 </div>
               )}
 
-              {/* ── Step 2 ─────────────────────────────── */}
+              {/* Step 2 */}
               {step === 2 && (
                 <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
                   {/* Header Fields */}
@@ -510,27 +531,109 @@ const BillTallyData14 = () => {
                     </div>
                   </div>
 
-                  {/* Item Table */}
+                  {/* ✅ Item Table with Rate → Auto Amount Calculation */}
                   <div style={{ overflowX: 'auto', border: `1px solid ${T.border}`, borderRadius: 8 }}>
-                    <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 13 }}>
+                    <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 13, minWidth: 1300 }}>
                       <thead>
                         <tr style={{ background: T.navy }}>
-                          {['UID', 'Material', 'Amount *', 'CGST', 'IGST', 'CGST Amt', 'SGST Amt', 'IGST Amt', 'Total'].map(h => (
-                            <th key={h} style={{ padding: '10px 12px', color: T.goldLight, fontSize: 11, fontWeight: 700, textAlign: 'center', borderBottom: `2px solid ${T.gold}` }}>{h}</th>
+                          {['UID', 'Material', 'Size', 'Specification', 'Unit', 'Qty', 'PO Amount', 'Rate *', 'Amount', 'CGST', 'IGST', 'CGST Amt', 'SGST Amt', 'IGST Amt', 'Total'].map(h => (
+                            <th key={h} style={{
+                              padding: '10px 8px', color: T.goldLight, fontSize: 11, fontWeight: 700,
+                              textAlign: 'center', borderBottom: `2px solid ${T.gold}`, whiteSpace: 'nowrap',
+                            }}>{h}</th>
                           ))}
                         </tr>
                       </thead>
                       <tbody>
                         {formData.items.map((item, index) => (
                           <tr key={`${item.uid}-${index}`} style={{ background: index % 2 === 0 ? T.card : T.borderLight }}>
-                            <td style={{ padding: '8px 10px', textAlign: 'center', fontSize: 12, fontWeight: 700 }}>{item.uid}</td>
-                            <td style={{ padding: '8px 10px', fontSize: 12 }}>{item.materialName}</td>
+                            {/* UID */}
+                            <td style={{ padding: '8px 10px', textAlign: 'center' }}>
+                              <span style={{ background: `${T.navy}15`, color: T.navy, padding: '2px 7px', borderRadius: 5, fontWeight: 700, fontSize: 12 }}>
+                                {item.uid}
+                              </span>
+                            </td>
+
+                            {/* Material Name */}
+                            <td style={{ padding: '8px 10px', fontSize: 12, fontWeight: 600 }}>{item.materialName}</td>
+
+                            {/* Size */}
+                            <td style={{ padding: '8px 10px', textAlign: 'center', fontSize: 12 }}>
+                              {item.materialSize ? (
+                                <span style={{ background: `${T.gold}15`, color: T.goldDark, padding: '2px 6px', borderRadius: 4, fontSize: 11, fontWeight: 600 }}>
+                                  {item.materialSize}
+                                </span>
+                              ) : '—'}
+                            </td>
+
+                            {/* Specification */}
+                            <td style={{ padding: '8px 10px', fontSize: 12, maxWidth: 130, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                              {item.specification ? (
+                                <span style={{ background: `${T.purple}15`, color: T.purple, padding: '2px 6px', borderRadius: 4, fontSize: 11, fontWeight: 600 }}>
+                                  {item.specification}
+                                </span>
+                              ) : '—'}
+                            </td>
+
+                            {/* Unit */}
+                            <td style={{ padding: '8px 10px', textAlign: 'center', fontSize: 12, fontWeight: 600 }}>
+                              {item.unitName || '—'}
+                            </td>
+
+                            {/* ✅ Qty */}
+                            <td style={{ padding: '8px 10px', textAlign: 'center', fontSize: 12 }}>
+                              {item.qty ? (
+                                <span style={{
+                                  background: `${T.success}15`, color: T.success,
+                                  padding: '3px 8px', borderRadius: 5, fontWeight: 700,
+                                }}>{item.qty}</span>
+                              ) : '—'}
+                            </td>
+
+                            {/* PO Amount - DISABLED */}
+                            <td style={{ padding: '8px 10px', textAlign: 'right' }}>
+                              <input
+                                type="text"
+                                value={item.poAmount ? `₹ ${parseFloat(item.poAmount).toLocaleString('en-IN', { maximumFractionDigits: 2 })}` : '—'}
+                                readOnly disabled
+                                style={{
+                                  width: '100%', textAlign: 'right',
+                                  border: `1.5px solid ${T.gold}40`, borderRadius: 6, padding: '5px 8px',
+                                  fontSize: 12, fontWeight: 700,
+                                  background: `${T.gold}15`, color: T.goldDark, cursor: 'not-allowed',
+                                }}
+                                title="PO Amount (Reference from Purchase_FMS BJ column)"
+                              />
+                            </td>
+
+                            {/* ✅ Rate Input */}
                             <td style={{ padding: '8px 10px' }}>
-                              <input type="number" name="amount" value={item.amount}
+                              <input type="number" name="rate" value={item.rate}
                                 onChange={e => handleItemChange(index, e)}
-                                style={{ width: '100%', textAlign: 'center', border: `1px solid ${T.border}`, borderRadius: 6, padding: '4px 6px', fontSize: 12 }}
+                                style={{
+                                  width: '100%', textAlign: 'center',
+                                  border: `1.5px solid ${T.success}`, borderRadius: 6,
+                                  padding: '5px 8px', fontSize: 12, fontWeight: 700,
+                                }}
                                 placeholder="0" step="0.01" />
                             </td>
+
+                            {/* ✅ Amount - Auto calculated (Qty × Rate) - DISABLED */}
+                            <td style={{ padding: '8px 10px', textAlign: 'right' }}>
+                              <input type="text"
+                                value={item.amount ? `₹ ${parseFloat(item.amount).toLocaleString('en-IN', { maximumFractionDigits: 2 })}` : '₹ 0'}
+                                readOnly disabled
+                                style={{
+                                  width: '100%', textAlign: 'right',
+                                  border: `1.5px solid ${T.navy}40`, borderRadius: 6,
+                                  padding: '5px 8px', fontSize: 12, fontWeight: 700,
+                                  background: `${T.navy}10`, color: T.navy, cursor: 'not-allowed',
+                                }}
+                                title="Amount = Qty × Rate (auto calculated)"
+                              />
+                            </td>
+
+                            {/* CGST */}
                             <td style={{ padding: '8px 6px' }}>
                               <select name="cgst" value={item.cgst} onChange={e => handleItemChange(index, e)}
                                 disabled={item.igst !== 'None'}
@@ -540,6 +643,8 @@ const BillTallyData14 = () => {
                                 <option value="18">18%</option><option value="28">28%</option>
                               </select>
                             </td>
+
+                            {/* IGST */}
                             <td style={{ padding: '8px 6px' }}>
                               <select name="igst" value={item.igst} onChange={e => handleItemChange(index, e)}
                                 disabled={item.cgst !== 'None'}
@@ -549,23 +654,46 @@ const BillTallyData14 = () => {
                                 <option value="18">18%</option><option value="28">28%</option>
                               </select>
                             </td>
+
                             <td style={{ padding: '8px 10px', textAlign: 'center', fontSize: 12 }}>{item.cgstAmt}</td>
                             <td style={{ padding: '8px 10px', textAlign: 'center', fontSize: 12 }}>{item.sgstAmt}</td>
                             <td style={{ padding: '8px 10px', textAlign: 'center', fontSize: 12 }}>{item.igstAmt}</td>
-                            <td style={{ padding: '8px 10px', textAlign: 'center', fontSize: 12, fontWeight: 700 }}>{item.total}</td>
+                            <td style={{ padding: '8px 10px', textAlign: 'center', fontSize: 12, fontWeight: 700, color: T.success }}>{item.total}</td>
                           </tr>
                         ))}
                       </tbody>
                       <tfoot>
                         <tr style={{ background: T.borderLight, fontWeight: 700 }}>
-                          <td colSpan="2" style={{ padding: '10px 12px', textAlign: 'right', fontSize: 12 }}>Total</td>
-                          <td style={{ padding: '10px 12px', textAlign: 'center', fontSize: 12 }}>{formData.items.reduce((s, i) => s + (parseFloat(i.amount) || 0), 0).toFixed(2)}</td>
+                          <td colSpan="6" style={{ padding: '10px 12px', textAlign: 'right', fontSize: 12 }}>Total</td>
+
+                          {/* PO Amount Total */}
+                          <td style={{ padding: '10px 12px', textAlign: 'right', fontSize: 12, color: T.goldDark, fontWeight: 700 }}>
+                            ₹ {formData.items.reduce((s, i) => s + (parseFloat(i.poAmount) || 0), 0).toLocaleString('en-IN', { maximumFractionDigits: 2 })}
+                          </td>
+
+                          {/* Rate blank */}
+                          <td style={{ padding: '10px', textAlign: 'center' }}>-</td>
+
+                          {/* Amount Total */}
+                          <td style={{ padding: '10px 12px', textAlign: 'right', fontSize: 12, color: T.navy, fontWeight: 700 }}>
+                            ₹ {formData.items.reduce((s, i) => s + (parseFloat(i.amount) || 0), 0).toFixed(2)}
+                          </td>
+
                           <td style={{ padding: '10px', textAlign: 'center' }}>-</td>
                           <td style={{ padding: '10px', textAlign: 'center' }}>-</td>
-                          <td style={{ padding: '10px 12px', textAlign: 'center', fontSize: 12 }}>{formData.items.reduce((s, i) => s + (parseFloat(i.cgstAmt) || 0), 0).toFixed(2)}</td>
-                          <td style={{ padding: '10px 12px', textAlign: 'center', fontSize: 12 }}>{formData.items.reduce((s, i) => s + (parseFloat(i.sgstAmt) || 0), 0).toFixed(2)}</td>
-                          <td style={{ padding: '10px 12px', textAlign: 'center', fontSize: 12 }}>{formData.items.reduce((s, i) => s + (parseFloat(i.igstAmt) || 0), 0).toFixed(2)}</td>
-                          <td style={{ padding: '10px 12px', textAlign: 'center', fontSize: 12, fontWeight: 700 }}>{formData.items.reduce((s, i) => s + (parseFloat(i.total) || 0), 0).toFixed(2)}</td>
+
+                          <td style={{ padding: '10px 12px', textAlign: 'center', fontSize: 12 }}>
+                            {formData.items.reduce((s, i) => s + (parseFloat(i.cgstAmt) || 0), 0).toFixed(2)}
+                          </td>
+                          <td style={{ padding: '10px 12px', textAlign: 'center', fontSize: 12 }}>
+                            {formData.items.reduce((s, i) => s + (parseFloat(i.sgstAmt) || 0), 0).toFixed(2)}
+                          </td>
+                          <td style={{ padding: '10px 12px', textAlign: 'center', fontSize: 12 }}>
+                            {formData.items.reduce((s, i) => s + (parseFloat(i.igstAmt) || 0), 0).toFixed(2)}
+                          </td>
+                          <td style={{ padding: '10px 12px', textAlign: 'center', fontSize: 12, fontWeight: 700, color: T.success }}>
+                            {formData.items.reduce((s, i) => s + (parseFloat(i.total) || 0), 0).toFixed(2)}
+                          </td>
                         </tr>
                       </tfoot>
                     </table>
