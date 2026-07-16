@@ -6,7 +6,7 @@ export const advanceApi = createApi({
   reducerPath: 'advanceApi',
 
   baseQuery: fetchBaseQuery({
-    baseUrl: 'https://purchase-project-3iia.vercel.app',
+    baseUrl: 'https://new-puchase-project-silk.vercel.app',
     // baseUrl: 'http://localhost:5000',
     prepareHeaders: (headers) => {
       return headers;
@@ -46,3 +46,8 @@ export const {
   useGetAdvanceDropdownDataQuery,   // Dropdown data fetch karne ke liye
   usePostAdvancePaymentMutation,    // Payment form submit karne ke liye
 } = advanceApi;
+
+
+
+
+
