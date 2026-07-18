@@ -4,258 +4,34 @@ const express = require('express');
 const { sheets, spreadsheetId } = require('../config/googleSheet');
 const router = express.Router();
 
+// ─── GET /api/account-names ──────────────────────────────
 
-router.post("/Update-Payment-15", async (req, res) => {
+router.get('/account-names', async (req, res) => {
   try {
-    const paymentDataArray = req.body;
-
-    if (!Array.isArray(paymentDataArray) || paymentDataArray.length === 0) {
-      return res.status(400).json({ success: false, error: "Empty array." });
-    }
-
-    const normalize = (str) =>
-      (str || "").toString().trim().toLowerCase().replace(/\s+/g, " ");
-
-    const findRowRes = await sheets.spreadsheets.values.get({
+    const response = await sheets.spreadsheets.values.get({
       spreadsheetId,
-      range: 'Billing_FMS!A8:DL',
+      range: 'Project_Data!AB:AB',
     });
 
-    const sheetRows = findRowRes.data.values || [];
-    const rowMap = new Map();
-    const missingBills = [];
+    const rows = response.data.values || [];
 
-    for (const item of paymentDataArray) {
-      const billNo = (item.billNo || "").toString().trim();
-      const vendorFromFE = normalize(item.vendorFirmName16);
-      if (!billNo || !vendorFromFE) {
-        missingBills.push({ billNo: billNo || "missing", vendor: vendorFromFE || "missing" });
-        continue;
-      }
-      let foundRowNumber = null;
-      for (let i = 0; i < sheetRows.length; i++) {
-        const row = sheetRows[i];
-        const sheetVendorRaw = row[33] ? String(row[33]).trim() : '';
-        const sheetVendor = normalize(sheetVendorRaw);
-        const sheetBillNo = (row[59] || "").toString().trim();
-        if (sheetBillNo === billNo && sheetVendor === vendorFromFE) {
-          foundRowNumber = 8 + i;
-        }
-      }
-      if (foundRowNumber) {
-        rowMap.set(billNo, foundRowNumber);
-      } else {
-        missingBills.push({ billNo, vendor: item.vendorFirmName16, reason: "Not found" });
-      }
-    }
+    const accountNames = rows
+      .slice(1)
+      .map(row => (row[0] || "").toString().trim())
+      .filter(name => name !== "");
 
-    const fmsUpdates = [];
-    const newPaymentRows = [];
+    const uniqueAccounts = [...new Set(accountNames)];
 
-    const now = new Date().toLocaleString('en-IN', {
-      timeZone: 'Asia/Kolkata',
-      day: '2-digit', month: '2-digit', year: 'numeric',
-      hour: '2-digit', minute: '2-digit', second: '2-digit',
-      hour12: false,
-    }).replace(',', '');
-
-    for (const item of paymentDataArray) {
-      const {
-        timestamp = now,
-        planned15 = "",
-        siteName = "",
-        vendorFirmName16 = "",
-        billNo = "",
-        billDate16 = "",
-        netAmount16 = "",
-        currentPaid = "",
-        paidAmount17 = "",
-        balanceAmount17 = "",
-        bankDetails17 = "",
-        paymentMode17 = "",
-        paymentDetails17 = "",
-        paymentDate18 = "",
-        grandTotal = "",
-        advanceAmount = "0",
-        isAdvanceBill = false,
-        // ✅ New fields from frontend
-        remainingAdvance = "0",
-      } = item;
-
-      const targetRow = rowMap.get(billNo.trim());
-
-      if (targetRow) {
-        if (isAdvanceBill) {
-          fmsUpdates.push(
-            { range: `Billing_FMS!DD${targetRow}`, values: [["Done"]] },
-            { range: `Billing_FMS!DG${targetRow}`, values: [[paidAmount17]] },
-            { range: `Billing_FMS!DH${targetRow}`, values: [["0"]] },
-            { range: `Billing_FMS!DI${targetRow}`, values: [[bankDetails17]] },
-            { range: `Billing_FMS!DJ${targetRow}`, values: [[paymentMode17]] },
-            { range: `Billing_FMS!DK${targetRow}`, values: [[paymentDetails17]] },
-            { range: `Billing_FMS!DL${targetRow}`, values: [[paymentDate18]] }
-          );
-        } else {
-          fmsUpdates.push(
-            { range: `Billing_FMS!DD${targetRow}`, values: [["Done"]] },
-            { range: `Billing_FMS!DG${targetRow}`, values: [[paidAmount17]] },
-            { range: `Billing_FMS!DH${targetRow}`, values: [[balanceAmount17]] },
-            { range: `Billing_FMS!DI${targetRow}`, values: [[bankDetails17]] },
-            { range: `Billing_FMS!DJ${targetRow}`, values: [[paymentMode17]] },
-            { range: `Billing_FMS!DK${targetRow}`, values: [[paymentDetails17]] },
-            { range: `Billing_FMS!DL${targetRow}`, values: [[paymentDate18]] }
-          );
-        }
-      }
-
-      if (isAdvanceBill) {
-        // ✅ ADVANCE BILL → Payment_Sheet
-        // G = netAmount
-        // H = empty
-        // I = remaining advance (excess amount)
-        newPaymentRows.push([
-          timestamp,          // A
-          planned15,          // B
-          siteName,           // C
-          vendorFirmName16,   // D
-          billNo,             // E
-          billDate16,         // F
-          netAmount16,        // G ✅ Bill amount
-          "",                 // H ✅ Empty
-          remainingAdvance,   // I ✅ Remaining advance balance
-          bankDetails17,      // J
-          paymentMode17,      // K
-          paymentDetails17,   // L
-          paymentDate18,      // M
-          grandTotal,         // N
-          advanceAmount       // O (for column P)
-        ]);
-      } else {
-        newPaymentRows.push([
-          timestamp, planned15, siteName, vendorFirmName16, billNo,
-          billDate16, netAmount16, currentPaid, balanceAmount17,
-          bankDetails17, paymentMode17, paymentDetails17, paymentDate18,
-          grandTotal, advanceAmount
-        ]);
-      }
-    }
-
-    if (fmsUpdates.length > 0) {
-      const batchResult = await sheets.spreadsheets.values.batchUpdate({
-        spreadsheetId,
-        resource: { valueInputOption: 'USER_ENTERED', data: fmsUpdates }
-      });
-      console.log("Billing_FMS updated. Cells:", batchResult.data.totalUpdatedCells || 0);
-    }
-
-    if (newPaymentRows.length > 0) {
-      const existingRes = await sheets.spreadsheets.values.get({
-        spreadsheetId,
-        range: 'Payment_Sheet!A:A',
-      });
-      const columnA = existingRes.data.values || [];
-      let firstEmptyRow = 2;
-      for (let i = 1; i < columnA.length; i++) {
-        if (!columnA[i] || !columnA[i][0] || String(columnA[i][0]).trim() === "") {
-          firstEmptyRow = i + 1;
-          break;
-        }
-      }
-      if (firstEmptyRow === 2 && columnA.length > 1 && columnA[columnA.length - 1][0]) {
-        firstEmptyRow = columnA.length + 1;
-      }
-
-      const aNData = newPaymentRows.map(row => row.slice(0, 14));
-      const pData = newPaymentRows.map(row => [row[14]]);
-
-      await sheets.spreadsheets.values.batchUpdate({
-        spreadsheetId,
-        resource: {
-          valueInputOption: 'USER_ENTERED',
-          data: [
-            {
-              range: `Payment_Sheet!A${firstEmptyRow}:N${firstEmptyRow + newPaymentRows.length - 1}`,
-              values: aNData
-            },
-            {
-              range: `Payment_Sheet!P${firstEmptyRow}:P${firstEmptyRow + newPaymentRows.length - 1}`,
-              values: pData
-            }
-          ]
-        }
-      });
-
-      console.log(`Added ${newPaymentRows.length} rows to Payment_Sheet`);
-    }
-
-    // ✅ Update Advance rows in Payment_Sheet - remaining balance
-    // Find advance rows and update column I
-    for (const item of paymentDataArray) {
-      if (!item.isAdvanceBill) continue;
-
-      const siteName = (item.siteName || "").trim();
-      const vendorName = (item.vendorFirmName16 || "").trim();
-      const advanceUsed = Number(item.advanceUsedForThisBill || 0);
-
-      if (!siteName || !vendorName || !advanceUsed) continue;
-
-      // Find advance rows in Payment_Sheet for this site+vendor
-      const paymentSheetRes = await sheets.spreadsheets.values.get({
-        spreadsheetId,
-        range: "Payment_Sheet!A:P",
-      });
-
-      const allPayRows = paymentSheetRes.data.values || [];
-      let remainingToDeduct = advanceUsed;
-
-      for (let i = 1; i < allPayRows.length; i++) {
-        if (remainingToDeduct <= 0) break;
-
-        const pRow = allPayRows[i];
-        const colO = (pRow[14] || "").toString().trim();
-        if (colO !== 'Advance') continue;
-
-        const pSite = (pRow[2] || "").toString().trim();
-        const pVendor = (pRow[3] || "").toString().trim();
-
-        if (pSite.toLowerCase() !== siteName.toLowerCase()) continue;
-        if (pVendor.toLowerCase() !== vendorName.toLowerCase()) continue;
-
-        // Current remaining in column I
-        const currentH = parseFloat((pRow[7] || "0").toString().replace(/,/g, "")) || 0;
-        const currentI = (pRow[8] || "").toString().replace(/,/g, "").trim();
-        let currentRemaining = currentI !== "" ? parseFloat(currentI) : currentH;
-
-        if (currentRemaining <= 0) continue;
-
-        const deductAmount = Math.min(remainingToDeduct, currentRemaining);
-        const newRemaining = currentRemaining - deductAmount;
-        remainingToDeduct -= deductAmount;
-
-        // ✅ Update column I of this advance row
-        const rowNumber = i + 1;
-        await sheets.spreadsheets.values.update({
-          spreadsheetId,
-          range: `Payment_Sheet!I${rowNumber}`,
-          valueInputOption: 'USER_ENTERED',
-          requestBody: {
-            values: [[newRemaining]],
-          },
-        });
-
-        console.log(`Updated Advance Row ${rowNumber}: I = ${newRemaining} (deducted ${deductAmount})`);
-      }
-    }
+    console.log(`[Account Names] Fetched: ${uniqueAccounts.length}`);
 
     res.json({
       success: true,
-      updatedInFMS: Math.floor(fmsUpdates.length / 7),
-      addedToPaymentSheet: newPaymentRows.length,
-      missingBills: missingBills.length > 0 ? missingBills : undefined
+      count: uniqueAccounts.length,
+      data: uniqueAccounts,
     });
 
   } catch (error) {
-    console.error('Error in /Update-Payment-15:', error);
+    console.error('Error in /account-names:', error);
     res.status(500).json({ success: false, error: error.message });
   }
 });
@@ -484,7 +260,6 @@ router.post("/Update-Payment-15", async (req, res) => {
     res.status(500).json({ success: false, error: error.message });
   }
 });
-
 
 
 
