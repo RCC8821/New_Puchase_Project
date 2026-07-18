@@ -44,6 +44,10 @@ const OutStanding= require('./All_Fms_Api/OutStanding')
 
 const Advancesection=require('./All_Fms_Api/Advance_payment')
 
+///////  Signature Requirement /////
+
+const SignatureRequirement = require('./All_Fms_Api/signatureRoutes')
+
 const app = express();
 
 app.use(express.json({ limit: '30mb' }));
@@ -109,6 +113,9 @@ app.use('/api/labour/pdf',LabourPDF)
 //////// Advance 
 
 app.use('/api/advance',Advancesection)
+
+
+app.use('/api/signature',SignatureRequirement)
 
 // Start the server
 const PORT = process.env.PORT || 5000;
