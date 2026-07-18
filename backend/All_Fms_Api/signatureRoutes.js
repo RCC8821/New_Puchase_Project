@@ -160,39 +160,142 @@ router.get('/project-data', async (req, res) => {
   }
 });
 
-// ─── GET NEXT UID ────────────────────────────────────────
+
+
+
+
+
+// ─── GET NEXT UID (Format: S0001) ────────────────────────
 async function getNextUID() {
   try {
     const response = await sheets.spreadsheets.values.get({
       spreadsheetId: SignatureSheetId,
-      range: 'FORM_DATA!B2:B',
+      range: 'FORM_DATA!B:B',
     });
-    const existing = response.data.values
-      ?.flat().map(Number).filter(n => !isNaN(n)) || [];
-    return existing.length > 0 ? Math.max(...existing) + 1 : 1;
+
+    const uids = response.data.values?.flat() || [];
+
+    const numbers = uids
+      .map(uid => {
+        const value = String(uid || '').trim();
+        const match = value.match(/^S(\d{4})$/i);
+        return match ? parseInt(match[1], 10) : null;
+      })
+      .filter(n => n !== null && !isNaN(n));
+
+    const next = numbers.length > 0 ? Math.max(...numbers) + 1 : 1;
+    return `S${String(next).padStart(4, '0')}`;
+
   } catch (err) {
+    console.error("UID error:", err);
     throw new Error('Failed to generate UID');
   }
 }
-
-// ─── GET NEXT REQ NO ─────────────────────────────────────
+// ─── GET NEXT REQ NO (Format: sig0001) ───────────────────
 async function getNextReqNo() {
   try {
     const response = await sheets.spreadsheets.values.get({
       spreadsheetId: SignatureSheetId,
-      range: 'FORM_DATA!C2:C',
+      range: 'FORM_DATA!C:C',
     });
+
     const reqNos = response.data.values?.flat() || [];
+
     const numbers = reqNos
-      .map(no => no.match(/^sig_(\d+)$/)?.[1])
-      .filter(Boolean)
-      .map(Number);
-    const next = numbers.length ? Math.max(...numbers) + 1 : 1;
-    return `sig_${String(next).padStart(2, '0')}`;
+      .map(no => {
+        const value = String(no || '').trim();
+        const match = value.match(/^sig(\d{4})$/i);
+        return match ? parseInt(match[1], 10) : null;
+      })
+      .filter(n => n !== null && !isNaN(n));
+
+    const next = numbers.length > 0 ? Math.max(...numbers) + 1 : 1;
+    return `sig${String(next).padStart(4, '0')}`;
+
   } catch (err) {
+    console.error("ReqNo error:", err);
     throw new Error('Failed to generate req_no');
   }
 }
+
+
+// ─── SUBMIT ──────────────────────────────────────────────
+// router.post('/submit-requirement', async (req, res) => {
+//   try {
+//     const {
+//       projectName, engineerName, location,
+//       activity, remark, items,
+//     } = req.body;
+
+//     if (!projectName || !engineerName) {
+//       throw new Error('Project Name and Engineer Name are required');
+//     }
+//     if (!Array.isArray(items) || items.length === 0) {
+//       throw new Error('At least one item is required');
+//     }
+
+//     const reqNo = await getNextReqNo();
+//     let currentUID = await getNextUID();
+
+//     const now = new Date().toLocaleString('en-IN', {
+//       timeZone: 'Asia/Kolkata',
+//       day: '2-digit', month: '2-digit', year: 'numeric',
+//       hour: '2-digit', minute: '2-digit', second: '2-digit',
+//       hour12: false,
+//     }).replace(',', '');
+
+//     const values = items.map((item, i) => {
+//       if (!item.materialType || !item.materialName ||
+//           !item.materialSize || !item.specification ||
+//           !item.skuCode || !item.quantity || !item.unit ||
+//           !item.description ||
+//           item.reqDays === '' || item.reqDays === undefined ||
+//           item.reqDays === null) {
+//         throw new Error(`Item ${i + 1}: All fields are required`);
+//       }
+
+//       return [
+//         now,                      // A: Timestamp
+//         currentUID + i,           // B: UID
+//         reqNo,                    // C: Req No
+//         projectName,              // D: Project Name
+//         engineerName,             // E: Engineer Name
+//         location || '',           // F: Location
+//         activity || '',           // G: Activity
+//         item.materialType,        // H: Material Type
+//         item.materialName,        // I: Material Name
+//         item.materialSize,        // J: Material Size
+//         item.specification,       // K: Specification
+//         item.skuCode,             // L: SKU Code
+//         item.quantity,            // M: Quantity
+//         item.unit,                // N: Unit Name
+//         item.description,         // O: Description
+//         item.reqDays.toString(),  // P: Require Days
+//         remark || '',             // Q: Remark
+//       ];
+//     });
+
+//     await sheets.spreadsheets.values.append({
+//       spreadsheetId: SignatureSheetId,
+//       range: 'FORM_DATA!A:Q',
+//       valueInputOption: 'USER_ENTERED',
+//       resource: { values },
+//     });
+
+//     res.json({
+//       message: 'Requirement submitted successfully!',
+//       reqNo,
+//       itemCount: items.length,
+//     });
+
+//   } catch (error) {
+//     console.error('Signature submit error:', error);
+//     res.status(400).json({ error: error.message });
+//   }
+// });
+
+
+
 
 // ─── SUBMIT ──────────────────────────────────────────────
 router.post('/submit-requirement', async (req, res) => {
@@ -202,6 +305,7 @@ router.post('/submit-requirement', async (req, res) => {
       activity, remark, items,
     } = req.body;
 
+    // ✅ Validation
     if (!projectName || !engineerName) {
       throw new Error('Project Name and Engineer Name are required');
     }
@@ -209,9 +313,12 @@ router.post('/submit-requirement', async (req, res) => {
       throw new Error('At least one item is required');
     }
 
+    // ✅ Generate Req No and Starting UID
     const reqNo = await getNextReqNo();
-    let currentUID = await getNextUID();
+    const firstUID = await getNextUID();
+    const startUIDNumber = parseInt(firstUID.replace(/^S/i, ''), 10);
 
+    // ✅ Timestamp (IST)
     const now = new Date().toLocaleString('en-IN', {
       timeZone: 'Asia/Kolkata',
       day: '2-digit', month: '2-digit', year: 'numeric',
@@ -219,7 +326,9 @@ router.post('/submit-requirement', async (req, res) => {
       hour12: false,
     }).replace(',', '');
 
+    // ✅ Prepare rows
     const values = items.map((item, i) => {
+      // Item validation
       if (!item.materialType || !item.materialName ||
           !item.materialSize || !item.specification ||
           !item.skuCode || !item.quantity || !item.unit ||
@@ -229,10 +338,13 @@ router.post('/submit-requirement', async (req, res) => {
         throw new Error(`Item ${i + 1}: All fields are required`);
       }
 
+      // ✅ Generate UID: S0001, S0002, S0003...
+      const uid = `S${String(startUIDNumber + i).padStart(4, '0')}`;
+
       return [
         now,                      // A: Timestamp
-        currentUID + i,           // B: UID
-        reqNo,                    // C: Req No
+        uid,                      // B: UID → S0001, S0002...
+        reqNo,                    // C: Req No → sig0001
         projectName,              // D: Project Name
         engineerName,             // E: Engineer Name
         location || '',           // F: Location
@@ -250,6 +362,7 @@ router.post('/submit-requirement', async (req, res) => {
       ];
     });
 
+    // ✅ Append to Google Sheet
     await sheets.spreadsheets.values.append({
       spreadsheetId: SignatureSheetId,
       range: 'FORM_DATA!A:Q',
@@ -257,6 +370,7 @@ router.post('/submit-requirement', async (req, res) => {
       resource: { values },
     });
 
+    // ✅ Success response
     res.json({
       message: 'Requirement submitted successfully!',
       reqNo,
@@ -268,5 +382,6 @@ router.post('/submit-requirement', async (req, res) => {
     res.status(400).json({ error: error.message });
   }
 });
+
 
 module.exports = router;
