@@ -200,15 +200,103 @@ async function getNextReqNo() {
 
 
 // ─── SUBMIT (FORM_DATA!A:R) ──────────────────────────────
+// router.post('/submit-requirement', async (req, res) => {
+//   try {
+//     const { projectName, engineerName, cluster, location, activity, remark, items } = req.body;
+
+//     // ✅ Validation
+//     if (!projectName) throw new Error('Project Name is required');
+//     if (!engineerName) throw new Error('Engineer Name is required');
+//     if (!cluster) throw new Error('Cluster is required');
+//     if (!location) throw new Error('Location is required');
+//     if (!activity) throw new Error('Activity is required');
+//     if (!remark) throw new Error('Remark is required');
+
+//     if (!Array.isArray(items) || items.length === 0) {
+//       throw new Error('At least one item is required');
+//     }
+
+//     const reqNo = await getNextReqNo();
+//     const firstUID = await getNextUID();
+//     const startUIDNumber = parseInt(firstUID.replace(/^S/i, ''), 10);
+
+//     const now = new Date().toLocaleString('en-IN', {
+//       timeZone: 'Asia/Kolkata',
+//       day: '2-digit', month: '2-digit', year: 'numeric',
+//       hour: '2-digit', minute: '2-digit', second: '2-digit',
+//       hour12: false,
+//     }).replace(',', '');
+
+//     const values = items.map((item, i) => {
+//       if (!item.materialType || !item.materialName ||
+//           !item.materialSize || !item.specification ||
+//           !item.skuCode || !item.quantity || !item.unit ||
+//           !item.description ||
+//           item.reqDays === '' || item.reqDays === undefined ||
+//           item.reqDays === null) {
+//         throw new Error(`Item ${i + 1}: All fields are required`);
+//       }
+
+//       const uid = `S${String(startUIDNumber + i).padStart(4, '0')}`;
+
+//       return [
+//         now,                      // A Timestamp
+//         uid,                      // B UID (S0001)
+//         reqNo,                    // C Req (sig0001)
+//         projectName,              // D
+//         engineerName,             // E
+//         cluster,                  // F  ✅ NEW
+//         location,                 // G (shifted)
+//         activity,                 // H (shifted)
+//         item.materialType,        // I
+//         item.materialName,        // J
+//         item.materialSize,        // K
+//         item.specification,       // L
+//         item.skuCode,             // M
+//         item.quantity,            // N
+//         item.unit,                // O
+//         item.description,         // P
+//         item.reqDays.toString(),  // Q
+//         remark,                   // R
+//       ];
+//     });
+
+//     await sheets.spreadsheets.values.append({
+//       spreadsheetId: SignatureSheetId,
+//       range: 'FORM_DATA!A:R',
+//       valueInputOption: 'USER_ENTERED',
+//       resource: { values },
+//     });
+
+//     res.json({
+//       message: 'Requirement submitted successfully!',
+//       reqNo,
+//       itemCount: items.length,
+//     });
+//   } catch (error) {
+//     console.error('Signature submit error:', error);
+//     res.status(400).json({ error: error.message });
+//   }
+// });
+
+
+
+
 router.post('/submit-requirement', async (req, res) => {
   try {
-    const { projectName, engineerName, cluster, location, activity, remark, items } = req.body;
+    const {
+      projectName,
+      engineerName,
+      cluster,
+      activity,
+      remark,
+      items,
+    } = req.body;
 
-    // ✅ Validation
+    // ✅ Validation (location per item)
     if (!projectName) throw new Error('Project Name is required');
     if (!engineerName) throw new Error('Engineer Name is required');
     if (!cluster) throw new Error('Cluster is required');
-    if (!location) throw new Error('Location is required');
     if (!activity) throw new Error('Activity is required');
     if (!remark) throw new Error('Remark is required');
 
@@ -228,6 +316,8 @@ router.post('/submit-requirement', async (req, res) => {
     }).replace(',', '');
 
     const values = items.map((item, i) => {
+      // ✅ Item validation includes location
+      if (!item.location) throw new Error(`Item ${i + 1}: Location is required`);
       if (!item.materialType || !item.materialName ||
           !item.materialSize || !item.specification ||
           !item.skuCode || !item.quantity || !item.unit ||
@@ -239,25 +329,44 @@ router.post('/submit-requirement', async (req, res) => {
 
       const uid = `S${String(startUIDNumber + i).padStart(4, '0')}`;
 
+      // ✅ FORM_DATA columns (A:R) example:
+      // A Timestamp
+      // B UID
+      // C ReqNo
+      // D ProjectName
+      // E EngineerName
+      // F Cluster
+      // G Location   <-- per item
+      // H Activity
+      // I MaterialType
+      // J MaterialName
+      // K MaterialSize
+      // L Specification
+      // M SKU
+      // N Qty
+      // O Unit
+      // P Description
+      // Q ReqDays
+      // R Remark
       return [
-        now,                      // A Timestamp
-        uid,                      // B UID (S0001)
-        reqNo,                    // C Req (sig0001)
-        projectName,              // D
-        engineerName,             // E
-        cluster,                  // F  ✅ NEW
-        location,                 // G (shifted)
-        activity,                 // H (shifted)
-        item.materialType,        // I
-        item.materialName,        // J
-        item.materialSize,        // K
-        item.specification,       // L
-        item.skuCode,             // M
-        item.quantity,            // N
-        item.unit,                // O
-        item.description,         // P
-        item.reqDays.toString(),  // Q
-        remark,                   // R
+        now,                   // A
+        uid,                   // B
+        reqNo,                 // C
+        projectName,           // D
+        engineerName,          // E
+        cluster,               // F
+        item.location,         // G ✅ per item
+        activity,              // H
+        item.materialType,     // I
+        item.materialName,     // J
+        item.materialSize,     // K
+        item.specification,    // L
+        item.skuCode,          // M
+        item.quantity,         // N
+        item.unit,             // O
+        item.description,      // P
+        item.reqDays.toString(), // Q
+        remark,                // R
       ];
     });
 
@@ -273,10 +382,17 @@ router.post('/submit-requirement', async (req, res) => {
       reqNo,
       itemCount: items.length,
     });
+
   } catch (error) {
     console.error('Signature submit error:', error);
     res.status(400).json({ error: error.message });
   }
 });
 
+
+
 module.exports = router;
+
+
+
+
