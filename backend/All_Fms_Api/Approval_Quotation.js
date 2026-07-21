@@ -150,6 +150,7 @@ const getMappedQuotationRows = async (indentNo = '', force = false) => {
     });
 };
 
+
 // ─── GET APPROVAL QUOTATION (Purchase_FMS) ──────────────
 router.get('/get-approval-Quotation', async (req, res) => {
   try {
@@ -192,6 +193,7 @@ router.get('/get-approval-Quotation', async (req, res) => {
         if (!status4) { skipped.noStatus4++; return null; }
         if (status5) { skipped.hasStatus5++; return null; }
         if (actual5) { skipped.hasActual5++; return null; }
+      
 
         return {
           UID: (row[1] || '').trim(),

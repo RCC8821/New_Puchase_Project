@@ -1,11 +1,11 @@
 
-
+// // Dashboard.jsx
 // import React, { useState, useEffect, useRef, useCallback } from 'react';
 // import {
 //   User, FileText, ShoppingCart, DollarSign, Package,
-//   Truck, ChevronDown, LogOut, Menu, X, Users
+//   Truck, ChevronDown, LogOut, Menu, X, Users, Briefcase
 // } from 'lucide-react';
-// import { useNavigate, useLocation } from 'react-router-dom';
+// import { useNavigate, useLocation, Outlet } from 'react-router-dom';
 
 // import RequirementReceived from '../components/purchase/RequirementReceived';
 // import ApproveRequired from '../components/purchase/ApproveRequired';
@@ -34,6 +34,10 @@
 // import LabourPDF from '../components/Labour/LabourPDF';
 // import SiteApprovel from '../components/SiteExpenses/SiteApprovel';
 // import SitePaidAmount from '../components/SiteExpenses/SitePaidAmount';
+
+// // ✅ Signature Requirement (JV Project ke andar aayega)
+// import SignatureRequirement from '../components/purchase/SignatureRequirement';
+// import HeritageDashboard from '../components/Heritage/HeritageDashboard';
 
 // const T = {
 //   navy: '#1e293b',
@@ -66,85 +70,322 @@
 //   const mainRef = useRef(null);
 //   const dropdownRef = useRef(null);
 
-//   // ── All Pages ──
+//   // ── Purchase Pages ──
 //   const allPurchasePages = [
-//     { id: 'requirement-received', name: 'Requirement Received', icon: FileText, component: RequirementReceived, path: '/dashboard/requirement-received', allowedUserTypes: ['admin', 'Site Engineer', 'Material Received'] },
-//     { id: 'approve-required', name: 'Approve Required', icon: Package, component: ApproveRequired, path: '/dashboard/approve-required', allowedUserTypes: ['admin', 'Ravindra Singh'] },
-//     { id: 'indent-to-get-quotation', name: 'Indent (To Get Quotation)', icon: Truck, component: IndentToGetQuotation, path: '/dashboard/indent-to-get-quotation', allowedUserTypes: ['admin', 'Ravi Rajak'] },
-//     { id: 'Take_Quotation', name: 'Take Quotation', icon: Truck, component: Take_Quotation, path: '/dashboard/Take_Quotation', allowedUserTypes: ['admin', 'Anjali Malviya', 'Neha Masani'] },
-//     { id: 'Approval_Quotation', name: 'Approval Quotation', icon: Truck, component: Approval_Quotation, path: '/dashboard/Approval_Quotation', allowedUserTypes: ['admin', 'Ravi Rajak'] },
-//     { id: 'PO', name: 'PO', icon: Truck, component: PO, path: '/dashboard/PO', allowedUserTypes: ['admin', 'Ravi Rajak'] },
-//     { id: 'Vendor_FollowUp_Material', name: 'Vendor Follow Up Material', icon: Truck, component: Vendor_FollowUp_Material, path: '/dashboard/Vendor_FollowUp_Material', allowedUserTypes: ['admin', 'Neha Masani'] },
-//     { id: 'Material_Received', name: 'Material Received', icon: Truck, component: Material_Received, path: '/dashboard/Material_Received', allowedUserTypes: ['admin', 'Material Received', 'Neha Masani', 'Site Engineer'] },
-//     { id: 'Final_Material_Received', name: 'Final Material Received', icon: Truck, component: Final_Material_Received, path: '/dashboard/Final_Material_Received', allowedUserTypes: ['admin', 'Final Material Received'] },
-//     { id: 'MRN', name: 'MRN', icon: Truck, component: MRN, path: '/dashboard/MRN', allowedUserTypes: ['admin', 'Varsha Kahar'] },
-//     { id: 'Vendor_followup_billing', name: 'Vendor Followup Billing', icon: Truck, component: Vendor_followup_billing, path: '/dashboard/Vendor_followup_billing', allowedUserTypes: ['admin', 'Neha Masani'] },
-//     { id: 'Bill_Processing', name: 'Bill Processing', icon: Truck, component: Bill_Processing, path: '/dashboard/Bill_Processing', allowedUserTypes: ['admin', 'Varsha Kahar'] },
-//     { id: 'BillCheckedData', name: 'Bill Checked Data', icon: Truck, component: BillCheckedData, path: '/dashboard/BillCheckedData', allowedUserTypes: ['admin', 'Ravi Rajak'] },
-//     { id: 'BillTallyData', name: 'Bill Tally Data', icon: Truck, component: BillTallyData, path: '/dashboard/BillTallyData', allowedUserTypes: ['admin', 'Govind Ram Nagar'] },
-//     { id: 'Payment', name: 'Payment', icon: Truck, component: Payment, path: '/dashboard/Payment', allowedUserTypes: ['admin', 'Govind Ram Nagar'] },
-//     { id: 'Bill_Checked_18Step', name: 'Bill Checked 18 Step', icon: Truck, component: Bill_Checked_18Step, path: '/dashboard/Bill_Checked_18Step', allowedUserTypes: ['admin', 'Abhishek Sharma'] },
-//     { id: 'contractor-purchase-form', name: 'Contractor Purchase Form', icon: FileText, component: ContractorPurchseForm, path: '/dashboard/contractor-purchase-form', allowedUserTypes: ['admin', 'Site Engineer', 'Material Received'] },
-//     { id: 'outstanding', name: 'Without System Bill Entry', icon: DollarSign, component: OutStanding, path: '/dashboard/outstanding', allowedUserTypes: ['admin', 'Govind Ram Nagar'] },
-//     { id: 'Advance_payment', name: 'Advance Payment', icon: DollarSign, component: Advance_payment, path: '/dashboard/Advance_payment', allowedUserTypes: ['admin', 'Govind Ram Nagar'] },
+//     {
+//       id: 'requirement-received',
+//       name: 'Requirement Received',
+//       icon: FileText,
+//       component: RequirementReceived,
+//       path: '/dashboard/requirement-received',
+//       allowedUserTypes: ['admin', 'Site Engineer', 'Material Received'],
+//     },
+//     {
+//       id: 'approve-required',
+//       name: 'Approve Required',
+//       icon: Package,
+//       component: ApproveRequired,
+//       path: '/dashboard/approve-required',
+//       allowedUserTypes: ['admin', 'Ravindra Singh'],
+//     },
+//     {
+//       id: 'indent-to-get-quotation',
+//       name: 'Indent (To Get Quotation)',
+//       icon: Truck,
+//       component: IndentToGetQuotation,
+//       path: '/dashboard/indent-to-get-quotation',
+//       allowedUserTypes: ['admin', 'Ravi Rajak'],
+//     },
+//     {
+//       id: 'Take_Quotation',
+//       name: 'Take Quotation',
+//       icon: Truck,
+//       component: Take_Quotation,
+//       path: '/dashboard/Take_Quotation',
+//       allowedUserTypes: ['admin', 'Anjali Malviya', 'Neha Masani'],
+//     },
+//     {
+//       id: 'Approval_Quotation',
+//       name: 'Approval Quotation',
+//       icon: Truck,
+//       component: Approval_Quotation,
+//       path: '/dashboard/Approval_Quotation',
+//       allowedUserTypes: ['admin', 'Ravi Rajak'],
+//     },
+//     {
+//       id: 'PO',
+//       name: 'PO',
+//       icon: Truck,
+//       component: PO,
+//       path: '/dashboard/PO',
+//       allowedUserTypes: ['admin', 'Ravi Rajak'],
+//     },
+//     {
+//       id: 'Vendor_FollowUp_Material',
+//       name: 'Vendor Follow Up Material',
+//       icon: Truck,
+//       component: Vendor_FollowUp_Material,
+//       path: '/dashboard/Vendor_FollowUp_Material',
+//       allowedUserTypes: ['admin', 'Neha Masani'],
+//     },
+//     {
+//       id: 'Material_Received',
+//       name: 'Material Received',
+//       icon: Truck,
+//       component: Material_Received,
+//       path: '/dashboard/Material_Received',
+//       allowedUserTypes: ['admin', 'Material Received', 'Neha Masani', 'Site Engineer'],
+//     },
+//     {
+//       id: 'Final_Material_Received',
+//       name: 'Final Material Received',
+//       icon: Truck,
+//       component: Final_Material_Received,
+//       path: '/dashboard/Final_Material_Received',
+//       allowedUserTypes: ['admin', 'Final Material Received'],
+//     },
+//     {
+//       id: 'MRN',
+//       name: 'MRN',
+//       icon: Truck,
+//       component: MRN,
+//       path: '/dashboard/MRN',
+//       allowedUserTypes: ['admin', 'Varsha Kahar'],
+//     },
+//     {
+//       id: 'Vendor_followup_billing',
+//       name: 'Vendor Followup Billing',
+//       icon: Truck,
+//       component: Vendor_followup_billing,
+//       path: '/dashboard/Vendor_followup_billing',
+//       allowedUserTypes: ['admin', 'Neha Masani'],
+//     },
+//     {
+//       id: 'Bill_Processing',
+//       name: 'Bill Processing',
+//       icon: Truck,
+//       component: Bill_Processing,
+//       path: '/dashboard/Bill_Processing',
+//       allowedUserTypes: ['admin', 'Varsha Kahar'],
+//     },
+//     {
+//       id: 'BillCheckedData',
+//       name: 'Bill Checked Data',
+//       icon: Truck,
+//       component: BillCheckedData,
+//       path: '/dashboard/BillCheckedData',
+//       allowedUserTypes: ['admin', 'Ravi Rajak'],
+//     },
+//     {
+//       id: 'BillTallyData',
+//       name: 'Bill Tally Data',
+//       icon: Truck,
+//       component: BillTallyData,
+//       path: '/dashboard/BillTallyData',
+//       allowedUserTypes: ['admin', 'Govind Ram Nagar'],
+//     },
+//     {
+//       id: 'Payment',
+//       name: 'Payment',
+//       icon: Truck,
+//       component: Payment,
+//       path: '/dashboard/Payment',
+//       allowedUserTypes: ['admin', 'Govind Ram Nagar'],
+//     },
+//     {
+//       id: 'Bill_Checked_18Step',
+//       name: 'Bill Checked 18 Step',
+//       icon: Truck,
+//       component: Bill_Checked_18Step,
+//       path: '/dashboard/Bill_Checked_18Step',
+//       allowedUserTypes: ['admin', 'Abhishek Sharma'],
+//     },
+//     {
+//       id: 'contractor-purchase-form',
+//       name: 'Contractor Purchase Form',
+//       icon: FileText,
+//       component: ContractorPurchseForm,
+//       path: '/dashboard/contractor-purchase-form',
+//       allowedUserTypes: ['admin', 'Site Engineer', 'Material Received'],
+//     },
+//     {
+//       id: 'outstanding',
+//       name: 'Without System Bill Entry',
+//       icon: DollarSign,
+//       component: OutStanding,
+//       path: '/dashboard/outstanding',
+//       allowedUserTypes: ['admin', 'Govind Ram Nagar'],
+//     },
+//     {
+//       id: 'Advance_payment',
+//       name: 'Advance Payment',
+//       icon: DollarSign,
+//       component: Advance_payment,
+//       path: '/dashboard/Advance_payment',
+//       allowedUserTypes: ['admin', 'Govind Ram Nagar'],
+//     },
 //   ];
 
 //   const allLabourPages = [
-//     { id: 'Approvel1', name: 'Labour Approval', icon: FileText, component: Approvel1, path: '/dashboard/Approvel1', allowedUserTypes: ['admin', 'Ravindra Singh'] },
-//     { id: 'Labourmanagement', name: 'Labour Management', icon: FileText, component: LabourManagment, path: '/dashboard/Labourmanagement', allowedUserTypes: ['admin', 'Labour Managment'] },
-//     { id: 'Deployed', name: 'Labour Deployed', icon: FileText, component: Approvel2, path: '/dashboard/Approvel2', allowedUserTypes: ['admin', 'Ashok Pandey'] },
-//     { id: 'PaidAmount', name: 'Labour Payment', icon: FileText, component: PaidAmount, path: '/dashboard/PaidAmount', allowedUserTypes: ['admin', 'Govind Ram Nagar', 'Varsha Kahar'] },
-//     { id: 'LabourPDF', name: 'Labour PDF', icon: FileText, component: LabourPDF, path: '/dashboard/LabourPDF', allowedUserTypes: ['admin', 'Varsha Kahar'] },
+//     {
+//       id: 'Approvel1',
+//       name: 'Labour Approval',
+//       icon: FileText,
+//       component: Approvel1,
+//       path: '/dashboard/Approvel1',
+//       allowedUserTypes: ['admin', 'Ravindra Singh'],
+//     },
+//     {
+//       id: 'Labourmanagement',
+//       name: 'Labour Management',
+//       icon: FileText,
+//       component: LabourManagment,
+//       path: '/dashboard/Labourmanagement',
+//       allowedUserTypes: ['admin', 'Labour Managment'],
+//     },
+//     {
+//       id: 'Deployed',
+//       name: 'Labour Deployed',
+//       icon: FileText,
+//       component: Approvel2,
+//       path: '/dashboard/Approvel2',
+//       allowedUserTypes: ['admin', 'Ashok Pandey'],
+//     },
+//     {
+//       id: 'PaidAmount',
+//       name: 'Labour Payment',
+//       icon: FileText,
+//       component: PaidAmount,
+//       path: '/dashboard/PaidAmount',
+//       allowedUserTypes: ['admin', 'Govind Ram Nagar', 'Varsha Kahar'],
+//     },
+//     {
+//       id: 'LabourPDF',
+//       name: 'Labour PDF',
+//       icon: FileText,
+//       component: LabourPDF,
+//       path: '/dashboard/LabourPDF',
+//       allowedUserTypes: ['admin', 'Varsha Kahar'],
+//     },
 //   ];
 
 //   const allSiteExpensesPages = [
-//     { id: 'SiteApprovel', name: 'Site Approval', icon: FileText, component: SiteApprovel, path: '/dashboard/SiteApprovel', allowedUserTypes: ['admin', 'Ravindra Singh'] },
-//     { id: 'SitePaidAmount', name: 'Site Paid Amount', icon: DollarSign, component: SitePaidAmount, path: '/dashboard/SitePaidAmount', allowedUserTypes: ['admin', 'Govind Ram Nagar', 'Varsha Kahar', 'Final Material Received'] },
+//     {
+//       id: 'SiteApprovel',
+//       name: 'Site Approval',
+//       icon: FileText,
+//       component: SiteApprovel,
+//       path: '/dashboard/SiteApprovel',
+//       allowedUserTypes: ['admin', 'Ravindra Singh'],
+//     },
+//     {
+//       id: 'SitePaidAmount',
+//       name: 'Site Paid Amount',
+//       icon: DollarSign,
+//       component: SitePaidAmount,
+//       path: '/dashboard/SitePaidAmount',
+//       allowedUserTypes: ['admin', 'Govind Ram Nagar', 'Varsha Kahar', 'Final Material Received'],
+//     },
 //   ];
 
-//   const getPurchasePages = () => allPurchasePages.filter(p => p.allowedUserTypes.includes(userType));
-//   const getLabourPages = () => allLabourPages.filter(p => p.allowedUserTypes.includes(userType));
-//   const getSiteExpensesPages = () => allSiteExpensesPages.filter(p => p.allowedUserTypes.includes(userType));
-//   const getAllowedPages = () => [...getPurchasePages(), ...getLabourPages(), ...getSiteExpensesPages()];
+//   // ✅ JV Project pages
+//   const allJvProjectPages = [
+//     {
+//       id: 'heritage',
+//       name: 'Heritage',
+//       icon: FileText,
+//       component: HeritageDashboard,
+//       path: '/dashboard/heritage',
+//       allowedUserTypes: ['admin', 'Signature Requirement'],
+//     },
+//   ];
+
+//   const getPurchasePages = () =>
+//     allPurchasePages.filter((p) => p.allowedUserTypes.includes(userType));
+//   const getLabourPages = () =>
+//     allLabourPages.filter((p) => p.allowedUserTypes.includes(userType));
+//   const getSiteExpensesPages = () =>
+//     allSiteExpensesPages.filter((p) => p.allowedUserTypes.includes(userType));
+//   const getJvProjectPages = () =>
+//     allJvProjectPages.filter((p) => p.allowedUserTypes.includes(userType));
+
+//   const getAllowedPages = () => [
+//     ...getPurchasePages(),
+//     ...getLabourPages(),
+//     ...getSiteExpensesPages(),
+//     ...getJvProjectPages(),
+//   ];
 
 //   const menuItems = [
-//     { id: 'purchase', name: 'Purchase FMS', icon: ShoppingCart, pages: getPurchasePages() },
-//     { id: 'labour', name: 'Labour', icon: Users, pages: getLabourPages() },
-//     { id: 'siteExpenses', name: 'Site Expenses', icon: DollarSign, pages: getSiteExpensesPages() },
-//     { id: 'sheet', name: 'Sheet Link', icon: FileText, url: 'https://docs.google.com/spreadsheets/d/18bmeQLqAOqleKS9628izEnirrRwOqkC0G_pEYGOsO-Y/edit?gid=0#gid=0', pages: [] },
+//     {
+//       id: 'purchase',
+//       name: 'Purchase FMS',
+//       icon: ShoppingCart,
+//       pages: getPurchasePages(),
+//     },
+//     {
+//       id: 'labour',
+//       name: 'Labour',
+//       icon: Users,
+//       pages: getLabourPages(),
+//     },
+//     {
+//       id: 'siteExpenses',
+//       name: 'Site Expenses',
+//       icon: DollarSign,
+//       pages: getSiteExpensesPages(),
+//     },
+//     {
+//       id: 'jvProject',
+//       name: 'JV Project',
+//       icon: Briefcase,
+//       pages: getJvProjectPages(),
+//     },
+//     {
+//       id: 'sheet',
+//       name: 'Sheet Link',
+//       icon: FileText,
+//       url: 'https://docs.google.com/spreadsheets/d/18bmeQLqAOqleKS9628izEnirrRwOqkC0G_pEYGOsO-Y/edit?gid=0#gid=0',
+//       pages: [],
+//     },
 //   ];
 
+//   // ✅ Page Content Titles (including heritage sub-routes)
 //   const pageContent = {
 //     'requirement-received': 'Requirement Form',
 //     'approve-required': 'Approve Required',
 //     'indent-to-get-quotation': 'Indent (To Get Quotation)',
-//     'Take_Quotation': 'Take Quotation',
-//     'Approval_Quotation': 'Approval Quotation',
-//     'PO': 'PO',
-//     'Vendor_FollowUp_Material': 'Vendor Follow Up Material',
-//     'Material_Received': 'Material Received',
-//     'Final_Material_Received': 'Final Material Received',
-//     'MRN': 'MRN',
-//     'Vendor_followup_billing': 'Vendor Followup Billing',
-//     'Bill_Processing': 'Bill Processing',
-//     'BillCheckedData': 'Bill Checked Data',
-//     'BillTallyData': 'Bill Tally Data',
-//     'Payment': 'Payment',
-//     'Bill_Checked_18Step': 'Bill Checked 18 Step',
+//     Take_Quotation: 'Take Quotation',
+//     Approval_Quotation: 'Approval Quotation',
+//     PO: 'PO',
+//     Vendor_FollowUp_Material: 'Vendor Follow Up Material',
+//     Material_Received: 'Material Received',
+//     Final_Material_Received: 'Final Material Received',
+//     MRN: 'MRN',
+//     Vendor_followup_billing: 'Vendor Followup Billing',
+//     Bill_Processing: 'Bill Processing',
+//     BillCheckedData: 'Bill Checked Data',
+//     BillTallyData: 'Bill Tally Data',
+//     Payment: 'Payment',
+//     Bill_Checked_18Step: 'Bill Checked 18 Step',
 //     'contractor-purchase-form': 'Contractor Purchase Form',
-//     'outstanding': 'Without System Bill Entry',
-//     'Advance_payment': 'Advance Payment',
-//     'Approvel1': 'Labour Approval',
-//     'Labourmanagement': 'Labour Management',
-//     'Deployed': 'Labour Deployed',
-//     'PaidAmount': 'Labour Payment',
-//     'LabourPDF': 'Labour PDF',
-//     'SiteApprovel': 'Site Approval',
-//     'SitePaidAmount': 'Site Paid Amount',
+//     outstanding: 'Without System Bill Entry',
+//     Advance_payment: 'Advance Payment',
+//     Approvel1: 'Labour Approval',
+//     Labourmanagement: 'Labour Management',
+//     Deployed: 'Labour Deployed',
+//     PaidAmount: 'Labour Payment',
+//     LabourPDF: 'Labour PDF',
+//     SiteApprovel: 'Site Approval',
+//     SitePaidAmount: 'Site Paid Amount',
 //     'no-access': 'No Access',
+//     'heritage': 'JV Project — Heritage',
+//     // ✅ Sub-route titles
+//     'heritage-signature': 'Heritage — Signature Requirement',
+//     'heritage-store': 'Heritage — Store Inventory',
+//     'heritage-site': 'Heritage — Site Engineer',
 //   };
 
-//   // Scroll hide/show navbar
 //   const handleScroll = useCallback(() => {
 //     const el = mainRef.current;
 //     if (!el) return;
@@ -158,7 +399,6 @@
 //     lastScrollY.current = currentY;
 //   }, []);
 
-//   // Close dropdown on outside click
 //   useEffect(() => {
 //     const handleClick = (e) => {
 //       if (dropdownRef.current && !dropdownRef.current.contains(e.target)) {
@@ -169,7 +409,6 @@
 //     return () => document.removeEventListener('mousedown', handleClick);
 //   }, []);
 
-//   // Auth + default page
 //   useEffect(() => {
 //     const stored = sessionStorage.getItem('userType');
 //     if (stored) {
@@ -179,23 +418,42 @@
 //     }
 //   }, [navigate]);
 
+//   // ✅ Updated useEffect with sub-route handling
 //   useEffect(() => {
 //     if (!userType) return;
 //     const allowed = getAllowedPages();
-//     if (allowed.length > 0) {
-//       const current = allowed.find(p => location.pathname === p.path);
-//       if (current) {
-//         setSelectedPage(current.id);
-//       } else {
-//         setSelectedPage(allowed[0].id);
-//         navigate(allowed[0].path);
-//       }
-//     } else {
+
+//     if (allowed.length === 0) {
 //       setSelectedPage('no-access');
+//       return;
 //     }
+
+//     // ✅ 1. Exact match check (Purchase, Labour, etc.)
+//     const current = allowed.find((p) => location.pathname === p.path);
+//     if (current) {
+//       setSelectedPage(current.id);
+//       return;
+//     }
+
+//     // ✅ 2. Heritage sub-route check
+//     if (location.pathname === '/dashboard/heritage/signature-form') {
+//       setSelectedPage('heritage-signature');
+//       return;
+//     }
+//     if (location.pathname === '/dashboard/heritage/store-inventory') {
+//       setSelectedPage('heritage-store');
+//       return;
+//     }
+//     if (location.pathname === '/dashboard/heritage/site-engineer') {
+//       setSelectedPage('heritage-site');
+//       return;
+//     }
+
+//     // ✅ 3. Default page
+//     setSelectedPage(allowed[0].id);
+//     navigate(allowed[0].path);
 //   }, [userType, location.pathname]);
 
-//   // Handlers
 //   const selectPage = (page) => {
 //     setSelectedPage(page.id);
 //     setOpenDropdown(null);
@@ -210,11 +468,18 @@
 
 //   const getCurrentComponent = () => {
 //     const all = getAllowedPages();
-//     const found = all.find(p => p.id === selectedPage);
+//     const found = all.find((p) => p.id === selectedPage);
 //     return found?.component || null;
 //   };
 
 //   const CurrentComponent = getCurrentComponent();
+
+//   // ✅ Check if current page is a heritage sub-route
+//   const isHeritageSubRoute = [
+//     'heritage-signature',
+//     'heritage-store',
+//     'heritage-site',
+//   ].includes(selectedPage);
 
 //   return (
 //     <div style={{
@@ -222,8 +487,7 @@
 //       background: T.bg,
 //       fontFamily: "'Segoe UI', system-ui, -apple-system, sans-serif",
 //     }}>
-
-//       {/* ══════════ NAVBAR ══════════ */}
+//       {/* NAVBAR */}
 //       <nav
 //         ref={dropdownRef}
 //         style={{
@@ -237,14 +501,10 @@
 //         }}
 //       >
 //         <div style={{
-//           width: '100%',
-//           padding: '0 16px',
-//           display: 'flex',
-//           alignItems: 'center',
-//           justifyContent: 'space-between',
-//           height: 56,
+//           width: '100%', padding: '0 16px',
+//           display: 'flex', alignItems: 'center',
+//           justifyContent: 'space-between', height: 56,
 //         }}>
-
 //           {/* Logo */}
 //           <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
 //             <div style={{
@@ -279,15 +539,16 @@
 //                       color: '#cbd5e1', fontSize: 12, fontWeight: 500,
 //                       textDecoration: 'none', transition: 'all 0.2s',
 //                     }}
-//                     onMouseEnter={(e) => { e.currentTarget.style.background = 'rgba(255,255,255,0.1)'; e.currentTarget.style.color = 'white'; }}
-//                     onMouseLeave={(e) => { e.currentTarget.style.background = 'transparent'; e.currentTarget.style.color = '#cbd5e1'; }}
 //                   >
 //                     <menu.icon size={14} />{menu.name}
 //                   </a>
 //                 );
 //               }
 //               if (menu.pages.length === 0) return null;
-//               const isActive = menu.pages.some(p => p.id === selectedPage);
+
+//               // ✅ Also check if any sub-route is active for this menu
+//               const isActive = menu.pages.some((p) => p.id === selectedPage) ||
+//                 (menu.id === 'jvProject' && isHeritageSubRoute);
 //               const isOpen = openDropdown === menu.id;
 
 //               return (
@@ -301,13 +562,14 @@
 //                       background: isActive ? `${T.gold}15` : 'transparent',
 //                       color: isActive ? T.goldLight : '#cbd5e1',
 //                       fontSize: 12, fontWeight: isActive ? 600 : 500,
-//                       cursor: 'pointer', transition: 'all 0.2s',
+//                       cursor: 'pointer',
 //                     }}
-//                     onMouseEnter={(e) => { if (!isActive) { e.currentTarget.style.background = 'rgba(255,255,255,0.1)'; e.currentTarget.style.color = 'white'; } }}
-//                     onMouseLeave={(e) => { if (!isActive) { e.currentTarget.style.background = 'transparent'; e.currentTarget.style.color = '#cbd5e1'; } }}
 //                   >
 //                     <menu.icon size={14} />{menu.name}
-//                     <ChevronDown size={12} style={{ transform: isOpen ? 'rotate(180deg)' : 'rotate(0)', transition: 'transform 0.2s' }} />
+//                     <ChevronDown size={12} style={{
+//                       transform: isOpen ? 'rotate(180deg)' : 'rotate(0)',
+//                       transition: 'transform 0.2s',
+//                     }} />
 //                   </button>
 
 //                   {isOpen && (
@@ -330,12 +592,12 @@
 //                               background: isPageActive ? `${T.gold}12` : 'transparent',
 //                               color: isPageActive ? T.goldDark : T.text,
 //                               fontSize: 12, fontWeight: isPageActive ? 600 : 400,
-//                               cursor: 'pointer', transition: 'all 0.15s',
-//                               borderLeft: isPageActive ? `3px solid ${T.gold}` : '3px solid transparent',
+//                               cursor: 'pointer',
+//                               borderLeft: isPageActive
+//                                 ? `3px solid ${T.gold}`
+//                                 : '3px solid transparent',
 //                               textAlign: 'left',
 //                             }}
-//                             onMouseEnter={(e) => { if (!isPageActive) e.currentTarget.style.background = '#f8fafc'; }}
-//                             onMouseLeave={(e) => { if (!isPageActive) e.currentTarget.style.background = 'transparent'; }}
 //                           >
 //                             <page.icon size={13} style={{ color: isPageActive ? T.gold : T.textMuted }} />
 //                             {page.name}
@@ -374,11 +636,8 @@
 //               border: '1px solid rgba(239,68,68,0.3)',
 //               background: 'rgba(239,68,68,0.1)',
 //               color: '#fca5a5', fontSize: 12, fontWeight: 500,
-//               cursor: 'pointer', transition: 'all 0.2s',
-//             }}
-//               onMouseEnter={(e) => { e.currentTarget.style.background = 'rgba(239,68,68,0.2)'; }}
-//               onMouseLeave={(e) => { e.currentTarget.style.background = 'rgba(239,68,68,0.1)'; }}
-//             >
+//               cursor: 'pointer',
+//             }}>
 //               <LogOut size={13} />
 //               <span className="desktop-menu">Logout</span>
 //             </button>
@@ -399,8 +658,11 @@
 //         {/* Mobile Menu */}
 //         {isMobileMenuOpen && (
 //           <div style={{
-//             background: T.navyDark, borderTop: `1px solid ${T.navyLight}`,
-//             padding: '12px 16px 16px', maxHeight: '70vh', overflowY: 'auto',
+//             background: T.navyDark,
+//             borderTop: `1px solid ${T.navyLight}`,
+//             padding: '12px 16px 16px',
+//             maxHeight: '70vh',
+//             overflowY: 'auto',
 //           }}>
 //             <div style={{
 //               display: 'flex', alignItems: 'center', gap: 10,
@@ -427,7 +689,8 @@
 //                     style={{
 //                       display: 'flex', alignItems: 'center', gap: 10,
 //                       padding: '10px 12px', borderRadius: 8,
-//                       color: '#cbd5e1', fontSize: 14, textDecoration: 'none', marginBottom: 2,
+//                       color: '#cbd5e1', fontSize: 14,
+//                       textDecoration: 'none', marginBottom: 2,
 //                     }}
 //                   >
 //                     <menu.icon size={18} />{menu.name}
@@ -436,7 +699,8 @@
 //               }
 //               if (menu.pages.length === 0) return null;
 //               const isOpen = openDropdown === menu.id;
-//               const isActive = menu.pages.some(p => p.id === selectedPage);
+//               const isActive = menu.pages.some((p) => p.id === selectedPage) ||
+//                 (menu.id === 'jvProject' && isHeritageSubRoute);
 
 //               return (
 //                 <div key={menu.id} style={{ marginBottom: 4 }}>
@@ -445,7 +709,8 @@
 //                     style={{
 //                       width: '100%', display: 'flex', alignItems: 'center',
 //                       gap: 10, padding: '10px 12px', borderRadius: 8,
-//                       border: 'none', background: isActive ? `${T.gold}15` : 'transparent',
+//                       border: 'none',
+//                       background: isActive ? `${T.gold}15` : 'transparent',
 //                       color: isActive ? T.goldLight : '#cbd5e1',
 //                       fontSize: 14, fontWeight: isActive ? 600 : 400,
 //                       cursor: 'pointer', textAlign: 'left',
@@ -453,10 +718,17 @@
 //                   >
 //                     <menu.icon size={18} />
 //                     <span style={{ flex: 1 }}>{menu.name}</span>
-//                     <ChevronDown size={16} style={{ transform: isOpen ? 'rotate(180deg)' : 'rotate(0)', transition: 'transform 0.2s' }} />
+//                     <ChevronDown size={16} style={{
+//                       transform: isOpen ? 'rotate(180deg)' : 'rotate(0)',
+//                       transition: 'transform 0.2s',
+//                     }} />
 //                   </button>
 //                   {isOpen && (
-//                     <div style={{ marginLeft: 16, marginTop: 4, borderLeft: `2px solid ${T.navyLight}`, paddingLeft: 12 }}>
+//                     <div style={{
+//                       marginLeft: 16, marginTop: 4,
+//                       borderLeft: `2px solid ${T.navyLight}`,
+//                       paddingLeft: 12,
+//                     }}>
 //                       {menu.pages.map((page) => {
 //                         const isPageActive = selectedPage === page.id;
 //                         return (
@@ -465,7 +737,8 @@
 //                             style={{
 //                               width: '100%', display: 'flex', alignItems: 'center',
 //                               gap: 8, padding: '8px 10px', borderRadius: 6,
-//                               border: 'none', background: isPageActive ? `${T.gold}20` : 'transparent',
+//                               border: 'none',
+//                               background: isPageActive ? `${T.gold}20` : 'transparent',
 //                               color: isPageActive ? T.goldLight : '#94a3b8',
 //                               fontSize: 13, fontWeight: isPageActive ? 600 : 400,
 //                               cursor: 'pointer', textAlign: 'left', marginBottom: 2,
@@ -484,7 +757,7 @@
 //         )}
 //       </nav>
 
-//       {/* ══════════ MAIN CONTENT - FULL WIDTH ══════════ */}
+//       {/* MAIN */}
 //       <div
 //         ref={mainRef}
 //         onScroll={handleScroll}
@@ -494,54 +767,37 @@
 //           overflowY: 'auto',
 //         }}
 //       >
-//         <div style={{
-//           width: '100%',
-//           padding: '12px 12px 40px',
-//         }}>
-
-//           {/* Page Header */}
+//         <div style={{ width: '100%', padding: '12px 12px 40px' }}>
 //           <div style={{
-//             display: 'flex',
-//             alignItems: 'center',
-//             justifyContent: 'space-between',
-//             marginBottom: 12,
+//             display: 'flex', alignItems: 'center',
+//             justifyContent: 'space-between', marginBottom: 12,
 //           }}>
 //             <div>
-//               <h1 style={{
-//                 fontSize: 18,
-//                 fontWeight: 700,
-//                 color: T.navy,
-//                 margin: 0,
-//               }}>
+//               <h1 style={{ fontSize: 18, fontWeight: 700, color: T.navy, margin: 0 }}>
 //                 {pageContent[selectedPage] || 'Page Not Found'}
 //               </h1>
 //               <div style={{
-//                 width: 36,
-//                 height: 3,
-//                 background: T.gold,
-//                 borderRadius: 3,
-//                 marginTop: 6,
+//                 width: 36, height: 3,
+//                 background: T.gold, borderRadius: 3, marginTop: 6,
 //               }} />
 //             </div>
 //           </div>
 
-//           {/* Content - NO CARD WRAPPER, FULL WIDTH */}
-//           <div style={{
-//             width: '100%',
-//             minHeight: 'calc(100vh - 120px)',
-//           }}>
-//             {CurrentComponent ? (
+//           {/* ✅ Content Section - Handles both regular pages AND heritage sub-routes */}
+//           <div style={{ width: '100%', minHeight: 'calc(100vh - 120px)' }}>
+//             {isHeritageSubRoute ? (
+//               // ✅ For heritage sub-routes → Use Outlet (App.jsx routes render honge)
+//               <Outlet />
+//             ) : CurrentComponent ? (
+//               // ✅ For regular pages → Render matched component
 //               <CurrentComponent selectedPage={selectedPage} />
 //             ) : (
+//               // ✅ Fallback
 //               <div style={{
-//                 display: 'flex',
-//                 flexDirection: 'column',
-//                 alignItems: 'center',
-//                 justifyContent: 'center',
-//                 height: 300,
-//                 background: T.card,
-//                 borderRadius: 10,
-//                 border: `1px solid ${T.border}`,
+//                 display: 'flex', flexDirection: 'column',
+//                 alignItems: 'center', justifyContent: 'center',
+//                 height: 300, background: T.card,
+//                 borderRadius: 10, border: `1px solid ${T.border}`,
 //                 color: T.textMuted,
 //               }}>
 //                 <Package size={48} style={{ marginBottom: 16, color: T.border }} />
@@ -556,14 +812,16 @@
 //         </div>
 //       </div>
 
-//       {/* Mobile overlay */}
 //       {isMobileMenuOpen && (
-//         <div onClick={() => setIsMobileMenuOpen(false)}
-//           style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.3)', zIndex: 50 }}
+//         <div
+//           onClick={() => setIsMobileMenuOpen(false)}
+//           style={{
+//             position: 'fixed', inset: 0,
+//             background: 'rgba(0,0,0,0.3)', zIndex: 50,
+//           }}
 //         />
 //       )}
 
-//       {/* Responsive CSS */}
 //       <style>{`
 //         @media (max-width: 900px) {
 //           .desktop-menu { display: none !important; }
@@ -588,29 +846,13 @@
 
 
 
-
-
-
-
-
-
-
-
-///////////////////////////////////////////////////////////
-
-
-
-
-
-
-
 // Dashboard.jsx
 import React, { useState, useEffect, useRef, useCallback } from 'react';
 import {
   User, FileText, ShoppingCart, DollarSign, Package,
-  Truck, ChevronDown, LogOut, Menu, X, Users
+  Truck, ChevronDown, LogOut, Menu, X, Users, Briefcase, HardHat
 } from 'lucide-react';
-import { useNavigate, useLocation } from 'react-router-dom';
+import { useNavigate, useLocation, Outlet } from 'react-router-dom';
 
 import RequirementReceived from '../components/purchase/RequirementReceived';
 import ApproveRequired from '../components/purchase/ApproveRequired';
@@ -640,25 +882,16 @@ import LabourPDF from '../components/Labour/LabourPDF';
 import SiteApprovel from '../components/SiteExpenses/SiteApprovel';
 import SitePaidAmount from '../components/SiteExpenses/SitePaidAmount';
 
-// ✅ NEW IMPORT
 import SignatureRequirement from '../components/purchase/SignatureRequirement';
+import HeritageDashboard from '../components/Heritage/HeritageDashboard';
 
 const T = {
-  navy: '#1e293b',
-  navyLight: '#334155',
-  navyDark: '#0f172a',
-  gold: '#f59e0b',
-  goldLight: '#fbbf24',
-  goldDark: '#d97706',
-  bg: '#f8fafc',
-  card: '#ffffff',
-  text: '#1e293b',
-  textLight: '#64748b',
-  textMuted: '#94a3b8',
-  border: '#e2e8f0',
-  borderLight: '#f1f5f9',
-  success: '#10b981',
-  danger: '#ef4444',
+  navy: '#1e293b', navyLight: '#334155', navyDark: '#0f172a',
+  gold: '#f59e0b', goldLight: '#fbbf24', goldDark: '#d97706',
+  bg: '#f8fafc', card: '#ffffff', text: '#1e293b',
+  textLight: '#64748b', textMuted: '#94a3b8',
+  border: '#e2e8f0', borderLight: '#f1f5f9',
+  success: '#10b981', danger: '#ef4444',
 };
 
 const Dashboard = () => {
@@ -674,7 +907,10 @@ const Dashboard = () => {
   const mainRef = useRef(null);
   const dropdownRef = useRef(null);
 
-  // ── All Purchase Pages ──
+  // ✅ Helper: Check if user is Site Engineer (dynamic)
+  const isSiteEngineer = userType?.startsWith('SE_');
+
+  // ── Purchase Pages ──
   const allPurchasePages = [
     {
       id: 'requirement-received',
@@ -828,16 +1064,6 @@ const Dashboard = () => {
       path: '/dashboard/Advance_payment',
       allowedUserTypes: ['admin', 'Govind Ram Nagar'],
     },
-
-    // ✅ NEW - Signature Requirement
-    {
-      id: 'signature-requirement',
-      name: 'Signature Requirement',
-      icon: FileText,
-      component: SignatureRequirement,
-      path: '/dashboard/signature-requirement',
-      allowedUserTypes: ['admin', 'Signature Requirement'], // ← sirf yahi user
-    },
   ];
 
   const allLabourPages = [
@@ -902,16 +1128,40 @@ const Dashboard = () => {
     },
   ];
 
+  // ✅ JV Project pages
+  const allJvProjectPages = [
+    {
+      id: 'heritage',
+      name: 'Heritage',
+      icon: FileText,
+      component: HeritageDashboard,
+      path: '/dashboard/heritage',
+      // ✅ Signature Requirement + all Site Engineers + admin
+      allowedUserTypes: ['admin', 'Signature Requirement'],
+      allowSiteEngineer: true, // ✅ Site Engineers bhi access
+    },
+  ];
+
   const getPurchasePages = () =>
     allPurchasePages.filter((p) => p.allowedUserTypes.includes(userType));
   const getLabourPages = () =>
     allLabourPages.filter((p) => p.allowedUserTypes.includes(userType));
   const getSiteExpensesPages = () =>
     allSiteExpensesPages.filter((p) => p.allowedUserTypes.includes(userType));
+
+  // ✅ JV Project - Site Engineer bhi access
+  const getJvProjectPages = () =>
+    allJvProjectPages.filter((p) => {
+      if (p.allowedUserTypes.includes(userType)) return true;
+      if (p.allowSiteEngineer && isSiteEngineer) return true;
+      return false;
+    });
+
   const getAllowedPages = () => [
     ...getPurchasePages(),
     ...getLabourPages(),
     ...getSiteExpensesPages(),
+    ...getJvProjectPages(),
   ];
 
   const menuItems = [
@@ -932,6 +1182,12 @@ const Dashboard = () => {
       name: 'Site Expenses',
       icon: DollarSign,
       pages: getSiteExpensesPages(),
+    },
+    {
+      id: 'jvProject',
+      name: 'JV Project',
+      icon: Briefcase,
+      pages: getJvProjectPages(),
     },
     {
       id: 'sheet',
@@ -970,12 +1226,12 @@ const Dashboard = () => {
     SiteApprovel: 'Site Approval',
     SitePaidAmount: 'Site Paid Amount',
     'no-access': 'No Access',
-
-    // ✅ NEW
-    'signature-requirement': 'Signature Requirement',
+    'heritage': 'JV Project — Heritage',
+    'heritage-signature': 'Heritage — Signature Requirement',
+    'heritage-store': 'Heritage — Store Inventory',
+    'heritage-site': 'Heritage — Site Engineer',
   };
 
-  // Scroll hide/show navbar
   const handleScroll = useCallback(() => {
     const el = mainRef.current;
     if (!el) return;
@@ -989,7 +1245,6 @@ const Dashboard = () => {
     lastScrollY.current = currentY;
   }, []);
 
-  // Close dropdown on outside click
   useEffect(() => {
     const handleClick = (e) => {
       if (dropdownRef.current && !dropdownRef.current.contains(e.target)) {
@@ -1000,7 +1255,6 @@ const Dashboard = () => {
     return () => document.removeEventListener('mousedown', handleClick);
   }, []);
 
-  // Auth + default page
   useEffect(() => {
     const stored = sessionStorage.getItem('userType');
     if (stored) {
@@ -1013,17 +1267,33 @@ const Dashboard = () => {
   useEffect(() => {
     if (!userType) return;
     const allowed = getAllowedPages();
-    if (allowed.length > 0) {
-      const current = allowed.find((p) => location.pathname === p.path);
-      if (current) {
-        setSelectedPage(current.id);
-      } else {
-        setSelectedPage(allowed[0].id);
-        navigate(allowed[0].path);
-      }
-    } else {
+
+    if (allowed.length === 0) {
       setSelectedPage('no-access');
+      return;
     }
+
+    const current = allowed.find((p) => location.pathname === p.path);
+    if (current) {
+      setSelectedPage(current.id);
+      return;
+    }
+
+    if (location.pathname === '/dashboard/heritage/signature-form') {
+      setSelectedPage('heritage-signature');
+      return;
+    }
+    if (location.pathname === '/dashboard/heritage/store-inventory') {
+      setSelectedPage('heritage-store');
+      return;
+    }
+    if (location.pathname === '/dashboard/heritage/site-engineer') {
+      setSelectedPage('heritage-site');
+      return;
+    }
+
+    setSelectedPage(allowed[0].id);
+    navigate(allowed[0].path);
   }, [userType, location.pathname]);
 
   const selectPage = (page) => {
@@ -1046,14 +1316,23 @@ const Dashboard = () => {
 
   const CurrentComponent = getCurrentComponent();
 
+  const isHeritageSubRoute = [
+    'heritage-signature',
+    'heritage-store',
+    'heritage-site',
+  ].includes(selectedPage);
+
+  // ✅ Display name (for Site Engineers, show name without SE_ prefix)
+  const displayName = isSiteEngineer
+    ? userType.replace('SE_', '')
+    : userType;
+
   return (
     <div style={{
       minHeight: '100vh',
       background: T.bg,
       fontFamily: "'Segoe UI', system-ui, -apple-system, sans-serif",
     }}>
-
-      {/* ══════════ NAVBAR ══════════ */}
       <nav
         ref={dropdownRef}
         style={{
@@ -1067,15 +1346,10 @@ const Dashboard = () => {
         }}
       >
         <div style={{
-          width: '100%',
-          padding: '0 16px',
-          display: 'flex',
-          alignItems: 'center',
-          justifyContent: 'space-between',
-          height: 56,
+          width: '100%', padding: '0 16px',
+          display: 'flex', alignItems: 'center',
+          justifyContent: 'space-between', height: 56,
         }}>
-
-          {/* Logo */}
           <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
             <div style={{
               width: 34, height: 34, borderRadius: 8,
@@ -1097,7 +1371,6 @@ const Dashboard = () => {
             </span>
           </div>
 
-          {/* Desktop Menu */}
           <div className="desktop-menu" style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
             {menuItems.map((menu) => {
               if (menu.url) {
@@ -1109,21 +1382,15 @@ const Dashboard = () => {
                       color: '#cbd5e1', fontSize: 12, fontWeight: 500,
                       textDecoration: 'none', transition: 'all 0.2s',
                     }}
-                    onMouseEnter={(e) => {
-                      e.currentTarget.style.background = 'rgba(255,255,255,0.1)';
-                      e.currentTarget.style.color = 'white';
-                    }}
-                    onMouseLeave={(e) => {
-                      e.currentTarget.style.background = 'transparent';
-                      e.currentTarget.style.color = '#cbd5e1';
-                    }}
                   >
                     <menu.icon size={14} />{menu.name}
                   </a>
                 );
               }
               if (menu.pages.length === 0) return null;
-              const isActive = menu.pages.some((p) => p.id === selectedPage);
+
+              const isActive = menu.pages.some((p) => p.id === selectedPage) ||
+                (menu.id === 'jvProject' && isHeritageSubRoute);
               const isOpen = openDropdown === menu.id;
 
               return (
@@ -1137,19 +1404,7 @@ const Dashboard = () => {
                       background: isActive ? `${T.gold}15` : 'transparent',
                       color: isActive ? T.goldLight : '#cbd5e1',
                       fontSize: 12, fontWeight: isActive ? 600 : 500,
-                      cursor: 'pointer', transition: 'all 0.2s',
-                    }}
-                    onMouseEnter={(e) => {
-                      if (!isActive) {
-                        e.currentTarget.style.background = 'rgba(255,255,255,0.1)';
-                        e.currentTarget.style.color = 'white';
-                      }
-                    }}
-                    onMouseLeave={(e) => {
-                      if (!isActive) {
-                        e.currentTarget.style.background = 'transparent';
-                        e.currentTarget.style.color = '#cbd5e1';
-                      }
+                      cursor: 'pointer',
                     }}
                   >
                     <menu.icon size={14} />{menu.name}
@@ -1179,17 +1434,11 @@ const Dashboard = () => {
                               background: isPageActive ? `${T.gold}12` : 'transparent',
                               color: isPageActive ? T.goldDark : T.text,
                               fontSize: 12, fontWeight: isPageActive ? 600 : 400,
-                              cursor: 'pointer', transition: 'all 0.15s',
+                              cursor: 'pointer',
                               borderLeft: isPageActive
                                 ? `3px solid ${T.gold}`
                                 : '3px solid transparent',
                               textAlign: 'left',
-                            }}
-                            onMouseEnter={(e) => {
-                              if (!isPageActive) e.currentTarget.style.background = '#f8fafc';
-                            }}
-                            onMouseLeave={(e) => {
-                              if (!isPageActive) e.currentTarget.style.background = 'transparent';
                             }}
                           >
                             <page.icon size={13} style={{ color: isPageActive ? T.gold : T.textMuted }} />
@@ -1204,7 +1453,6 @@ const Dashboard = () => {
             })}
           </div>
 
-          {/* User + Logout */}
           <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
             <div className="desktop-menu" style={{
               display: 'flex', alignItems: 'center', gap: 6,
@@ -1216,10 +1464,21 @@ const Dashboard = () => {
                 background: `linear-gradient(135deg, ${T.gold}, ${T.goldDark})`,
                 display: 'flex', alignItems: 'center', justifyContent: 'center',
               }}>
-                <User size={13} color={T.navyDark} />
+                {isSiteEngineer ? (
+                  <HardHat size={13} color={T.navyDark} />
+                ) : (
+                  <User size={13} color={T.navyDark} />
+                )}
               </div>
               <span style={{ color: '#e2e8f0', fontSize: 12, fontWeight: 500 }}>
-                {userType || 'Guest'}
+                {displayName || 'Guest'}
+                {isSiteEngineer && (
+                  <span style={{
+                    marginLeft: 6, fontSize: 9, color: T.gold,
+                    background: `${T.gold}20`, padding: '2px 6px',
+                    borderRadius: 8, fontWeight: 600,
+                  }}>ENGINEER</span>
+                )}
               </span>
             </div>
 
@@ -1229,15 +1488,8 @@ const Dashboard = () => {
               border: '1px solid rgba(239,68,68,0.3)',
               background: 'rgba(239,68,68,0.1)',
               color: '#fca5a5', fontSize: 12, fontWeight: 500,
-              cursor: 'pointer', transition: 'all 0.2s',
-            }}
-              onMouseEnter={(e) => {
-                e.currentTarget.style.background = 'rgba(239,68,68,0.2)';
-              }}
-              onMouseLeave={(e) => {
-                e.currentTarget.style.background = 'rgba(239,68,68,0.1)';
-              }}
-            >
+              cursor: 'pointer',
+            }}>
               <LogOut size={13} />
               <span className="desktop-menu">Logout</span>
             </button>
@@ -1255,7 +1507,6 @@ const Dashboard = () => {
           </div>
         </div>
 
-        {/* Mobile Menu */}
         {isMobileMenuOpen && (
           <div style={{
             background: T.navyDark,
@@ -1274,11 +1525,22 @@ const Dashboard = () => {
                 background: `linear-gradient(135deg, ${T.gold}, ${T.goldDark})`,
                 display: 'flex', alignItems: 'center', justifyContent: 'center',
               }}>
-                <User size={16} color={T.navyDark} />
+                {isSiteEngineer ? (
+                  <HardHat size={16} color={T.navyDark} />
+                ) : (
+                  <User size={16} color={T.navyDark} />
+                )}
               </div>
-              <span style={{ color: '#e2e8f0', fontSize: 14, fontWeight: 500 }}>
-                {userType || 'Guest'}
-              </span>
+              <div style={{ display: 'flex', flexDirection: 'column' }}>
+                <span style={{ color: '#e2e8f0', fontSize: 14, fontWeight: 500 }}>
+                  {displayName || 'Guest'}
+                </span>
+                {isSiteEngineer && (
+                  <span style={{ fontSize: 10, color: T.gold, fontWeight: 600 }}>
+                    SITE ENGINEER
+                  </span>
+                )}
+              </div>
             </div>
 
             {menuItems.map((menu) => {
@@ -1299,7 +1561,8 @@ const Dashboard = () => {
               }
               if (menu.pages.length === 0) return null;
               const isOpen = openDropdown === menu.id;
-              const isActive = menu.pages.some((p) => p.id === selectedPage);
+              const isActive = menu.pages.some((p) => p.id === selectedPage) ||
+                (menu.id === 'jvProject' && isHeritageSubRoute);
 
               return (
                 <div key={menu.id} style={{ marginBottom: 4 }}>
@@ -1322,7 +1585,6 @@ const Dashboard = () => {
                       transition: 'transform 0.2s',
                     }} />
                   </button>
-
                   {isOpen && (
                     <div style={{
                       marginLeft: 16, marginTop: 4,
@@ -1357,7 +1619,6 @@ const Dashboard = () => {
         )}
       </nav>
 
-      {/* ══════════ MAIN CONTENT ══════════ */}
       <div
         ref={mainRef}
         onScroll={handleScroll}
@@ -1368,8 +1629,6 @@ const Dashboard = () => {
         }}
       >
         <div style={{ width: '100%', padding: '12px 12px 40px' }}>
-
-          {/* Page Header */}
           <div style={{
             display: 'flex', alignItems: 'center',
             justifyContent: 'space-between', marginBottom: 12,
@@ -1385,9 +1644,10 @@ const Dashboard = () => {
             </div>
           </div>
 
-          {/* Content */}
           <div style={{ width: '100%', minHeight: 'calc(100vh - 120px)' }}>
-            {CurrentComponent ? (
+            {isHeritageSubRoute ? (
+              <Outlet />
+            ) : CurrentComponent ? (
               <CurrentComponent selectedPage={selectedPage} />
             ) : (
               <div style={{
@@ -1409,7 +1669,6 @@ const Dashboard = () => {
         </div>
       </div>
 
-      {/* Mobile overlay */}
       {isMobileMenuOpen && (
         <div
           onClick={() => setIsMobileMenuOpen(false)}
@@ -1420,7 +1679,6 @@ const Dashboard = () => {
         />
       )}
 
-      {/* Responsive CSS */}
       <style>{`
         @media (max-width: 900px) {
           .desktop-menu { display: none !important; }

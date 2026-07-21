@@ -1,10 +1,13 @@
+
+
+
+// // backend/routes/auth.js
 // const express = require('express');
 // const jwt = require('jsonwebtoken');
 // const { sheets, spreadsheetId } = require('../config/googleSheet');
 
 // const router = express.Router();
 
-// // Login endpoint
 // router.post('/login', async (req, res) => {
 //   const { email, password } = req.body;
 
@@ -15,38 +18,57 @@
 //     });
 
 //     const rows = response.data.values || [];
-//     console.log('Google Sheet rows:', rows); // Log all rows
 
 //     if (rows.length === 0) {
 //       return res.status(400).json({ error: 'No users found in the sheet' });
 //     }
 
-//     const user = rows.slice(1).find((row) => row[0] === email && row[1] === password);
-//     console.log('Matched user:', user); // Log matched user
+//     const user = rows
+//       .slice(1)
+//       .find((row) => row[0] === email && row[1] === password);
 
 //     if (!user) {
 //       return res.status(401).json({ error: 'Invalid credentials' });
 //     }
 
-//     const userType = user[2]?.trim(); // Trim to remove whitespace
-//     console.log('userType:', userType); // Log userType
+//     const userType = user[2]?.trim();
 
-//     if (!['Admin', 'Site Engineer', 'Ravindra Singh', 'Ravi Rajak','Anjali Malviya','Neha Masani','Material Received','Varsha Kahar','Abhishek Sharma','Govind Ram Nagar','Vinod Gayakwad','Ashok Pandey','Final Material Received','Labour Managment'].includes(userType)) {
+//     // ✅ 'Signature Requirement' ADD KIYA
+//     const validUserTypes = [
+//       'Admin',
+//       'Site Engineer',
+//       'Ravindra Singh',
+//       'Ravi Rajak',
+//       'Anjali Malviya',
+//       'Neha Masani',
+//       'Material Received',
+//       'Varsha Kahar',
+//       'Abhishek Sharma',
+//       'Govind Ram Nagar',
+//       'Vinod Gayakwad',
+//       'Ashok Pandey',
+//       'Final Material Received',
+//       'Labour Managment',
+//       'Signature Requirement', // ✅ NEW
+//     ];
+
+//     if (!validUserTypes.includes(userType)) {
 //       return res.status(400).json({ error: 'Invalid user type' });
 //     }
 
-//     const token = jwt.sign({ email, userType }, process.env.JWT_SECRET, {
-//       expiresIn: '1h',
-//     });
+//     const token = jwt.sign(
+//       { email, userType },
+//       process.env.JWT_SECRET,
+//       { expiresIn: '1h' }
+//     );
 
 //     return res.json({ token, userType });
 //   } catch (error) {
-//     console.error('Error in login:', error.message, error.stack);
-//     return res.status(500).json({ error: 'Server error', details: error.message });
+//     console.error('Login error:', error.message);
+//     return res.status(500).json({ error: 'Server error' });
 //   }
 // });
 
-// // Protected route example
 // router.get('/user', (req, res) => {
 //   const token = req.headers.authorization?.split(' ')[1];
 //   if (!token) return res.status(401).json({ error: 'No token' });
@@ -99,8 +121,8 @@ router.post('/login', async (req, res) => {
 
     const userType = user[2]?.trim();
 
-    // ✅ 'Signature Requirement' ADD KIYA
-    const validUserTypes = [
+    // ✅ Static Valid User Types
+    const staticUserTypes = [
       'Admin',
       'Site Engineer',
       'Ravindra Singh',
@@ -115,10 +137,14 @@ router.post('/login', async (req, res) => {
       'Ashok Pandey',
       'Final Material Received',
       'Labour Managment',
-      'Signature Requirement', // ✅ NEW
+      'Signature Requirement',
     ];
 
-    if (!validUserTypes.includes(userType)) {
+    // ✅ Dynamic Site Engineer Types (start with "SE_" prefix)
+    // Example: SE_Rahul Sharma, SE_Amit Kumar
+    const isSiteEngineerType = userType?.startsWith('SE_');
+
+    if (!staticUserTypes.includes(userType) && !isSiteEngineerType) {
       return res.status(400).json({ error: 'Invalid user type' });
     }
 
