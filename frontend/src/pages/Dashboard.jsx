@@ -926,7 +926,7 @@ const Dashboard = () => {
 
   // ✅ NEW - Check for Project-Locked User
   const isProjectLockedUser =
-    userType && userType.toLowerCase().startsWith('signature heritage prj');
+  userType && /^signature\s+.+\s+prj\d+/i.test(userType);
 
   // ── Purchase Pages ──
   const allPurchasePages = [

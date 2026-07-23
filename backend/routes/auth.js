@@ -1,10 +1,5 @@
 
 
-
-
-
-
-
 // // backend/routes/auth.js
 // const express = require('express');
 // const jwt = require('jsonwebtoken');
@@ -57,10 +52,17 @@
 //     ];
 
 //     // ✅ Dynamic Site Engineer Types (start with "SE_" prefix)
-//     // Example: SE_Rahul Sharma, SE_Amit Kumar
 //     const isSiteEngineerType = userType?.startsWith('SE_');
 
-//     if (!staticUserTypes.includes(userType) && !isSiteEngineerType) {
+//     // ✅ NEW - Project-Locked Users (start with "Signature Heritage PRJ")
+//     const isProjectLockedUser =
+//       userType?.toLowerCase().startsWith('signature heritage prj');
+
+//     if (
+//       !staticUserTypes.includes(userType) &&
+//       !isSiteEngineerType &&
+//       !isProjectLockedUser  // ✅ NEW
+//     ) {
 //       return res.status(400).json({ error: 'Invalid user type' });
 //     }
 
@@ -90,6 +92,8 @@
 // });
 
 // module.exports = router;
+
+
 
 
 
@@ -148,14 +152,19 @@ router.post('/login', async (req, res) => {
     // ✅ Dynamic Site Engineer Types (start with "SE_" prefix)
     const isSiteEngineerType = userType?.startsWith('SE_');
 
-    // ✅ NEW - Project-Locked Users (start with "Signature Heritage PRJ")
-    const isProjectLockedUser =
-      userType?.toLowerCase().startsWith('signature heritage prj');
+    // ✅ Project-Locked Users - Flexible Pattern
+    // Matches: "Signature ___ PRJ___"
+    // Examples:
+    //   - Signature Heritage PRJ024
+    //   - Signature Peradise PRJ028
+    //   - Signature Palace PRJ030
+    //   - Signature Anything PRJXXX
+    const isProjectLockedUser = /^signature\s+.+\s+prj\d+/i.test(userType || '');
 
     if (
       !staticUserTypes.includes(userType) &&
       !isSiteEngineerType &&
-      !isProjectLockedUser  // ✅ NEW
+      !isProjectLockedUser
     ) {
       return res.status(400).json({ error: 'Invalid user type' });
     }

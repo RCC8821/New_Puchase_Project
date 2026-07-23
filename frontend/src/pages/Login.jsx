@@ -257,8 +257,7 @@ const Login = () => {
   //   }
   // };
 
-
-  const handleSubmit = async (e) => {
+const handleSubmit = async (e) => {
   e.preventDefault();
   if (!isFormValid) { setError('Please fill in all fields'); return; }
   setIsLoading(true);
@@ -275,9 +274,10 @@ const Login = () => {
         sessionStorage.setItem('engineerName', engineerName);
         sessionStorage.removeItem('projectLockedName');
       }
-      // ✅ NEW - Project-Locked User
-      else if (result.userType?.toLowerCase().startsWith('signature heritage prj')) {
-        frontendUserType = result.userType; // e.g., "Signature Heritage PRJ024"
+      // ✅ UPDATED - Project-Locked User (Flexible Pattern)
+      // Matches: "Signature Heritage PRJ024", "Signature Peradise PRJ028", etc.
+      else if (/^signature\s+.+\s+prj\d+/i.test(result.userType || '')) {
+        frontendUserType = result.userType; // e.g., "Signature Peradise PRJ028"
 
         // ✅ Save project name for auto-fill in form
         sessionStorage.setItem('projectLockedName', result.userType);
