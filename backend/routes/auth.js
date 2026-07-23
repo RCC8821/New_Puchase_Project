@@ -1,6 +1,10 @@
 
 
 
+
+
+
+
 // // backend/routes/auth.js
 // const express = require('express');
 // const jwt = require('jsonwebtoken');
@@ -33,8 +37,8 @@
 
 //     const userType = user[2]?.trim();
 
-//     // ✅ 'Signature Requirement' ADD KIYA
-//     const validUserTypes = [
+//     // ✅ Static Valid User Types
+//     const staticUserTypes = [
 //       'Admin',
 //       'Site Engineer',
 //       'Ravindra Singh',
@@ -49,10 +53,14 @@
 //       'Ashok Pandey',
 //       'Final Material Received',
 //       'Labour Managment',
-//       'Signature Requirement', // ✅ NEW
+//       'Signature Requirement',
 //     ];
 
-//     if (!validUserTypes.includes(userType)) {
+//     // ✅ Dynamic Site Engineer Types (start with "SE_" prefix)
+//     // Example: SE_Rahul Sharma, SE_Amit Kumar
+//     const isSiteEngineerType = userType?.startsWith('SE_');
+
+//     if (!staticUserTypes.includes(userType) && !isSiteEngineerType) {
 //       return res.status(400).json({ error: 'Invalid user type' });
 //     }
 
@@ -82,9 +90,6 @@
 // });
 
 // module.exports = router;
-
-
-
 
 
 
@@ -141,10 +146,17 @@ router.post('/login', async (req, res) => {
     ];
 
     // ✅ Dynamic Site Engineer Types (start with "SE_" prefix)
-    // Example: SE_Rahul Sharma, SE_Amit Kumar
     const isSiteEngineerType = userType?.startsWith('SE_');
 
-    if (!staticUserTypes.includes(userType) && !isSiteEngineerType) {
+    // ✅ NEW - Project-Locked Users (start with "Signature Heritage PRJ")
+    const isProjectLockedUser =
+      userType?.toLowerCase().startsWith('signature heritage prj');
+
+    if (
+      !staticUserTypes.includes(userType) &&
+      !isSiteEngineerType &&
+      !isProjectLockedUser  // ✅ NEW
+    ) {
       return res.status(400).json({ error: 'Invalid user type' });
     }
 

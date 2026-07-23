@@ -1,9 +1,13 @@
 
+
+
+
+
 // // Dashboard.jsx
 // import React, { useState, useEffect, useRef, useCallback } from 'react';
 // import {
 //   User, FileText, ShoppingCart, DollarSign, Package,
-//   Truck, ChevronDown, LogOut, Menu, X, Users, Briefcase
+//   Truck, ChevronDown, LogOut, Menu, X, Users, Briefcase, HardHat
 // } from 'lucide-react';
 // import { useNavigate, useLocation, Outlet } from 'react-router-dom';
 
@@ -35,26 +39,16 @@
 // import SiteApprovel from '../components/SiteExpenses/SiteApprovel';
 // import SitePaidAmount from '../components/SiteExpenses/SitePaidAmount';
 
-// // ✅ Signature Requirement (JV Project ke andar aayega)
 // import SignatureRequirement from '../components/purchase/SignatureRequirement';
 // import HeritageDashboard from '../components/Heritage/HeritageDashboard';
 
 // const T = {
-//   navy: '#1e293b',
-//   navyLight: '#334155',
-//   navyDark: '#0f172a',
-//   gold: '#f59e0b',
-//   goldLight: '#fbbf24',
-//   goldDark: '#d97706',
-//   bg: '#f8fafc',
-//   card: '#ffffff',
-//   text: '#1e293b',
-//   textLight: '#64748b',
-//   textMuted: '#94a3b8',
-//   border: '#e2e8f0',
-//   borderLight: '#f1f5f9',
-//   success: '#10b981',
-//   danger: '#ef4444',
+//   navy: '#1e293b', navyLight: '#334155', navyDark: '#0f172a',
+//   gold: '#f59e0b', goldLight: '#fbbf24', goldDark: '#d97706',
+//   bg: '#f8fafc', card: '#ffffff', text: '#1e293b',
+//   textLight: '#64748b', textMuted: '#94a3b8',
+//   border: '#e2e8f0', borderLight: '#f1f5f9',
+//   success: '#10b981', danger: '#ef4444',
 // };
 
 // const Dashboard = () => {
@@ -69,6 +63,9 @@
 //   const lastScrollY = useRef(0);
 //   const mainRef = useRef(null);
 //   const dropdownRef = useRef(null);
+
+//   // ✅ Helper: Check if user is Site Engineer (dynamic)
+//   const isSiteEngineer = userType?.startsWith('SE_');
 
 //   // ── Purchase Pages ──
 //   const allPurchasePages = [
@@ -296,7 +293,9 @@
 //       icon: FileText,
 //       component: HeritageDashboard,
 //       path: '/dashboard/heritage',
+//       // ✅ Signature Requirement + all Site Engineers + admin
 //       allowedUserTypes: ['admin', 'Signature Requirement'],
+//       allowSiteEngineer: true, // ✅ Site Engineers bhi access
 //     },
 //   ];
 
@@ -306,8 +305,14 @@
 //     allLabourPages.filter((p) => p.allowedUserTypes.includes(userType));
 //   const getSiteExpensesPages = () =>
 //     allSiteExpensesPages.filter((p) => p.allowedUserTypes.includes(userType));
+
+//   // ✅ JV Project - Site Engineer bhi access
 //   const getJvProjectPages = () =>
-//     allJvProjectPages.filter((p) => p.allowedUserTypes.includes(userType));
+//     allJvProjectPages.filter((p) => {
+//       if (p.allowedUserTypes.includes(userType)) return true;
+//       if (p.allowSiteEngineer && isSiteEngineer) return true;
+//       return false;
+//     });
 
 //   const getAllowedPages = () => [
 //     ...getPurchasePages(),
@@ -350,7 +355,6 @@
 //     },
 //   ];
 
-//   // ✅ Page Content Titles (including heritage sub-routes)
 //   const pageContent = {
 //     'requirement-received': 'Requirement Form',
 //     'approve-required': 'Approve Required',
@@ -380,7 +384,6 @@
 //     SitePaidAmount: 'Site Paid Amount',
 //     'no-access': 'No Access',
 //     'heritage': 'JV Project — Heritage',
-//     // ✅ Sub-route titles
 //     'heritage-signature': 'Heritage — Signature Requirement',
 //     'heritage-store': 'Heritage — Store Inventory',
 //     'heritage-site': 'Heritage — Site Engineer',
@@ -418,7 +421,6 @@
 //     }
 //   }, [navigate]);
 
-//   // ✅ Updated useEffect with sub-route handling
 //   useEffect(() => {
 //     if (!userType) return;
 //     const allowed = getAllowedPages();
@@ -428,14 +430,12 @@
 //       return;
 //     }
 
-//     // ✅ 1. Exact match check (Purchase, Labour, etc.)
 //     const current = allowed.find((p) => location.pathname === p.path);
 //     if (current) {
 //       setSelectedPage(current.id);
 //       return;
 //     }
 
-//     // ✅ 2. Heritage sub-route check
 //     if (location.pathname === '/dashboard/heritage/signature-form') {
 //       setSelectedPage('heritage-signature');
 //       return;
@@ -449,7 +449,6 @@
 //       return;
 //     }
 
-//     // ✅ 3. Default page
 //     setSelectedPage(allowed[0].id);
 //     navigate(allowed[0].path);
 //   }, [userType, location.pathname]);
@@ -474,12 +473,16 @@
 
 //   const CurrentComponent = getCurrentComponent();
 
-//   // ✅ Check if current page is a heritage sub-route
 //   const isHeritageSubRoute = [
 //     'heritage-signature',
 //     'heritage-store',
 //     'heritage-site',
 //   ].includes(selectedPage);
+
+//   // ✅ Display name (for Site Engineers, show name without SE_ prefix)
+//   const displayName = isSiteEngineer
+//     ? userType.replace('SE_', '')
+//     : userType;
 
 //   return (
 //     <div style={{
@@ -487,7 +490,6 @@
 //       background: T.bg,
 //       fontFamily: "'Segoe UI', system-ui, -apple-system, sans-serif",
 //     }}>
-//       {/* NAVBAR */}
 //       <nav
 //         ref={dropdownRef}
 //         style={{
@@ -505,7 +507,6 @@
 //           display: 'flex', alignItems: 'center',
 //           justifyContent: 'space-between', height: 56,
 //         }}>
-//           {/* Logo */}
 //           <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
 //             <div style={{
 //               width: 34, height: 34, borderRadius: 8,
@@ -527,7 +528,6 @@
 //             </span>
 //           </div>
 
-//           {/* Desktop Menu */}
 //           <div className="desktop-menu" style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
 //             {menuItems.map((menu) => {
 //               if (menu.url) {
@@ -546,7 +546,6 @@
 //               }
 //               if (menu.pages.length === 0) return null;
 
-//               // ✅ Also check if any sub-route is active for this menu
 //               const isActive = menu.pages.some((p) => p.id === selectedPage) ||
 //                 (menu.id === 'jvProject' && isHeritageSubRoute);
 //               const isOpen = openDropdown === menu.id;
@@ -611,7 +610,6 @@
 //             })}
 //           </div>
 
-//           {/* User + Logout */}
 //           <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
 //             <div className="desktop-menu" style={{
 //               display: 'flex', alignItems: 'center', gap: 6,
@@ -623,10 +621,21 @@
 //                 background: `linear-gradient(135deg, ${T.gold}, ${T.goldDark})`,
 //                 display: 'flex', alignItems: 'center', justifyContent: 'center',
 //               }}>
-//                 <User size={13} color={T.navyDark} />
+//                 {isSiteEngineer ? (
+//                   <HardHat size={13} color={T.navyDark} />
+//                 ) : (
+//                   <User size={13} color={T.navyDark} />
+//                 )}
 //               </div>
 //               <span style={{ color: '#e2e8f0', fontSize: 12, fontWeight: 500 }}>
-//                 {userType || 'Guest'}
+//                 {displayName || 'Guest'}
+//                 {isSiteEngineer && (
+//                   <span style={{
+//                     marginLeft: 6, fontSize: 9, color: T.gold,
+//                     background: `${T.gold}20`, padding: '2px 6px',
+//                     borderRadius: 8, fontWeight: 600,
+//                   }}>ENGINEER</span>
+//                 )}
 //               </span>
 //             </div>
 
@@ -655,7 +664,6 @@
 //           </div>
 //         </div>
 
-//         {/* Mobile Menu */}
 //         {isMobileMenuOpen && (
 //           <div style={{
 //             background: T.navyDark,
@@ -674,11 +682,22 @@
 //                 background: `linear-gradient(135deg, ${T.gold}, ${T.goldDark})`,
 //                 display: 'flex', alignItems: 'center', justifyContent: 'center',
 //               }}>
-//                 <User size={16} color={T.navyDark} />
+//                 {isSiteEngineer ? (
+//                   <HardHat size={16} color={T.navyDark} />
+//                 ) : (
+//                   <User size={16} color={T.navyDark} />
+//                 )}
 //               </div>
-//               <span style={{ color: '#e2e8f0', fontSize: 14, fontWeight: 500 }}>
-//                 {userType || 'Guest'}
-//               </span>
+//               <div style={{ display: 'flex', flexDirection: 'column' }}>
+//                 <span style={{ color: '#e2e8f0', fontSize: 14, fontWeight: 500 }}>
+//                   {displayName || 'Guest'}
+//                 </span>
+//                 {isSiteEngineer && (
+//                   <span style={{ fontSize: 10, color: T.gold, fontWeight: 600 }}>
+//                     SITE ENGINEER
+//                   </span>
+//                 )}
+//               </div>
 //             </div>
 
 //             {menuItems.map((menu) => {
@@ -757,7 +776,6 @@
 //         )}
 //       </nav>
 
-//       {/* MAIN */}
 //       <div
 //         ref={mainRef}
 //         onScroll={handleScroll}
@@ -783,16 +801,12 @@
 //             </div>
 //           </div>
 
-//           {/* ✅ Content Section - Handles both regular pages AND heritage sub-routes */}
 //           <div style={{ width: '100%', minHeight: 'calc(100vh - 120px)' }}>
 //             {isHeritageSubRoute ? (
-//               // ✅ For heritage sub-routes → Use Outlet (App.jsx routes render honge)
 //               <Outlet />
 //             ) : CurrentComponent ? (
-//               // ✅ For regular pages → Render matched component
 //               <CurrentComponent selectedPage={selectedPage} />
 //             ) : (
-//               // ✅ Fallback
 //               <div style={{
 //                 display: 'flex', flexDirection: 'column',
 //                 alignItems: 'center', justifyContent: 'center',
@@ -845,12 +859,12 @@
 
 
 
-
 // Dashboard.jsx
 import React, { useState, useEffect, useRef, useCallback } from 'react';
 import {
   User, FileText, ShoppingCart, DollarSign, Package,
-  Truck, ChevronDown, LogOut, Menu, X, Users, Briefcase, HardHat
+  Truck, ChevronDown, LogOut, Menu, X, Users, Briefcase, HardHat,
+  ClipboardList
 } from 'lucide-react';
 import { useNavigate, useLocation, Outlet } from 'react-router-dom';
 
@@ -884,6 +898,7 @@ import SitePaidAmount from '../components/SiteExpenses/SitePaidAmount';
 
 import SignatureRequirement from '../components/purchase/SignatureRequirement';
 import HeritageDashboard from '../components/Heritage/HeritageDashboard';
+import HeritageRequirementForm from '../components/Heritage/HeritageRequirementForm';
 
 const T = {
   navy: '#1e293b', navyLight: '#334155', navyDark: '#0f172a',
@@ -907,8 +922,11 @@ const Dashboard = () => {
   const mainRef = useRef(null);
   const dropdownRef = useRef(null);
 
-  // ✅ Helper: Check if user is Site Engineer (dynamic)
   const isSiteEngineer = userType?.startsWith('SE_');
+
+  // ✅ NEW - Check for Project-Locked User
+  const isProjectLockedUser =
+    userType && userType.toLowerCase().startsWith('signature heritage prj');
 
   // ── Purchase Pages ──
   const allPurchasePages = [
@@ -1133,27 +1151,50 @@ const Dashboard = () => {
     {
       id: 'heritage',
       name: 'Heritage',
-      icon: FileText,
+      icon: Briefcase,
       component: HeritageDashboard,
       path: '/dashboard/heritage',
-      // ✅ Signature Requirement + all Site Engineers + admin
       allowedUserTypes: ['admin', 'Signature Requirement'],
-      allowSiteEngineer: true, // ✅ Site Engineers bhi access
+      allowSiteEngineer: true,
+    },
+    {
+      id: 'heritage-requirement',
+      name: 'Requirement Form',
+      icon: ClipboardList,
+      component: HeritageRequirementForm,
+      path: '/dashboard/heritage/requirement-form',
+      allowedUserTypes: ['admin', 'Signature Requirement'],
+      allowSiteEngineer: true,
+      allowProjectLocked: true, // ✅ NEW - Project-locked users bhi access
     },
   ];
 
-  const getPurchasePages = () =>
-    allPurchasePages.filter((p) => p.allowedUserTypes.includes(userType));
-  const getLabourPages = () =>
-    allLabourPages.filter((p) => p.allowedUserTypes.includes(userType));
-  const getSiteExpensesPages = () =>
-    allSiteExpensesPages.filter((p) => p.allowedUserTypes.includes(userType));
+  // ✅ UPDATED - Filter functions
+  const getPurchasePages = () => {
+    // ✅ Project-locked user ko purchase nahi dikhega
+    if (isProjectLockedUser) return [];
+    return allPurchasePages.filter((p) => p.allowedUserTypes.includes(userType));
+  };
 
-  // ✅ JV Project - Site Engineer bhi access
+  const getLabourPages = () => {
+    if (isProjectLockedUser) return [];
+    return allLabourPages.filter((p) => p.allowedUserTypes.includes(userType));
+  };
+
+  const getSiteExpensesPages = () => {
+    if (isProjectLockedUser) return [];
+    return allSiteExpensesPages.filter((p) => p.allowedUserTypes.includes(userType));
+  };
+
   const getJvProjectPages = () =>
     allJvProjectPages.filter((p) => {
+      // ✅ Admin, Signature Requirement, Site Engineers ke liye normal check
       if (p.allowedUserTypes.includes(userType)) return true;
       if (p.allowSiteEngineer && isSiteEngineer) return true;
+
+      // ✅ NEW - Project-locked user ko sirf Requirement Form dikhega
+      if (p.allowProjectLocked && isProjectLockedUser) return true;
+
       return false;
     });
 
@@ -1164,6 +1205,7 @@ const Dashboard = () => {
     ...getJvProjectPages(),
   ];
 
+  // ✅ Menu Items - Hide sections if empty
   const menuItems = [
     {
       id: 'purchase',
@@ -1189,13 +1231,14 @@ const Dashboard = () => {
       icon: Briefcase,
       pages: getJvProjectPages(),
     },
-    {
+    // ✅ Sheet Link sirf non-locked users ko
+    ...(!isProjectLockedUser ? [{
       id: 'sheet',
       name: 'Sheet Link',
       icon: FileText,
       url: 'https://docs.google.com/spreadsheets/d/18bmeQLqAOqleKS9628izEnirrRwOqkC0G_pEYGOsO-Y/edit?gid=0#gid=0',
       pages: [],
-    },
+    }] : []),
   ];
 
   const pageContent = {
@@ -1227,9 +1270,10 @@ const Dashboard = () => {
     SitePaidAmount: 'Site Paid Amount',
     'no-access': 'No Access',
     'heritage': 'JV Project — Heritage',
-    'heritage-signature': 'Heritage — Signature Requirement',
+    'heritage-signature': 'Heritage Out Material ',
     'heritage-store': 'Heritage — Store Inventory',
     'heritage-site': 'Heritage — Site Engineer',
+    'heritage-requirement': 'Signature — Requirement Form',
   };
 
   const handleScroll = useCallback(() => {
@@ -1322,10 +1366,12 @@ const Dashboard = () => {
     'heritage-site',
   ].includes(selectedPage);
 
-  // ✅ Display name (for Site Engineers, show name without SE_ prefix)
+  // ✅ Display name
   const displayName = isSiteEngineer
     ? userType.replace('SE_', '')
-    : userType;
+    : isProjectLockedUser
+      ? userType // Show full project name
+      : userType;
 
   return (
     <div style={{
@@ -1466,6 +1512,8 @@ const Dashboard = () => {
               }}>
                 {isSiteEngineer ? (
                   <HardHat size={13} color={T.navyDark} />
+                ) : isProjectLockedUser ? (
+                  <Briefcase size={13} color={T.navyDark} />
                 ) : (
                   <User size={13} color={T.navyDark} />
                 )}
@@ -1478,6 +1526,13 @@ const Dashboard = () => {
                     background: `${T.gold}20`, padding: '2px 6px',
                     borderRadius: 8, fontWeight: 600,
                   }}>ENGINEER</span>
+                )}
+                {isProjectLockedUser && (
+                  <span style={{
+                    marginLeft: 6, fontSize: 9, color: T.gold,
+                    background: `${T.gold}20`, padding: '2px 6px',
+                    borderRadius: 8, fontWeight: 600,
+                  }}>PROJECT</span>
                 )}
               </span>
             </div>
@@ -1527,6 +1582,8 @@ const Dashboard = () => {
               }}>
                 {isSiteEngineer ? (
                   <HardHat size={16} color={T.navyDark} />
+                ) : isProjectLockedUser ? (
+                  <Briefcase size={16} color={T.navyDark} />
                 ) : (
                   <User size={16} color={T.navyDark} />
                 )}
@@ -1538,6 +1595,11 @@ const Dashboard = () => {
                 {isSiteEngineer && (
                   <span style={{ fontSize: 10, color: T.gold, fontWeight: 600 }}>
                     SITE ENGINEER
+                  </span>
+                )}
+                {isProjectLockedUser && (
+                  <span style={{ fontSize: 10, color: T.gold, fontWeight: 600 }}>
+                    PROJECT USER
                   </span>
                 )}
               </div>

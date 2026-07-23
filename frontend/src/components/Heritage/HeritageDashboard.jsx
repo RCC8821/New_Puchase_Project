@@ -28,7 +28,7 @@ const HeritageDashboard = () => {
   const buttons = [
     {
       id: 'signature-form',
-      title: 'Signature Requirement',
+      title: 'Store Item Out Form',
       subtitle: 'Create material requirement form',
       icon: FileText,
       path: '/dashboard/heritage/signature-form',
