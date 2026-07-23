@@ -66,11 +66,14 @@ const SignatureSheetId = process.env.SIGNATURE_ID;
 // ✅ NEW - Signature Project Sheet ID (Heritage Requirement Form ke liye)
 const SignatureProjectSheetId = process.env.SIGNATURE_PROJECT_ID;
 
+const OldPurchaseFormSheetId = process.env.OLDPURCHSEFORM_ID; // ✅ NEW - Old Purchase Form Sheet ID
+
 module.exports = {
   sheets,
   drive,
   spreadsheetId,
   SiteExpeseSheetId,
   SignatureSheetId,
-  SignatureProjectSheetId,  // ✅ NEW export
+  SignatureProjectSheetId,
+  OldPurchaseFormSheetId,  // ✅ NEW export
 };
