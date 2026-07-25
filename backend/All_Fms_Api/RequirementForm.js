@@ -197,6 +197,7 @@ router.post('/submit-requirement', async (req, res) => {
         item.materialName,        // G: Material_Name
         item.materialSize,        // H: Material_Size
         item.specification,       // I: Specification
+        ' ' ,       
         item.skuCode,             // K: SKU Code
         item.quantity,            // L: Quantity
         item.unit,                // M: Unit Name
