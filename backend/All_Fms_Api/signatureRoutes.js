@@ -193,6 +193,95 @@ async function getNextReqNo() {
   }
 }
 
+
+// ─── SUBMIT REQUIREMENT (Signature Form) ─────────────────
+
+
+// router.post('/submit-requirement', async (req, res) => {
+//   try {
+//     const {
+//       projectName,
+//       engineerName,
+//       cluster,
+//       activity,
+//       remark,
+//       items,
+//     } = req.body;
+
+//     if (!projectName) throw new Error('Project Name is required');
+//     if (!engineerName) throw new Error('Engineer Name is required');
+//     if (!cluster) throw new Error('Cluster is required');
+//     if (!activity) throw new Error('Activity is required');
+//     if (!remark) throw new Error('Remark is required');
+
+//     if (!Array.isArray(items) || items.length === 0) {
+//       throw new Error('At least one item is required');
+//     }
+
+//     const reqNo = await getNextReqNo();
+//     const firstUID = await getNextUID();
+//     const startUIDNumber = parseInt(firstUID.replace(/^S/i, ''), 10);
+
+//     const now = new Date().toLocaleString('en-IN', {
+//       timeZone: 'Asia/Kolkata',
+//       day: '2-digit', month: '2-digit', year: 'numeric',
+//       hour: '2-digit', minute: '2-digit', second: '2-digit',
+//       hour12: false,
+//     }).replace(',', '');
+
+//     const values = items.map((item, i) => {
+//       if (!item.location) throw new Error(`Item ${i + 1}: Location is required`);
+//       if (!item.materialType || !item.materialName ||
+//           !item.materialSize || !item.specification ||
+//           !item.skuCode || !item.quantity || !item.unit ||
+//           !item.description) {
+//         throw new Error(`Item ${i + 1}: All fields are required`);
+//       }
+
+//       const uid = `S${String(startUIDNumber + i).padStart(4, '0')}`;
+
+//       return [
+//         now,                    // A: Timestamp
+//         uid,                    // B: UID
+//         reqNo,                  // C: ReqNo
+//         projectName,            // D: Project Name
+//         engineerName,           // E: Engineer Name
+//         cluster,                // F: Cluster
+//         item.location,          // G: Location
+//         activity,               // H: Activity
+//         item.materialType,      // I: Material Type
+//         item.materialName,      // J: Material Name
+//         item.materialSize,      // K: Material Size
+//         item.specification,     // L: Specification
+//         item.skuCode,           // M: SKU
+//         item.quantity,          // N: Qty
+//         item.unit,              // O: Unit
+//         item.description,       // P: Description
+//         remark,                 // Q: Remark
+//       ];
+//     });
+
+//     await sheets.spreadsheets.values.append({
+//       spreadsheetId: SignatureSheetId,
+//       range: 'Out_Data!A:Q',
+//       valueInputOption: 'USER_ENTERED',
+//       resource: { values },
+//     });
+
+//     res.json({
+//       message: 'Requirement submitted successfully!',
+//       reqNo,
+//       itemCount: items.length,
+//     });
+
+//   } catch (error) {
+//     console.error('Signature submit error:', error);
+//     res.status(400).json({ error: error.message });
+//   }
+// });
+
+
+
 // ─── SUBMIT REQUIREMENT (Signature Form) ─────────────────
 router.post('/submit-requirement', async (req, res) => {
   try {
@@ -238,26 +327,14 @@ router.post('/submit-requirement', async (req, res) => {
       const uid = `S${String(startUIDNumber + i).padStart(4, '0')}`;
 
       return [
-        now,                    // A: Timestamp
-        uid,                    // B: UID
-        reqNo,                  // C: ReqNo
-        projectName,            // D: Project Name
-        engineerName,           // E: Engineer Name
-        cluster,                // F: Cluster
-        item.location,          // G: Location
-        activity,               // H: Activity
-        item.materialType,      // I: Material Type
-        item.materialName,      // J: Material Name
-        item.materialSize,      // K: Material Size
-        item.specification,     // L: Specification
-        item.skuCode,           // M: SKU
-        item.quantity,          // N: Qty
-        item.unit,              // O: Unit
-        item.description,       // P: Description
-        remark,                 // Q: Remark
+        now, uid, reqNo, projectName, engineerName, cluster,
+        item.location, activity, item.materialType, item.materialName,
+        item.materialSize, item.specification, item.skuCode,
+        item.quantity, item.unit, item.description, remark,
       ];
     });
 
+    // ✅ Step 1: Save to FORM_DATA
     await sheets.spreadsheets.values.append({
       spreadsheetId: SignatureSheetId,
       range: 'Out_Data!A:Q',
@@ -265,10 +342,112 @@ router.post('/submit-requirement', async (req, res) => {
       resource: { values },
     });
 
+
+    // ✅ Step 2: Update BOQ_Qty Balance
+    let boqUpdatedCount = 0;
+    let notFoundItems = [];
+
+
+    try {
+      const boqResponse = await sheets.spreadsheets.values.get({
+        spreadsheetId: SignatureSheetId,
+        range: 'BOQ_Qty!A2:K',
+      });
+
+      const boqRows = boqResponse.data.values || [];
+      const boqUpdates = [];
+
+      const norm = (str) => (str || '').toString().trim().toLowerCase();
+
+      for (const item of items) {
+        let matchFound = false;
+
+        for (let i = 0; i < boqRows.length; i++) {
+          const row = boqRows[i];
+          if (!row || row.length < 8) continue;
+
+          const matches =
+            norm(row[0]) === norm(cluster) &&
+            norm(row[1]) === norm(item.location) &&
+            norm(row[2]) === norm(activity) &&
+            norm(row[3]) === norm(item.materialType) &&
+            norm(row[4]) === norm(item.materialName) &&
+            norm(row[5]) === norm(item.materialSize) &&
+            norm(row[6]) === norm(item.specification) &&
+            norm(row[7]) === norm(item.skuCode);
+
+          if (matches) {
+            // ✅ Priority Logic: K (Balance) > J (Revise BOQ) > I (Out Qty)
+            const outQty = parseFloat(row[8]) || 0;         // I
+            const reviseBOQ = parseFloat(row[9]) || 0;      // J - NEW
+            const currentBalance = row[10];                 // K
+
+            let availableQty;
+            let source;
+
+            if (currentBalance !== undefined && currentBalance !== '' && !isNaN(parseFloat(currentBalance))) {
+              availableQty = parseFloat(currentBalance);
+              source = 'K (Previous Balance)';
+            } else if (reviseBOQ > 0) {
+              availableQty = reviseBOQ;
+              source = 'J (Revise BOQ)';
+            } else {
+              availableQty = outQty;
+              source = 'I (Out Qty)';
+            }
+
+            const userOutQty = parseFloat(item.quantity) || 0;
+            const newBalance = availableQty - userOutQty;
+
+            const rowNumber = i + 2;
+
+            boqUpdates.push({
+              range: `BOQ_Qty!K${rowNumber}`,
+              values: [[newBalance]],
+            });
+
+            console.log(
+              `✅ BOQ Match: Row ${rowNumber} | ${item.materialName} | ` +
+              `Available: ${availableQty} (from ${source}) - ${userOutQty} = ${newBalance}`
+            );
+
+            matchFound = true;
+            break;
+          }
+        }
+
+        if (!matchFound) {
+          notFoundItems.push({
+            materialName: item.materialName,
+            skuCode: item.skuCode,
+            location: item.location,
+          });
+          console.log(`⚠️ BOQ No Match: ${item.materialName} (${item.skuCode})`);
+        }
+      }
+
+      if (boqUpdates.length > 0) {
+        await sheets.spreadsheets.values.batchUpdate({
+          spreadsheetId: SignatureSheetId,
+          resource: {
+            valueInputOption: 'USER_ENTERED',
+            data: boqUpdates,
+          },
+        });
+        boqUpdatedCount = boqUpdates.length;
+        console.log(`✅ BOQ updated: ${boqUpdatedCount} rows`);
+      }
+    } catch (boqError) {
+      console.error('⚠️ BOQ update error (data still saved):', boqError);
+    }
+
     res.json({
       message: 'Requirement submitted successfully!',
       reqNo,
       itemCount: items.length,
+      boqUpdated: boqUpdatedCount,
+      notFoundInBOQ: notFoundItems.length,
+      notFoundItems: notFoundItems.length > 0 ? notFoundItems : undefined,
     });
 
   } catch (error) {
@@ -276,6 +455,9 @@ router.post('/submit-requirement', async (req, res) => {
     res.status(400).json({ error: error.message });
   }
 });
+
+
+
 
 // ─── GET SITE ENGINEER DATA (Admin sees all) ─────────────
 router.get('/site-engineer-data/:engineerName', async (req, res) => {
@@ -376,6 +558,140 @@ router.post('/site-engineer-update', async (req, res) => {
   } catch (error) {
     console.error('Site Engineer update error:', error);
     res.status(400).json({ error: error.message });
+  }
+});
+
+
+
+// ─── GET STORE INVENTORY (Store_Balance sheet) ────────────
+router.get('/store-inventory', async (req, res) => {
+  try {
+    const response = await sheets.spreadsheets.values.get({
+      spreadsheetId: SignatureSheetId,
+      range: 'Store_Balance!A3:J',  // Row 3 se start (header row 2 hai)
+    });
+
+    const rows = response.data.values || [];
+
+    const inventory = rows
+      .filter(row => row.some(cell => cell && String(cell).trim()))
+      .map((row, index) => {
+        const openingStock = parseFloat((row[6] || '0').toString().replace(/,/g, '')) || 0;
+        const outData = parseFloat((row[7] || '0').toString().replace(/,/g, '')) || 0;
+        const stockBalance = parseFloat((row[8] || '0').toString().replace(/,/g, '')) || 0;
+
+        return {
+          id: index + 1,
+          skuCode:              (row[0] || '').trim(),  // A
+          materialType:         (row[1] || '').trim(),  // B
+          materialName:         (row[2] || '').trim(),  // C
+          materialSize:         (row[3] || '').trim(),  // D
+          materialSpecification:(row[4] || '').trim(),  // E
+          unit:                 (row[5] || '').trim(),  // F
+          openingStock:         openingStock,           // G
+          outData:              outData,                // H
+          stockBalance:         stockBalance,           // I
+          availablePercent:     (row[9] || '').trim(),  // J
+        };
+      });
+
+    // ✅ Unique values for filters
+    const uniqueValues = {
+      materialTypes: [...new Set(inventory.map(d => d.materialType).filter(Boolean))].sort(),
+      units:         [...new Set(inventory.map(d => d.unit).filter(Boolean))].sort(),
+    };
+
+    // ✅ Stats
+    const stats = {
+      total: inventory.length,
+      inStock: inventory.filter(d => d.stockBalance > 0).length,
+      outOfStock: inventory.filter(d => d.stockBalance === 0).length,
+      totalOpeningStock: inventory.reduce((sum, d) => sum + d.openingStock, 0),
+      totalOutData: inventory.reduce((sum, d) => sum + d.outData, 0),
+      totalStockBalance: inventory.reduce((sum, d) => sum + d.stockBalance, 0),
+    };
+
+    res.json({
+      success: true,
+      data: inventory,
+      total: inventory.length,
+      uniqueValues,
+      stats,
+    });
+  } catch (error) {
+    console.error('Store inventory error:', error);
+    res.status(500).json({ success: false, error: 'Failed to load store inventory' });
+  }
+});
+
+
+
+
+
+// ─── GET BOQ_Qty DATA (BOQ Quantity) ─────────────────────
+router.get('/boq-qty', async (req, res) => {
+  try {
+    const response = await sheets.spreadsheets.values.get({
+      spreadsheetId: SignatureSheetId,
+      range: 'BOQ_Qty!A2:K',
+    });
+
+    const rows = response.data.values || [];
+
+    const boqData = rows
+      .filter(row => row.some(cell => cell && String(cell).trim()))
+      .map((row, index) => {
+        const outQty = parseFloat(row[8]) || 0;         // I
+        const reviseBOQ = parseFloat(row[9]) || 0;      // J
+        const balance = row[10] !== undefined && row[10] !== '' && !isNaN(parseFloat(row[10]))
+          ? parseFloat(row[10])
+          : (reviseBOQ > 0 ? reviseBOQ : outQty);
+
+        return {
+          id: index + 1,
+          rowNumber:            index + 2,
+          cluster:              (row[0] || '').trim(),   // A
+          location:             (row[1] || '').trim(),   // B
+          activity:             (row[2] || '').trim(),   // C
+          materialType:         (row[3] || '').trim(),   // D
+          materialName:         (row[4] || '').trim(),   // E
+          materialSize:         (row[5] || '').trim(),   // F
+          materialSpecification:(row[6] || '').trim(),   // G
+          skuCode:              (row[7] || '').trim(),   // H
+          outQty:               outQty,                  // I
+          reviseBOQ:            reviseBOQ,               // J
+          balance:              balance,                 // K
+        };
+      });
+
+    // Unique values for filters
+    const uniqueValues = {
+      clusters:      [...new Set(boqData.map(d => d.cluster).filter(Boolean))].sort(),
+      locations:     [...new Set(boqData.map(d => d.location).filter(Boolean))].sort(),
+      activities:    [...new Set(boqData.map(d => d.activity).filter(Boolean))].sort(),
+      materialTypes: [...new Set(boqData.map(d => d.materialType).filter(Boolean))].sort(),
+    };
+
+    // Stats
+    const stats = {
+      total: boqData.length,
+      totalOutQty: boqData.reduce((sum, d) => sum + d.outQty, 0),
+      totalReviseBOQ: boqData.reduce((sum, d) => sum + d.reviseBOQ, 0),
+      totalBalance: boqData.reduce((sum, d) => sum + d.balance, 0),
+      available: boqData.filter(d => d.balance > 0).length,
+      exhausted: boqData.filter(d => d.balance <= 0).length,
+    };
+
+    res.json({
+      success: true,
+      data: boqData,
+      total: boqData.length,
+      uniqueValues,
+      stats,
+    });
+  } catch (error) {
+    console.error('BOQ_Qty fetch error:', error);
+    res.status(500).json({ success: false, error: 'Failed to load BOQ data' });
   }
 });
 

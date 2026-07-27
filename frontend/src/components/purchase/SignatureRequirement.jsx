@@ -746,12 +746,12 @@ const setField = (field, value) => {
           <span>Additional Information</span>
         </div>
         <div>
-          <label style={S.label}>Remark <span style={S.req}>*</span></label>
+          <label style={S.label}>Slip No <span style={S.req}>*</span></label>
           <input
             value={formData.remark}
             onChange={(e) => setField("remark", e.target.value)}
             style={S.input}
-            placeholder="Enter remark"
+            placeholder="Enter Slip No"
             onFocus={focusStyle}
             onBlur={blurStyle}
           />

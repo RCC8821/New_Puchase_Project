@@ -2,7 +2,8 @@ import React from 'react';
 import { useNavigate } from 'react-router-dom';
 import {
   FileText, Package, HardHat, ArrowRight,
-  Briefcase, Building2, ChevronRight
+  Briefcase, Building2, ChevronRight,  ClipboardList  // ✅ NEW
+
 } from 'lucide-react';
 
 const T = {
@@ -73,6 +74,22 @@ const HeritageDashboard = () => {
       allowedCheck: (userType) =>
         userType === 'admin' || userType?.startsWith('SE_'),
     },
+   {
+  id: 'boq-qty',
+  title: 'BOQ Qty',
+  subtitle: 'View Bill of Quantities & Balance',
+  icon: ClipboardList,   // ✅ Yeh valid hona chahiye
+  path: '/dashboard/heritage/boq-qty',
+  color: T.warning,      // ✅ Ya '#f59e0b'
+  bg: `linear-gradient(135deg, ${T.warning}15, ${T.warning}25)`,
+  iconBg: `linear-gradient(135deg, ${T.warning}, ${T.goldDark})`,
+  iconColor: '#fff',
+  badge: 'BOQ',
+  allowedCheck: (userType) =>
+    userType === 'admin' ||
+    userType === 'Signature Requirement' ||
+    userType?.startsWith('SE_'),
+},
   ];
 
   // ✅ Filter buttons based on user access (SIRF EK BAAR)

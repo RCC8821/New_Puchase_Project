@@ -26,10 +26,26 @@ export const signatureApi = createApi({
       }),
     }),
 
+    // Existing endpoints ke saath yeh add karo
+getStoreInventory: builder.query({
+  query: () => ({
+    url: '/store-inventory',
+    method: 'GET',
+  }),
+  providesTags: ['StoreInventory'],
+}),
+
+getBOQQty: builder.query({
+  query: () => '/boq-qty',
+  providesTags: ['BOQ'],
+}),
+
   }),
 });
 
 export const {
   useGetSignatureProjectDataQuery,
   useSubmitSignatureRequirementMutation,
+  useGetStoreInventoryQuery,
+   useGetBOQQtyQuery,
 } = signatureApi;

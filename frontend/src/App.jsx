@@ -37,6 +37,7 @@ import HeritageDashboard from './components/Heritage/HeritageDashboard';
 import StoreInventory from './components/Heritage/StoreInventory';
 import SiteEngineer from './components/Heritage/SiteEngineer';
 import HeritageRequirementForm from './components/Heritage/HeritageRequirementForm';  // ✅ NEW
+import BOQQty from './components/Heritage/BOQQty';
 
 const App = () => {
   return (
@@ -89,6 +90,7 @@ const App = () => {
           <Route path='heritage/store-inventory' element={<StoreInventory />} />
           <Route path='heritage/site-engineer' element={<SiteEngineer />} />
           <Route path='heritage/requirement-form' element={<HeritageRequirementForm />} />  {/* ✅ NEW */}
+          <Route path='heritage/boq-qty' element={<BOQQty />} />
 
           {/* ❌ OLD ROUTE REMOVED (moved to /heritage/signature-form) */}
           {/* <Route path='signature-requirement' element={<SignatureRequirement />} /> */}

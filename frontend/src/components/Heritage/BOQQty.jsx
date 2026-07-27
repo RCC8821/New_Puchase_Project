@@ -1,11 +1,10 @@
 import React, { useState, useMemo } from 'react';
 import {
   Loader2, AlertCircle, Search, Filter, X, Package,
-  TrendingUp, TrendingDown, CheckCircle, XCircle,
-  RotateCcw, Boxes, ArrowUpCircle, ArrowDownCircle,
-  BarChart3, Archive, Layers, DollarSign
+  ClipboardList, TrendingDown, CheckCircle, XCircle,
+  RotateCcw, Layers, Archive, MapPin, Wrench, Boxes
 } from 'lucide-react';
-import { useGetStoreInventoryQuery } from '../../redux/Signature/SignatureSlice';
+import { useGetBOQQtyQuery } from '../../redux/Signature/SignatureSlice';
 
 const T = {
   navy: '#1e293b', navyLight: '#334155', navyDark: '#0f172a',
@@ -38,7 +37,7 @@ const blurNormal = (e) => {
   e.target.style.background = T.borderLight;
 };
 
-// ─── Stat Card ─────────────────────────────────
+// Stat Card
 const StatCard = ({ icon: Icon, label, value, color, bg, subtitle }) => (
   <div style={{
     background: T.card, borderRadius: 12, padding: '16px 18px',
@@ -69,60 +68,89 @@ const StatCard = ({ icon: Icon, label, value, color, bg, subtitle }) => (
   </div>
 );
 
-const StoreInventory = () => {
+const BOQQty = () => {
   const { data: response, isLoading, isError, error, refetch, isFetching } =
-    useGetStoreInventoryQuery();
+    useGetBOQQtyQuery();
 
   const [searchTerm, setSearchTerm] = useState('');
+  const [selectedCluster, setSelectedCluster] = useState('');
+  const [selectedLocation, setSelectedLocation] = useState('');
+  const [selectedActivity, setSelectedActivity] = useState('');
   const [selectedMaterialType, setSelectedMaterialType] = useState('');
-  const [stockFilter, setStockFilter] = useState(''); // '', 'in-stock', 'out-of-stock'
+  const [balanceFilter, setBalanceFilter] = useState('');
 
-  const inventory = response?.data || [];
+  const boqData = response?.data || [];
   const uv = response?.uniqueValues || {};
   const stats = response?.stats || {};
 
-  // ✅ Filtered Data
+  // Filtered locations by cluster
+  const availableLocations = useMemo(() => {
+    if (!selectedCluster) return uv.locations || [];
+    const filtered = boqData
+      .filter(d => d.cluster === selectedCluster)
+      .map(d => d.location)
+      .filter(Boolean);
+    return [...new Set(filtered)].sort();
+  }, [selectedCluster, boqData, uv.locations]);
+
+  // Filtered Data
   const filteredData = useMemo(() => {
-    return inventory.filter(item => {
+    return boqData.filter(item => {
       // Search
       const search = searchTerm.toLowerCase().trim();
       const matchesSearch = !search || (
-        item.skuCode?.toLowerCase().includes(search) ||
+        item.cluster?.toLowerCase().includes(search) ||
+        item.location?.toLowerCase().includes(search) ||
+        item.activity?.toLowerCase().includes(search) ||
         item.materialType?.toLowerCase().includes(search) ||
         item.materialName?.toLowerCase().includes(search) ||
         item.materialSize?.toLowerCase().includes(search) ||
         item.materialSpecification?.toLowerCase().includes(search) ||
-        item.unit?.toLowerCase().includes(search)
+        item.skuCode?.toLowerCase().includes(search)
       );
 
       if (!matchesSearch) return false;
 
-      // Material Type
+      // Cluster filter
+      if (selectedCluster && item.cluster !== selectedCluster) return false;
+
+      // Location filter
+      if (selectedLocation && item.location !== selectedLocation) return false;
+
+      // Activity filter
+      if (selectedActivity && item.activity !== selectedActivity) return false;
+
+      // Material Type filter
       if (selectedMaterialType && item.materialType !== selectedMaterialType) return false;
 
-      // Stock filter
-      if (stockFilter === 'in-stock' && item.stockBalance <= 0) return false;
-      if (stockFilter === 'out-of-stock' && item.stockBalance > 0) return false;
+      // Balance filter
+      if (balanceFilter === 'available' && item.balance <= 0) return false;
+      if (balanceFilter === 'exhausted' && item.balance > 0) return false;
 
       return true;
     });
-  }, [inventory, searchTerm, selectedMaterialType, stockFilter]);
+  }, [boqData, searchTerm, selectedCluster, selectedLocation, selectedActivity, selectedMaterialType, balanceFilter]);
 
   // Filtered stats
   const filteredStats = useMemo(() => ({
     total: filteredData.length,
-    inStock: filteredData.filter(d => d.stockBalance > 0).length,
-    outOfStock: filteredData.filter(d => d.stockBalance === 0).length,
-    totalBalance: filteredData.reduce((sum, d) => sum + d.stockBalance, 0),
+    totalBalance: filteredData.reduce((sum, d) => sum + d.balance, 0),
+    totalOutQty: filteredData.reduce((sum, d) => sum + d.outQty, 0),
   }), [filteredData]);
 
   const clearFilters = () => {
     setSearchTerm('');
+    setSelectedCluster('');
+    setSelectedLocation('');
+    setSelectedActivity('');
     setSelectedMaterialType('');
-    setStockFilter('');
+    setBalanceFilter('');
   };
 
-  // ── Loading ──
+  const hasFilters = searchTerm || selectedCluster || selectedLocation ||
+                     selectedActivity || selectedMaterialType || balanceFilter;
+
+  // Loading
   if (isLoading) {
     return (
       <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', padding: '80px 20px' }}>
@@ -134,19 +162,19 @@ const StoreInventory = () => {
         }}>
           <Loader2 size={28} color={T.gold} style={{ animation: 'spin 1s linear infinite' }} />
         </div>
-        <p style={{ fontSize: 15, fontWeight: 600, color: T.navy }}>Loading Store Inventory...</p>
-        <p style={{ fontSize: 13, color: T.textMuted }}>Fetching latest stock data</p>
+        <p style={{ fontSize: 15, fontWeight: 600, color: T.navy }}>Loading BOQ Data...</p>
+        <p style={{ fontSize: 13, color: T.textMuted }}>Fetching quantity records</p>
         <style>{`@keyframes spin { to { transform: rotate(360deg); } }`}</style>
       </div>
     );
   }
 
-  // ── Error ──
+  // Error
   if (isError) {
     return (
       <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', padding: '60px 20px' }}>
         <AlertCircle size={40} color={T.danger} style={{ marginBottom: 12 }} />
-        <p style={{ fontSize: 15, fontWeight: 600, color: T.danger }}>Failed to Load Inventory</p>
+        <p style={{ fontSize: 15, fontWeight: 600, color: T.danger }}>Failed to Load BOQ</p>
         <p style={{ fontSize: 13, color: T.textMuted, marginBottom: 16 }}>
           {error?.data?.error || 'Something went wrong'}
         </p>
@@ -164,7 +192,7 @@ const StoreInventory = () => {
   return (
     <div style={{ maxWidth: 1400, margin: '0 auto', padding: '0 8px' }}>
 
-      {/* ── HEADER ── */}
+      {/* HEADER */}
       <div style={{
         background: T.card, borderRadius: 10, border: `1px solid ${T.border}`,
         padding: '14px 18px', marginBottom: 14,
@@ -177,14 +205,14 @@ const StoreInventory = () => {
             background: `linear-gradient(135deg, ${T.navy}, ${T.navyLight})`,
             display: 'flex', alignItems: 'center', justifyContent: 'center',
           }}>
-            <Boxes size={20} color={T.gold} />
+            <ClipboardList size={20} color={T.gold} />
           </div>
           <div>
             <h2 style={{ fontSize: 17, fontWeight: 700, color: T.navy, margin: 0 }}>
-              Store Inventory
+              BOQ Quantity
             </h2>
             <p style={{ fontSize: 12, color: T.textMuted, margin: 0 }}>
-              Signature Heritage — Stock Balance
+              Signature Heritage — Bill of Quantities
             </p>
           </div>
         </div>
@@ -201,7 +229,7 @@ const StoreInventory = () => {
         </button>
       </div>
 
-      {/* ── STATS CARDS ── */}
+      {/* STATS */}
       <div style={{
         display: 'grid',
         gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))',
@@ -209,60 +237,61 @@ const StoreInventory = () => {
       }}>
         <StatCard
           icon={Layers}
-          label="Total Items"
+          label="Total BOQ Items"
           value={stats.total || 0}
           color={T.navy}
           bg={`${T.navy}10`}
-          subtitle="All SKUs"
+          subtitle="All records"
         />
         <StatCard
           icon={CheckCircle}
-          label="In Stock"
-          value={stats.inStock || 0}
+          label="Available"
+          value={stats.available || 0}
           color={T.success}
           bg={T.successBg}
-          subtitle={`${stats.total > 0 ? ((stats.inStock / stats.total) * 100).toFixed(0) : 0}% available`}
+          subtitle={`${stats.total > 0 ? ((stats.available / stats.total) * 100).toFixed(0) : 0}% with balance`}
         />
         <StatCard
           icon={XCircle}
-          label="Out of Stock"
-          value={stats.outOfStock || 0}
+          label="Exhausted"
+          value={stats.exhausted || 0}
           color={T.danger}
           bg={T.dangerBg}
-          subtitle={`${stats.total > 0 ? ((stats.outOfStock / stats.total) * 100).toFixed(0) : 0}% empty`}
+          subtitle={`${stats.total > 0 ? ((stats.exhausted / stats.total) * 100).toFixed(0) : 0}% zero balance`}
         />
         <StatCard
           icon={Archive}
           label="Total Balance"
-          value={(stats.totalStockBalance || 0).toLocaleString('en-IN')}
+          value={(stats.totalBalance || 0).toLocaleString('en-IN')}
           color={T.purple}
           bg={T.purpleBg}
-          subtitle="Current stock units"
+          subtitle="Remaining quantity"
         />
       </div>
 
-      {/* ── FILTERS ── */}
+      {/* FILTERS */}
       <div style={{
         background: T.card, borderRadius: 10, border: `1px solid ${T.border}`,
         padding: '12px 16px', marginBottom: 12,
       }}>
+        {/* Row 1: Search + Count */}
         <div
-          className="filter-grid"
+          className="filter-grid-1"
           style={{
             display: 'grid',
-            gridTemplateColumns: '2fr 1fr 1fr auto auto',
-            gap: 10, alignItems: 'end',
+            gridTemplateColumns: '1fr auto auto',
+            gap: 10, alignItems: 'end', marginBottom: 10,
           }}
         >
-          {/* Search */}
           <div>
             <label style={{ display: 'block', fontSize: 11, fontWeight: 600, color: T.navyLight, marginBottom: 4 }}>
               <Search size={11} style={{ display: 'inline', marginRight: 4 }} />
-              Search Inventory
+              Search BOQ
             </label>
             <div style={{ position: 'relative' }}>
               <Search size={16} style={{ position: 'absolute', left: 12, top: '50%', transform: 'translateY(-50%)', color: T.textMuted }} />
-              <input type="text" placeholder="SKU, Material Type, Name, Size, Spec..."
+              <input type="text"
+                placeholder="Cluster, Location, Activity, Material, SKU..."
                 value={searchTerm}
                 onChange={(e) => setSearchTerm(e.target.value)}
                 style={{ ...inputBase, paddingLeft: 36 }}
@@ -270,39 +299,7 @@ const StoreInventory = () => {
             </div>
           </div>
 
-          {/* Material Type */}
-          <div>
-            <label style={{ display: 'block', fontSize: 11, fontWeight: 600, color: T.navyLight, marginBottom: 4 }}>
-              Material Type
-            </label>
-            <select value={selectedMaterialType}
-              onChange={(e) => setSelectedMaterialType(e.target.value)}
-              style={{ ...inputBase, cursor: 'pointer', appearance: 'none' }}
-              onFocus={focusGold} onBlur={blurNormal}>
-              <option value="">All Types</option>
-              {(uv.materialTypes || []).map((type, i) => (
-                <option key={i} value={type}>{type}</option>
-              ))}
-            </select>
-          </div>
-
-          {/* Stock Filter */}
-          <div>
-            <label style={{ display: 'block', fontSize: 11, fontWeight: 600, color: T.navyLight, marginBottom: 4 }}>
-              Stock Status
-            </label>
-            <select value={stockFilter}
-              onChange={(e) => setStockFilter(e.target.value)}
-              style={{ ...inputBase, cursor: 'pointer', appearance: 'none' }}
-              onFocus={focusGold} onBlur={blurNormal}>
-              <option value="">All Stock</option>
-              <option value="in-stock">✅ In Stock Only</option>
-              <option value="out-of-stock">❌ Out of Stock</option>
-            </select>
-          </div>
-
-          {/* Clear */}
-          {(searchTerm || selectedMaterialType || stockFilter) && (
+          {hasFilters && (
             <button onClick={clearFilters}
               style={{
                 display: 'flex', alignItems: 'center', gap: 4,
@@ -312,15 +309,14 @@ const StoreInventory = () => {
                 fontSize: 12, fontWeight: 600, cursor: 'pointer',
                 height: 40,
               }}>
-              <X size={14} /> Clear
+              <X size={14} /> Clear All
             </button>
           )}
 
-          {/* Count */}
           <div style={{
             display: 'flex', alignItems: 'center', gap: 6,
             padding: '10px 14px', background: T.borderLight, borderRadius: 8,
-            fontSize: 13, color: T.textLight, fontWeight: 600, whiteSpace: 'nowrap',
+            fontSize: 13, color: T.textLight, fontWeight: 600,
             height: 40,
           }}>
             <Filter size={14} />
@@ -329,8 +325,101 @@ const StoreInventory = () => {
           </div>
         </div>
 
-        {/* Active filter chips */}
-        {(selectedMaterialType || stockFilter) && (
+        {/* Row 2: Dropdown Filters */}
+        <div
+          className="filter-grid-2"
+          style={{
+            display: 'grid',
+            gridTemplateColumns: 'repeat(5, 1fr)',
+            gap: 10,
+          }}
+        >
+          <div>
+            <label style={{ display: 'block', fontSize: 11, fontWeight: 600, color: T.navyLight, marginBottom: 4 }}>
+              <MapPin size={11} style={{ display: 'inline', marginRight: 4 }} />
+              Cluster
+            </label>
+            <select value={selectedCluster}
+              onChange={(e) => {
+                setSelectedCluster(e.target.value);
+                setSelectedLocation('');
+              }}
+              style={{ ...inputBase, cursor: 'pointer', appearance: 'none' }}
+              onFocus={focusGold} onBlur={blurNormal}>
+              <option value="">All Clusters</option>
+              {(uv.clusters || []).map((c, i) => (
+                <option key={i} value={c}>{c}</option>
+              ))}
+            </select>
+          </div>
+
+          <div>
+            <label style={{ display: 'block', fontSize: 11, fontWeight: 600, color: T.navyLight, marginBottom: 4 }}>
+              <MapPin size={11} style={{ display: 'inline', marginRight: 4 }} />
+              Location
+            </label>
+            <select value={selectedLocation}
+              onChange={(e) => setSelectedLocation(e.target.value)}
+              disabled={availableLocations.length === 0}
+              style={{ ...inputBase, cursor: 'pointer', appearance: 'none' }}
+              onFocus={focusGold} onBlur={blurNormal}>
+              <option value="">All Locations</option>
+              {availableLocations.map((l, i) => (
+                <option key={i} value={l}>{l}</option>
+              ))}
+            </select>
+          </div>
+
+          <div>
+            <label style={{ display: 'block', fontSize: 11, fontWeight: 600, color: T.navyLight, marginBottom: 4 }}>
+              <Wrench size={11} style={{ display: 'inline', marginRight: 4 }} />
+              Activity
+            </label>
+            <select value={selectedActivity}
+              onChange={(e) => setSelectedActivity(e.target.value)}
+              style={{ ...inputBase, cursor: 'pointer', appearance: 'none' }}
+              onFocus={focusGold} onBlur={blurNormal}>
+              <option value="">All Activities</option>
+              {(uv.activities || []).map((a, i) => (
+                <option key={i} value={a}>{a}</option>
+              ))}
+            </select>
+          </div>
+
+          <div>
+            <label style={{ display: 'block', fontSize: 11, fontWeight: 600, color: T.navyLight, marginBottom: 4 }}>
+              <Package size={11} style={{ display: 'inline', marginRight: 4 }} />
+              Material Type
+            </label>
+            <select value={selectedMaterialType}
+              onChange={(e) => setSelectedMaterialType(e.target.value)}
+              style={{ ...inputBase, cursor: 'pointer', appearance: 'none' }}
+              onFocus={focusGold} onBlur={blurNormal}>
+              <option value="">All Types</option>
+              {(uv.materialTypes || []).map((t, i) => (
+                <option key={i} value={t}>{t}</option>
+              ))}
+            </select>
+          </div>
+
+          <div>
+            <label style={{ display: 'block', fontSize: 11, fontWeight: 600, color: T.navyLight, marginBottom: 4 }}>
+              <Boxes size={11} style={{ display: 'inline', marginRight: 4 }} />
+              Balance Status
+            </label>
+            <select value={balanceFilter}
+              onChange={(e) => setBalanceFilter(e.target.value)}
+              style={{ ...inputBase, cursor: 'pointer', appearance: 'none' }}
+              onFocus={focusGold} onBlur={blurNormal}>
+              <option value="">All Balance</option>
+              <option value="available">✅ Available</option>
+              <option value="exhausted">❌ Exhausted</option>
+            </select>
+          </div>
+        </div>
+
+        {/* Active Filter Chips */}
+        {(selectedCluster || selectedLocation || selectedActivity || selectedMaterialType || balanceFilter) && (
           <div style={{
             display: 'flex', alignItems: 'center', gap: 8,
             marginTop: 10, paddingTop: 10,
@@ -338,31 +427,72 @@ const StoreInventory = () => {
             flexWrap: 'wrap',
           }}>
             <span style={{ fontSize: 11, color: T.textMuted, fontWeight: 600 }}>
-              🔍 Active Filters:
+              🔍 Active:
             </span>
-            {selectedMaterialType && (
+            {selectedCluster && (
               <span style={{
                 background: `${T.gold}15`, color: T.goldDark,
                 padding: '3px 10px', borderRadius: 6, fontSize: 11, fontWeight: 600,
                 display: 'inline-flex', alignItems: 'center', gap: 4,
               }}>
-                Type: {selectedMaterialType}
-                <button onClick={() => setSelectedMaterialType('')} style={{
+                {selectedCluster}
+                <button onClick={() => { setSelectedCluster(''); setSelectedLocation(''); }} style={{
                   background: 'none', border: 'none', cursor: 'pointer',
                   color: T.goldDark, padding: 0, display: 'flex',
                 }}><X size={11} /></button>
               </span>
             )}
-            {stockFilter && (
+            {selectedLocation && (
               <span style={{
                 background: `${T.blue}15`, color: T.blue,
                 padding: '3px 10px', borderRadius: 6, fontSize: 11, fontWeight: 600,
                 display: 'inline-flex', alignItems: 'center', gap: 4,
               }}>
-                Stock: {stockFilter === 'in-stock' ? 'In Stock' : 'Out of Stock'}
-                <button onClick={() => setStockFilter('')} style={{
+                {selectedLocation}
+                <button onClick={() => setSelectedLocation('')} style={{
                   background: 'none', border: 'none', cursor: 'pointer',
                   color: T.blue, padding: 0, display: 'flex',
+                }}><X size={11} /></button>
+              </span>
+            )}
+            {selectedActivity && (
+              <span style={{
+                background: `${T.purple}15`, color: T.purple,
+                padding: '3px 10px', borderRadius: 6, fontSize: 11, fontWeight: 600,
+                display: 'inline-flex', alignItems: 'center', gap: 4,
+              }}>
+                {selectedActivity}
+                <button onClick={() => setSelectedActivity('')} style={{
+                  background: 'none', border: 'none', cursor: 'pointer',
+                  color: T.purple, padding: 0, display: 'flex',
+                }}><X size={11} /></button>
+              </span>
+            )}
+            {selectedMaterialType && (
+              <span style={{
+                background: `${T.success}15`, color: T.success,
+                padding: '3px 10px', borderRadius: 6, fontSize: 11, fontWeight: 600,
+                display: 'inline-flex', alignItems: 'center', gap: 4,
+              }}>
+                {selectedMaterialType}
+                <button onClick={() => setSelectedMaterialType('')} style={{
+                  background: 'none', border: 'none', cursor: 'pointer',
+                  color: T.success, padding: 0, display: 'flex',
+                }}><X size={11} /></button>
+              </span>
+            )}
+            {balanceFilter && (
+              <span style={{
+                background: balanceFilter === 'available' ? `${T.success}15` : `${T.danger}15`,
+                color: balanceFilter === 'available' ? T.success : T.danger,
+                padding: '3px 10px', borderRadius: 6, fontSize: 11, fontWeight: 600,
+                display: 'inline-flex', alignItems: 'center', gap: 4,
+              }}>
+                {balanceFilter === 'available' ? '✅ Available' : '❌ Exhausted'}
+                <button onClick={() => setBalanceFilter('')} style={{
+                  background: 'none', border: 'none', cursor: 'pointer',
+                  color: balanceFilter === 'available' ? T.success : T.danger,
+                  padding: 0, display: 'flex',
                 }}><X size={11} /></button>
               </span>
             )}
@@ -370,7 +500,7 @@ const StoreInventory = () => {
         )}
       </div>
 
-      {/* ── TABLE ── */}
+      {/* TABLE */}
       <div style={{
         background: T.card, borderRadius: 10,
         border: `1px solid ${T.border}`, overflow: 'hidden',
@@ -378,8 +508,8 @@ const StoreInventory = () => {
         {filteredData.length === 0 ? (
           <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', padding: '60px 20px' }}>
             <Package size={40} color={T.border} style={{ marginBottom: 12 }} />
-            <p style={{ fontSize: 15, fontWeight: 500, color: T.textLight }}>No items found</p>
-            {(searchTerm || selectedMaterialType || stockFilter) && (
+            <p style={{ fontSize: 15, fontWeight: 500, color: T.textLight }}>No records found</p>
+            {hasFilters && (
               <button onClick={clearFilters}
                 style={{
                   marginTop: 12, padding: '8px 18px', borderRadius: 8,
@@ -398,16 +528,17 @@ const StoreInventory = () => {
                 <tr style={{ background: T.navy }}>
                   {[
                     { l: '#', w: 50, c: true },
-                    { l: 'SKU Code', w: 100 },
-                    { l: 'Material Type', w: 140 },
+                    { l: 'Cluster', w: 100 },
+                    { l: 'Location', w: 120 },
+                    { l: 'Activity', w: 120 },
+                    { l: 'Material Type', w: 130 },
                     { l: 'Material Name', w: 160 },
                     { l: 'Size', w: 110 },
                     { l: 'Specification', w: 130 },
-                    { l: 'Unit', w: 70, c: true },
-                    { l: 'Opening', w: 100, c: true },
-                    { l: 'Out', w: 100, c: true },
+                    { l: 'SKU', w: 100 },
+                    { l: 'Out Qty', w: 90, c: true },
+                    { l: 'Revise BOQ', w: 100, c: true },
                     { l: 'Balance', w: 110, c: true },
-                    { l: 'Available %', w: 100, c: true },
                     { l: 'Status', w: 110, c: true },
                   ].map((col, i) => (
                     <th key={i} style={{
@@ -423,7 +554,7 @@ const StoreInventory = () => {
               </thead>
               <tbody>
                 {filteredData.map((item, idx) => {
-                  const isInStock = item.stockBalance > 0;
+                  const isAvailable = item.balance > 0;
                   return (
                     <tr key={item.id} style={{
                       background: idx % 2 === 0 ? T.card : T.borderLight,
@@ -435,12 +566,22 @@ const StoreInventory = () => {
                       </td>
                       <td style={{ padding: '10px 14px', borderBottom: `1px solid ${T.border}` }}>
                         <span style={{
-                          background: `${T.navy}15`, color: T.navy,
-                          padding: '3px 8px', borderRadius: 6,
-                          fontSize: 12, fontWeight: 700, fontFamily: 'monospace',
+                          background: `${T.gold}15`, color: T.goldDark,
+                          padding: '3px 8px', borderRadius: 6, fontSize: 12, fontWeight: 700,
                         }}>
-                          {item.skuCode || 'N/A'}
+                          {item.cluster || '—'}
                         </span>
+                      </td>
+                      <td style={{ padding: '10px 14px', borderBottom: `1px solid ${T.border}`, fontWeight: 600 }}>
+                        {item.location || '—'}
+                      </td>
+                      <td style={{ padding: '10px 14px', borderBottom: `1px solid ${T.border}` }}>
+                        {item.activity ? (
+                          <span style={{
+                            background: `${T.purple}15`, color: T.purple,
+                            padding: '2px 8px', borderRadius: 4, fontSize: 11, fontWeight: 600,
+                          }}>{item.activity}</span>
+                        ) : '—'}
                       </td>
                       <td style={{ padding: '10px 14px', borderBottom: `1px solid ${T.border}`, fontWeight: 600 }}>
                         {item.materialType || '—'}
@@ -454,13 +595,19 @@ const StoreInventory = () => {
                       <td style={{ padding: '10px 14px', borderBottom: `1px solid ${T.border}` }}>
                         {item.materialSpecification && item.materialSpecification !== '-'
                           ? <span style={{
-                              background: `${T.purple}15`, color: T.purple,
+                              background: `${T.blue}15`, color: T.blue,
                               padding: '2px 8px', borderRadius: 4, fontSize: 11, fontWeight: 600,
                             }}>{item.materialSpecification}</span>
                           : <span style={{ color: T.textMuted }}>—</span>}
                       </td>
-                      <td style={{ padding: '10px 14px', textAlign: 'center', borderBottom: `1px solid ${T.border}`, fontWeight: 600, color: T.navy }}>
-                        {item.unit || '—'}
+                      <td style={{ padding: '10px 14px', borderBottom: `1px solid ${T.border}` }}>
+                        <span style={{
+                          background: `${T.navy}15`, color: T.navy,
+                          padding: '3px 8px', borderRadius: 6,
+                          fontSize: 11, fontWeight: 700, fontFamily: 'monospace',
+                        }}>
+                          {item.skuCode || 'N/A'}
+                        </span>
                       </td>
                       <td style={{ padding: '10px 14px', textAlign: 'center', borderBottom: `1px solid ${T.border}` }}>
                         <span style={{
@@ -468,33 +615,32 @@ const StoreInventory = () => {
                           padding: '3px 10px', borderRadius: 6,
                           fontSize: 12, fontWeight: 700,
                         }}>
-                          {item.openingStock.toLocaleString('en-IN')}
+                          {item.outQty.toLocaleString('en-IN')}
                         </span>
                       </td>
                       <td style={{ padding: '10px 14px', textAlign: 'center', borderBottom: `1px solid ${T.border}` }}>
-                        <span style={{
-                          background: `${T.warning}15`, color: '#92400e',
-                          padding: '3px 10px', borderRadius: 6,
-                          fontSize: 12, fontWeight: 700,
-                        }}>
-                          {item.outData.toLocaleString('en-IN')}
-                        </span>
+                        {item.reviseBOQ > 0 ? (
+                          <span style={{
+                            background: `${T.warning}15`, color: '#92400e',
+                            padding: '3px 10px', borderRadius: 6,
+                            fontSize: 12, fontWeight: 700,
+                          }}>
+                            {item.reviseBOQ.toLocaleString('en-IN')}
+                          </span>
+                        ) : <span style={{ color: T.textMuted }}>—</span>}
                       </td>
                       <td style={{ padding: '10px 14px', textAlign: 'center', borderBottom: `1px solid ${T.border}` }}>
                         <span style={{
-                          background: isInStock ? `${T.success}15` : `${T.danger}15`,
-                          color: isInStock ? T.success : T.danger,
+                          background: isAvailable ? `${T.success}15` : `${T.danger}15`,
+                          color: isAvailable ? T.success : T.danger,
                           padding: '4px 12px', borderRadius: 6,
                           fontSize: 13, fontWeight: 800,
                         }}>
-                          {item.stockBalance.toLocaleString('en-IN')}
+                          {item.balance.toLocaleString('en-IN')}
                         </span>
                       </td>
-                      <td style={{ padding: '10px 14px', textAlign: 'center', borderBottom: `1px solid ${T.border}`, fontWeight: 600, color: T.textLight }}>
-                        {item.availablePercent || '0%'}
-                      </td>
                       <td style={{ padding: '10px 14px', textAlign: 'center', borderBottom: `1px solid ${T.border}` }}>
-                        {isInStock ? (
+                        {isAvailable ? (
                           <span style={{
                             display: 'inline-flex', alignItems: 'center', gap: 4,
                             background: T.successBg, color: T.success,
@@ -512,7 +658,7 @@ const StoreInventory = () => {
                             fontSize: 11, fontWeight: 700,
                             border: `1px solid ${T.dangerBorder}`,
                           }}>
-                            <XCircle size={11} /> Empty
+                            <XCircle size={11} /> Exhausted
                           </span>
                         )}
                       </td>
@@ -529,13 +675,16 @@ const StoreInventory = () => {
         @keyframes spin { to { transform: rotate(360deg); } }
 
         @media (max-width: 900px) {
-          .filter-grid {
+          .filter-grid-2 {
             grid-template-columns: 1fr 1fr !important;
           }
         }
 
         @media (max-width: 600px) {
-          .filter-grid {
+          .filter-grid-1 {
+            grid-template-columns: 1fr !important;
+          }
+          .filter-grid-2 {
             grid-template-columns: 1fr !important;
           }
         }
@@ -544,4 +693,4 @@ const StoreInventory = () => {
   );
 };
 
-export default StoreInventory;
+export default BOQQty;

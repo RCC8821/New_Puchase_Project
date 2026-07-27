@@ -1,4 +1,3 @@
-
 // Dashboard.jsx
 import React, { useState, useEffect, useRef, useCallback } from 'react';
 import {
@@ -64,9 +63,9 @@ const Dashboard = () => {
 
   const isSiteEngineer = userType?.startsWith('SE_');
 
-  // ✅ NEW - Check for Project-Locked User
+  // ✅ Check for Project-Locked User
   const isProjectLockedUser =
-  userType && /^signature\s+.+\s+prj\d+/i.test(userType);
+    userType && /^signature\s+.+\s+prj\d+/i.test(userType);
 
   // ── Purchase Pages ──
   const allPurchasePages = [
@@ -132,7 +131,7 @@ const Dashboard = () => {
       icon: Truck,
       component: Material_Received,
       path: '/dashboard/Material_Received',
-      allowedUserTypes: ['admin', 'Material Received', 'Neha Masani', 'Site Engineer','Signature Requirement'],
+      allowedUserTypes: ['admin', 'Material Received', 'Neha Masani', 'Site Engineer', 'Signature Requirement'],
     },
     {
       id: 'Final_Material_Received',
@@ -305,13 +304,12 @@ const Dashboard = () => {
       path: '/dashboard/heritage/requirement-form',
       allowedUserTypes: ['admin', 'Signature Requirement'],
       allowSiteEngineer: true,
-      allowProjectLocked: true, // ✅ NEW - Project-locked users bhi access
+      allowProjectLocked: true,
     },
   ];
 
-  // ✅ UPDATED - Filter functions
+  // ── Filter functions ──
   const getPurchasePages = () => {
-    // ✅ Project-locked user ko purchase nahi dikhega
     if (isProjectLockedUser) return [];
     return allPurchasePages.filter((p) => p.allowedUserTypes.includes(userType));
   };
@@ -328,13 +326,9 @@ const Dashboard = () => {
 
   const getJvProjectPages = () =>
     allJvProjectPages.filter((p) => {
-      // ✅ Admin, Signature Requirement, Site Engineers ke liye normal check
       if (p.allowedUserTypes.includes(userType)) return true;
       if (p.allowSiteEngineer && isSiteEngineer) return true;
-
-      // ✅ NEW - Project-locked user ko sirf Requirement Form dikhega
       if (p.allowProjectLocked && isProjectLockedUser) return true;
-
       return false;
     });
 
@@ -345,7 +339,7 @@ const Dashboard = () => {
     ...getJvProjectPages(),
   ];
 
-  // ✅ Menu Items - Hide sections if empty
+  // ── Menu Items ──
   const menuItems = [
     {
       id: 'purchase',
@@ -371,7 +365,6 @@ const Dashboard = () => {
       icon: Briefcase,
       pages: getJvProjectPages(),
     },
-    // ✅ Sheet Link sirf non-locked users ko
     ...(!isProjectLockedUser ? [{
       id: 'sheet',
       name: 'Sheet Link',
@@ -414,6 +407,7 @@ const Dashboard = () => {
     'heritage-store': 'Heritage — Store Inventory',
     'heritage-site': 'Heritage — Site Engineer',
     'heritage-requirement': 'Signature — Requirement Form',
+    'heritage-boq': 'Heritage — BOQ Quantity',   // ✅ NEW
   };
 
   const handleScroll = useCallback(() => {
@@ -463,6 +457,7 @@ const Dashboard = () => {
       return;
     }
 
+    // ✅ Heritage sub-routes
     if (location.pathname === '/dashboard/heritage/signature-form') {
       setSelectedPage('heritage-signature');
       return;
@@ -473,6 +468,11 @@ const Dashboard = () => {
     }
     if (location.pathname === '/dashboard/heritage/site-engineer') {
       setSelectedPage('heritage-site');
+      return;
+    }
+    // ✅ NEW - BOQ Qty
+    if (location.pathname === '/dashboard/heritage/boq-qty') {
+      setSelectedPage('heritage-boq');
       return;
     }
 
@@ -500,17 +500,19 @@ const Dashboard = () => {
 
   const CurrentComponent = getCurrentComponent();
 
+  // ✅ Heritage sub-routes (Outlet se render hote hain)
   const isHeritageSubRoute = [
     'heritage-signature',
     'heritage-store',
     'heritage-site',
+    'heritage-boq',   // ✅ NEW
   ].includes(selectedPage);
 
   // ✅ Display name
   const displayName = isSiteEngineer
     ? userType.replace('SE_', '')
     : isProjectLockedUser
-      ? userType // Show full project name
+      ? userType
       : userType;
 
   return (
