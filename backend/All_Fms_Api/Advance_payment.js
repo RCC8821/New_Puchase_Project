@@ -1,7 +1,7 @@
 
 
 const express = require('express');
-const { sheets, spreadsheetId } = require('../config/googleSheet');
+const { sheets, spreadsheetId,AdvanceSheetContractorId  } = require('../config/googleSheet');
 const router = express.Router();
 
 // ==========================================
@@ -91,6 +91,187 @@ router.get('/dropdown-data', async (req, res) => {
 // Contractor → Advance_Payment_Sheet
 // ==========================================
 
+// router.post('/submit-payment', async (req, res) => {
+//   try {
+//     const {
+//       siteName,
+//       vendorFirmName,
+//       paidAmount,
+//       bankDetails,
+//       paymentMode,
+//       paymentDetails,
+//       paymentDate,
+//       expHead,
+//     } = req.body;
+
+//     // ---- Validate ----
+//     if (
+//       !siteName ||
+//       !vendorFirmName ||
+//       !paidAmount ||
+//       !bankDetails ||
+//       !paymentMode ||
+//       !paymentDetails ||
+//       !paymentDate ||
+//       !expHead
+//     ) {
+//       return res.status(400).json({
+//         success: false,
+//         message: 'All fields are required',
+//       });
+//     }
+
+//     // ---- Timestamp ----
+//     const generateTimestamp = () => {
+//       const now = new Date();
+//       const day = String(now.getDate()).padStart(2, '0');
+//       const month = String(now.getMonth() + 1).padStart(2, '0');
+//       const year = now.getFullYear();
+//       const hours = String(now.getHours()).padStart(2, '0');
+//       const minutes = String(now.getMinutes()).padStart(2, '0');
+//       const seconds = String(now.getSeconds()).padStart(2, '0');
+//       return `${day}/${month}/${year} ${hours}:${minutes}:${seconds}`;
+//     };
+
+//     const timestamp = generateTimestamp();
+
+//     let sheetName, range, rowData;
+
+//     // ==========================================
+//     // ✅ Check expHead → Decide Sheet
+//     // ==========================================
+
+//     if (expHead === 'Contractor') {
+//       // ✅ Contractor → Advance_Payment_Sheet (A to I)
+//       sheetName = 'Advance_Payment_Sheet';
+
+//       rowData = [
+//         timestamp,        // A - Timestamp
+//         siteName,         // B - Site Name
+//         vendorFirmName,   // C - VENDOR FIRM NAME
+//         paidAmount,       // D - PAID_AMOUNT
+//         bankDetails,      // E - BANK_DETAILS
+//         paymentMode,      // F - PAYMENT_MODE
+//         paymentDetails,   // G - PAYMENT_DETAILS
+//         paymentDate,      // H - PAYMENT DATE
+//         expHead,          // I - Exp._Head
+//       ];
+
+//       const nextRow = await getNextEmptyRow(sheetName);
+//       range = `${sheetName}!A${nextRow}:O${nextRow}`;
+
+//       console.log(`Contractor → ${sheetName} → Row ${nextRow}`);
+
+//       const response = await sheets.spreadsheets.values.update({
+//         spreadsheetId,
+//         range,
+//         valueInputOption: 'USER_ENTERED',
+//         requestBody: {
+//           values: [rowData],
+//         },
+//       });
+
+//       return res.status(201).json({
+//         success: true,
+//         message: `Contractor data submitted to ${sheetName} at row ${nextRow}`,
+//         insertedAt: `Row ${nextRow}`,
+//         sheet: sheetName,
+//         data: {
+//           timestamp, siteName, vendorFirmName, paidAmount,
+//           bankDetails, paymentMode, paymentDetails, paymentDate, expHead,
+//         },
+//         sheetsResponse: {
+//           updatedRange: response.data.updatedRange,
+//           updatedRows: response.data.updatedRows,
+//         },
+//       });
+
+//     } else if (expHead === 'Purchase') {
+//       // ✅ Purchase → Payment_Sheet (A to N)
+//       // A = Timestamp
+//       // B = Khaali
+//       // C = Site Name
+//       // D = Vendor Firm Name
+//       // E = Khaali
+//       // F = Khaali
+//       // G = Khaali
+//       // H = Paid Amount
+//       // I = Paid Amount (Balance = same)
+//       // J = Bank Details
+//       // K = Payment Mode
+//       // L = Payment Details
+//       // M = Payment Date
+//       // N = Khaali
+
+//       sheetName = 'Payment_Sheet';
+
+//       rowData = [
+//         timestamp,        // A
+//         '',               // B - Khaali
+//         siteName,         // C
+//         vendorFirmName,   // D
+//         '',               // E - Khaali
+//         '',               // F - Khaali
+//         '',               // G - Khaali
+//         paidAmount,       // H
+//         paidAmount,       // I (same as paid)
+//         bankDetails,      // J
+//         paymentMode,      // K
+//         paymentDetails,   // L
+//         paymentDate,      // M
+//         '',    
+//         'Advance',           // N - Khaali
+//       ];
+
+//       const nextRow = await getNextEmptyRow(sheetName);
+//       range = `${sheetName}!A${nextRow}:O${nextRow}`;
+
+//       console.log(`Purchase → ${sheetName} → Row ${nextRow}`);
+
+//       const response = await sheets.spreadsheets.values.update({
+//         spreadsheetId,
+//         range,
+//         valueInputOption: 'USER_ENTERED',
+//         requestBody: {
+//           values: [rowData],
+//         },
+//       });
+
+//       return res.status(201).json({
+//         success: true,
+//         message: `Purchase data submitted to ${sheetName} at row ${nextRow}`,
+//         insertedAt: `Row ${nextRow}`,
+//         sheet: sheetName,
+//         data: {
+//           timestamp, siteName, vendorFirmName, paidAmount,
+//           bankDetails, paymentMode, paymentDetails, paymentDate, expHead,
+//         },
+//         sheetsResponse: {
+//           updatedRange: response.data.updatedRange,
+//           updatedRows: response.data.updatedRows,
+//         },
+//       });
+
+//     } else {
+//       return res.status(400).json({
+//         success: false,
+//         message: `Invalid Exp. Head: "${expHead}". Must be "Purchase" or "Contractor"`,
+//       });
+//     }
+
+//   } catch (error) {
+//     console.error('Error submitting payment data:', error);
+//     return res.status(500).json({
+//       success: false,
+//       message: 'Internal Server Error',
+//       error: error.message,
+//     });
+//   }
+// });
+
+
+
+
 router.post('/submit-payment', async (req, res) => {
   try {
     const {
@@ -135,47 +316,94 @@ router.post('/submit-payment', async (req, res) => {
 
     const timestamp = generateTimestamp();
 
-    let sheetName, range, rowData;
+    // ═══════════════════════════════════════════════════════════
+    // ✅ Helper - Get Next Empty Row (specific sheet ID ke liye)
+    // ═══════════════════════════════════════════════════════════
+    const getNextEmptyRowInSheet = async (sheetId, sheetName) => {
+      try {
+        const response = await sheets.spreadsheets.values.get({
+          spreadsheetId: sheetId,
+          range: `${sheetName}!A:A`,
+        });
 
-    // ==========================================
-    // ✅ Check expHead → Decide Sheet
-    // ==========================================
+        const rows = response.data.values || [];
 
+        // Find first empty row starting from row 1
+        for (let i = 0; i < rows.length; i++) {
+          if (!rows[i] || !rows[i][0] || String(rows[i][0]).trim() === '') {
+            return i + 1; // Row numbers are 1-indexed
+          }
+        }
+
+        // If no empty row found, return next row after last data
+        return rows.length + 1;
+      } catch (error) {
+        console.error(`Error finding empty row in ${sheetName}:`, error);
+        throw new Error(`Failed to get next empty row: ${error.message}`);
+      }
+    };
+
+    // ══════════════════════════════════════════════
+    // ✅ CONTRACTOR → Sirf Contractor Sheet mein
+    // ══════════════════════════════════════════════
     if (expHead === 'Contractor') {
-      // ✅ Contractor → Advance_Payment_Sheet (A to I)
-      sheetName = 'Advance_Payment_Sheet';
 
-      rowData = [
-        timestamp,        // A - Timestamp
-        siteName,         // B - Site Name
-        vendorFirmName,   // C - VENDOR FIRM NAME
-        paidAmount,       // D - PAID_AMOUNT
-        bankDetails,      // E - BANK_DETAILS
-        paymentMode,      // F - PAYMENT_MODE
-        paymentDetails,   // G - PAYMENT_DETAILS
-        paymentDate,      // H - PAYMENT DATE
-        expHead,          // I - Exp._Head
+      // Column Mapping (Contractor Sheet → Payment_Sheet):
+      // A = Timestamp
+      // B = Khaali (Planned_8)
+      // C = Project_Name (siteName)
+      // D = Contractor_Name_5 (vendorFirmName)
+      // E-J = Khaali
+      // K = PAID_AMOUNT_8 (paidAmount)
+      // L = BALANCE_AMOUNT_8 (paidAmount same)
+      // M = BANK_DETAILS_8 (bankDetails)
+      // N = PAYMENT_MODE_8 (paymentMode)
+      // O = PAYMENT_DETAILS_8 (paymentDetails)
+      // P = PAYMENT DATE_8 (paymentDate)
+      // Q = Khaali (GRAND_TOTAL)
+      // R = Exp._Head ("Advance")
+
+      const paymentRowData = [
+        timestamp,        // A
+        '',               // B - Khaali
+        siteName,         // C - Project Name
+        vendorFirmName,   // D - Contractor Name
+        '',               // E - Khaali
+        '',               // F - Khaali
+        '',               // G - Khaali
+        '',               // H - Khaali
+        '',               // I - Khaali
+        '',               // J - Khaali
+        paidAmount,       // K - Paid Amount
+        paidAmount,       // L - Balance (same)
+        bankDetails,      // M - Bank Details
+        paymentMode,      // N - Payment Mode
+        paymentDetails,   // O - Payment Details
+        paymentDate,      // P - Payment Date
+        '',               // Q - Khaali (Grand Total)
+        'Advance',        // R - Exp. Head
       ];
 
-      const nextRow = await getNextEmptyRow(sheetName);
-      range = `${sheetName}!A${nextRow}:O${nextRow}`;
+      // ✅ Get first empty row in Contractor sheet
+      const nextRow = await getNextEmptyRowInSheet(AdvanceSheetContractorId, 'Payment_Sheet');
+      const range = `Payment_Sheet!A${nextRow}:R${nextRow}`;
 
-      console.log(`Contractor → ${sheetName} → Row ${nextRow}`);
+      console.log(`Contractor → Payment_Sheet (Contractor Sheet) → Row ${nextRow}`);
 
       const response = await sheets.spreadsheets.values.update({
-        spreadsheetId,
+        spreadsheetId: AdvanceSheetContractorId,  // ✅ Contractor Sheet
         range,
         valueInputOption: 'USER_ENTERED',
         requestBody: {
-          values: [rowData],
+          values: [paymentRowData],
         },
       });
 
       return res.status(201).json({
         success: true,
-        message: `Contractor data submitted to ${sheetName} at row ${nextRow}`,
+        message: `Contractor data submitted at row ${nextRow}`,
         insertedAt: `Row ${nextRow}`,
-        sheet: sheetName,
+        sheet: 'Payment_Sheet (Contractor Sheet)',
         data: {
           timestamp, siteName, vendorFirmName, paidAmount,
           bankDetails, paymentMode, paymentDetails, paymentDate, expHead,
@@ -186,26 +414,14 @@ router.post('/submit-payment', async (req, res) => {
         },
       });
 
-    } else if (expHead === 'Purchase') {
-      // ✅ Purchase → Payment_Sheet (A to N)
-      // A = Timestamp
-      // B = Khaali
-      // C = Site Name
-      // D = Vendor Firm Name
-      // E = Khaali
-      // F = Khaali
-      // G = Khaali
-      // H = Paid Amount
-      // I = Paid Amount (Balance = same)
-      // J = Bank Details
-      // K = Payment Mode
-      // L = Payment Details
-      // M = Payment Date
-      // N = Khaali
+    }
 
-      sheetName = 'Payment_Sheet';
+    // ══════════════════════════════════════════════
+    // ✅ PURCHASE → Sirf Purchase Sheet mein
+    // ══════════════════════════════════════════════
+    else if (expHead === 'Purchase') {
 
-      rowData = [
+      const rowData = [
         timestamp,        // A
         '',               // B - Khaali
         siteName,         // C
@@ -219,17 +435,18 @@ router.post('/submit-payment', async (req, res) => {
         paymentMode,      // K
         paymentDetails,   // L
         paymentDate,      // M
-        '',    
-        'Advance',           // N - Khaali
+        '',               // N - Khaali
+        'Advance',        // O
       ];
 
-      const nextRow = await getNextEmptyRow(sheetName);
-      range = `${sheetName}!A${nextRow}:O${nextRow}`;
+      // ✅ Get first empty row in Purchase sheet
+      const nextRow = await getNextEmptyRowInSheet(spreadsheetId, 'Payment_Sheet');
+      const range = `Payment_Sheet!A${nextRow}:O${nextRow}`;
 
-      console.log(`Purchase → ${sheetName} → Row ${nextRow}`);
+      console.log(`Purchase → Payment_Sheet → Row ${nextRow}`);
 
       const response = await sheets.spreadsheets.values.update({
-        spreadsheetId,
+        spreadsheetId,  // ✅ Purchase Sheet
         range,
         valueInputOption: 'USER_ENTERED',
         requestBody: {
@@ -239,9 +456,9 @@ router.post('/submit-payment', async (req, res) => {
 
       return res.status(201).json({
         success: true,
-        message: `Purchase data submitted to ${sheetName} at row ${nextRow}`,
+        message: `Purchase data submitted at row ${nextRow}`,
         insertedAt: `Row ${nextRow}`,
-        sheet: sheetName,
+        sheet: 'Payment_Sheet',
         data: {
           timestamp, siteName, vendorFirmName, paidAmount,
           bankDetails, paymentMode, paymentDetails, paymentDate, expHead,
@@ -252,7 +469,12 @@ router.post('/submit-payment', async (req, res) => {
         },
       });
 
-    } else {
+    }
+
+    // ══════════════════════════════════════════════
+    // ✅ Invalid expHead
+    // ══════════════════════════════════════════════
+    else {
       return res.status(400).json({
         success: false,
         message: `Invalid Exp. Head: "${expHead}". Must be "Purchase" or "Contractor"`,
