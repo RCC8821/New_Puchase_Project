@@ -188,6 +188,80 @@ async function getNextReqNo() {
 // ═══════════════════════════════════════════════════════════
 // SUBMIT REQUIREMENT → Requriemt_Form tab
 // ═══════════════════════════════════════════════════════════
+// router.post('/submit', async (req, res) => {
+//   try {
+//     const { projectName, engineerName, contractor, remark, items } = req.body;
+
+//     if (!projectName || !engineerName) {
+//       throw new Error('Project Name and Engineer Name are required');
+//     }
+//     if (!Array.isArray(items) || items.length === 0) {
+//       throw new Error('At least one item is required');
+//     }
+
+//     const reqNo = await getNextReqNo();
+//     let currentUIDStr = await getNextUID();
+//     let currentUIDNum = parseInt(currentUIDStr.replace(/^S/i, ''), 10);
+
+//     const now = new Date().toLocaleString('en-IN', {
+//       timeZone: 'Asia/Kolkata',
+//       day: '2-digit', month: '2-digit', year: 'numeric',
+//       hour: '2-digit', minute: '2-digit', second: '2-digit',
+//       hour12: false,
+//     }).replace(',', '');
+
+//     const values = items.map((item, i) => {
+//       if (!item.materialType || !item.materialName || !item.materialSize ||
+//           !item.specification || !item.skuCode || !item.quantity ||
+//           !item.unit || !item.description ||
+//           (item.reqDays === '' || item.reqDays === undefined || item.reqDays === null)) {
+//         throw new Error(`Item ${i + 1}: All fields are required`);
+//       }
+
+//       const uidForThisItem = `S${String(currentUIDNum + i).padStart(4, '0')}`;
+
+//       return [
+//         now,                       // A
+//         uidForThisItem,            // B
+//         reqNo,                     // C
+//         projectName,               // D
+//         engineerName,              // E
+//         item.materialType,         // F
+//         item.materialName,         // G
+//         item.materialSize,         // H
+//         item.specification,        // I
+//         '',
+//         item.skuCode,              // J
+//         item.quantity,             // K
+//         item.unit,                 // L
+//         item.description,          // M
+//         item.reqDays.toString(),   // N
+//         contractor || '',          // O
+//         remark || '',              // P
+//       ];
+//     });
+
+//     await sheets.spreadsheets.values.append({
+//       spreadsheetId: SignatureProjectSheetId,
+//       range: 'Requriemt_Form!A:P',
+//       valueInputOption: 'USER_ENTERED',
+//       resource: { values },
+//     });
+
+//     res.json({
+//       message: 'Requirement submitted successfully!',
+//       reqNo,
+//       itemCount: items.length,
+//     });
+
+//   } catch (error) {
+//     console.error('Submit error:', error);
+//     res.status(400).json({ error: error.message });
+//   }
+// });
+
+
+
 router.post('/submit', async (req, res) => {
   try {
     const { projectName, engineerName, contractor, remark, items } = req.body;
@@ -221,29 +295,29 @@ router.post('/submit', async (req, res) => {
       const uidForThisItem = `S${String(currentUIDNum + i).padStart(4, '0')}`;
 
       return [
-        now,                       // A
-        uidForThisItem,            // B
-        reqNo,                     // C
-        projectName,               // D
-        engineerName,              // E
-        item.materialType,         // F
-        item.materialName,         // G
-        item.materialSize,         // H
-        item.specification,        // I
-        '',
-        item.skuCode,              // J
-        item.quantity,             // K
-        item.unit,                 // L
-        item.description,          // M
-        item.reqDays.toString(),   // N
-        contractor || '',          // O
-        remark || '',              // P
+        now,                        // A
+        uidForThisItem,             // B
+        reqNo,                      // C
+        projectName,                // D
+        engineerName,               // E
+        item.materialType,          // F
+        item.materialName,          // G
+        item.materialSize,          // H
+        item.specification,         // I
+        item.brand || '',           // J ✅ Brand
+        item.skuCode,               // K
+        item.quantity,              // L
+        item.unit,                  // M
+        item.description,           // N
+        item.reqDays?.toString() || '', // O
+        contractor || '',           // P
+        remark || '',               // Q
       ];
     });
 
     await sheets.spreadsheets.values.append({
       spreadsheetId: SignatureProjectSheetId,
-      range: 'Requriemt_Form!A:P',
+      range: 'Requriemt_Form!A:Q',
       valueInputOption: 'USER_ENTERED',
       resource: { values },
     });
@@ -259,5 +333,6 @@ router.post('/submit', async (req, res) => {
     res.status(400).json({ error: error.message });
   }
 });
+
 
 module.exports = router;

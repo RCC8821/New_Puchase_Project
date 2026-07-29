@@ -1,4 +1,5 @@
 
+
 import React, { useEffect, useState, useMemo } from "react";
 import {
   Plus, Trash2, Send, RotateCcw, Loader2, AlertCircle,
@@ -191,9 +192,10 @@ const RequirementReceived = () => {
     projectName: '', engineerName: '', contractor: '', remark: '',
   });
 
+  // ✅ brand field added in initial item state
   const [items, setItems] = useState([{
     materialType: '', materialName: '', materialSize: '',
-    specification: '', skuCode: '',
+    specification: '', brand: '', skuCode: '',
     quantity: '', unit: '', description: '', reqDays: '',
   }]);
 
@@ -235,7 +237,7 @@ const RequirementReceived = () => {
         ...updated[index],
         materialType: value,
         materialName: '', materialSize: '',
-        specification: '', skuCode: '',
+        specification: '', brand: '', skuCode: '',  // ✅ brand reset
       };
     }
 
@@ -245,6 +247,7 @@ const RequirementReceived = () => {
         materialName: value,
         materialSize: '',
         specification: '',
+        brand: '',    // ✅ brand reset
         skuCode: '',
       };
     }
@@ -269,10 +272,11 @@ const RequirementReceived = () => {
     return maps.nameToSpecs?.[materialName.toLowerCase()] || [];
   };
 
+  // ✅ Add item with brand field
   const addItem = () => {
     setItems([...items, {
       materialType: '', materialName: '', materialSize: '',
-      specification: '', skuCode: '',
+      specification: '', brand: '', skuCode: '',
       quantity: '', unit: '', description: '', reqDays: '',
     }]);
   };
@@ -281,7 +285,7 @@ const RequirementReceived = () => {
     if (items.length > 1) setItems(items.filter((_, idx) => idx !== i));
   };
 
-  // ✅ ALL FIELDS REQUIRED
+  // ✅ brand is NOT required (optional field - empty column)
   const isFormValid = useMemo(() => {
     if (!formData.projectName.trim()) return false;
     if (!formData.engineerName.trim()) return false;
@@ -293,6 +297,7 @@ const RequirementReceived = () => {
       if (!item.materialName.trim()) return false;
       if (!item.materialSize.trim()) return false;
       if (!item.specification.trim()) return false;
+      // ✅ brand optional - no validation
       if (!item.skuCode.trim()) return false;
       if (!item.quantity.toString().trim()) return false;
       if (!item.unit.trim()) return false;
@@ -302,7 +307,7 @@ const RequirementReceived = () => {
     return true;
   }, [formData, items]);
 
-  // ─── SUBMIT (SweetAlert2 Popup) ────────────────────────
+  // ─── SUBMIT ────────────────────────────────────────────
   const handleSubmit = async (e) => {
     e.preventDefault();
 
@@ -324,7 +329,6 @@ const RequirementReceived = () => {
         { ...formData, items }
       );
 
-      // ✅ Success Popup
       await Swal.fire({
         icon: 'success',
         title: 'Submitted Successfully! 🎉',
@@ -351,14 +355,11 @@ const RequirementReceived = () => {
         timerProgressBar: true,
         allowOutsideClick: false,
         width: window.innerWidth < 500 ? '90%' : '450px',
-        customClass: {
-          popup: 'swal-requirement-popup',
-        },
+        customClass: { popup: 'swal-requirement-popup' },
       });
 
       resetForm();
     } catch (err) {
-      // ✅ Error Popup
       Swal.fire({
         icon: 'error',
         title: 'Submission Failed!',
@@ -372,11 +373,12 @@ const RequirementReceived = () => {
     }
   };
 
+  // ✅ brand field reset in resetForm
   const resetForm = () => {
     setFormData({ projectName: '', engineerName: '', contractor: '', remark: '' });
     setItems([{
       materialType: '', materialName: '', materialSize: '',
-      specification: '', skuCode: '',
+      specification: '', brand: '', skuCode: '',
       quantity: '', unit: '', description: '', reqDays: '',
     }]);
   };
@@ -384,7 +386,7 @@ const RequirementReceived = () => {
   if (loading) return <LoadingScreen />;
   if (error) return <ErrorScreen error={error} onRetry={fetchData} />;
 
-  // ── Progress count ──
+  // ── Progress count (brand optional - not counted) ──
   const totalRequired = 4 + (items.length * 9);
   const filledCount = (() => {
     let count = 0;
@@ -397,6 +399,7 @@ const RequirementReceived = () => {
       if (item.materialName.trim()) count++;
       if (item.materialSize.trim()) count++;
       if (item.specification.trim()) count++;
+      // ✅ brand not counted (optional)
       if (item.skuCode.trim()) count++;
       if (item.quantity.toString().trim()) count++;
       if (item.unit.trim()) count++;
@@ -546,7 +549,7 @@ const RequirementReceived = () => {
                 />
               </div>
 
-              {/* Row 2: Spec + SKU */}
+              {/* ✅ Row 2: Spec + Brand + SKU */}
               <div style={{
                 display: 'grid',
                 gridTemplateColumns: 'repeat(auto-fit, minmax(180px, 1fr))',
@@ -566,6 +569,31 @@ const RequirementReceived = () => {
                   }
                   disabled={!item.materialName || specs.length === 0}
                 />
+
+                {/* ✅ NEW: Brand Input Field (Optional) - Column J */}
+                <div>
+                  <label style={S.label}>
+                    Brand
+                    {/* Optional badge */}
+                    <span style={{
+                      marginLeft: 8, fontSize: 10,
+                      color: T.textMuted,
+                      background: T.borderLight,
+                      padding: '2px 8px',
+                      borderRadius: 10, fontWeight: 500,
+                      border: `1px solid ${T.border}`,
+                    }}>Optional</span>
+                  </label>
+                  <input
+                    type="text"
+                    value={item.brand}
+                    onChange={(e) => handleItemChange(idx, 'brand', e.target.value)}
+                    style={S.input}
+                    placeholder="Enter brand name (optional)"
+                    onFocus={focusStyle}
+                    onBlur={blurStyle}
+                  />
+                </div>
 
                 <div>
                   <label style={S.label}>
@@ -756,8 +784,7 @@ const RequirementReceived = () => {
 
         <div style={{
           display: 'flex', gap: 10,
-          flex: '0 1 auto',
-          flexWrap: 'wrap',
+          flex: '0 1 auto', flexWrap: 'wrap',
         }}>
           <button onClick={resetForm} style={{
             display: 'flex', alignItems: 'center', gap: 6,
@@ -817,32 +844,19 @@ const RequirementReceived = () => {
         </div>
       </div>
 
-      {/* Global Styles */}
       <style>{`
         @keyframes spin { to { transform: rotate(360deg); } }
-
         .swal-requirement-popup {
           font-family: 'Segoe UI', system-ui, sans-serif !important;
           border-radius: 14px !important;
         }
-
         @media (max-width: 640px) {
-          input, select, textarea {
-            font-size: 16px !important;
-          }
+          input, select, textarea { font-size: 16px !important; }
         }
-
         @media (max-width: 480px) {
-          .swal2-popup {
-            font-size: 13px !important;
-            padding: 16px !important;
-          }
-          .swal2-title {
-            font-size: 18px !important;
-          }
-          .swal2-html-container {
-            font-size: 13px !important;
-          }
+          .swal2-popup { font-size: 13px !important; padding: 16px !important; }
+          .swal2-title { font-size: 18px !important; }
+          .swal2-html-container { font-size: 13px !important; }
         }
       `}</style>
     </div>
