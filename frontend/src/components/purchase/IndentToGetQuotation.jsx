@@ -215,6 +215,7 @@ const IndentToGetQuotation = () => {
     { label: 'Material Type', w: 120 },
     { label: 'Material Name', w: 160 },
     { label: 'Size', w: 90 },
+    { label: 'Specification', w: 130 },
     { label: 'SKU', w: 100 },
     { label: 'Qty', w: 70 },
     { label: 'Unit', w: 70 },
@@ -377,6 +378,7 @@ const IndentToGetQuotation = () => {
                     <Td>{req.Material_Type}</Td>
                     <Td maxW={150}>{req.Material_Name}</Td>
                     <Td>{req.Material_Size}</Td>
+                    <Td>{req.Specification}</Td>
                     <Td>{req.SKU_Code}</Td>
                     <Td right>{req.Quantity}</Td>
                     <Td>{req.Unit_Name}</Td>

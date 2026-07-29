@@ -63,6 +63,7 @@ router.get('/get-vendor-follow-up-material', async (req, res) => {
           Material_Type: (row[5] || '').trim(),
           Material_Name: (row[6] || '').trim(),
           Material_Size: (row[7] || '').trim(),
+          Specification: (row[8]  || '').trim(), // I
           SKU_Code: (row[10] || '').trim(),
           Quantity: (row[11] || '').trim(),
           Unit_Name: (row[12] || '').trim(),

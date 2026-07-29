@@ -1,3 +1,5 @@
+
+
 import React, { useState, useEffect } from 'react';
 import {
   Loader2, AlertCircle, CheckCircle, X,
@@ -52,7 +54,8 @@ const LoadingScreen = () => (
       display: 'flex', alignItems: 'center', justifyContent: 'center',
       marginBottom: 20, boxShadow: `0 0 0 3px ${T.gold}30`,
     }}>
-      <Loader2 size={28} color={T.gold} style={{ animation: 'spin 1s linear infinite' }} />
+      <Loader2 size={28} color={T.gold}
+        style={{ animation: 'spin 1s linear infinite' }} />
     </div>
     <p style={{ fontSize: 15, fontWeight: 600, color: T.navy, marginBottom: 4 }}>
       Loading Approvals...
@@ -87,10 +90,13 @@ const Td = ({ children, center, right, maxW }) => (
     textAlign: center ? 'center' : right ? 'right' : 'left',
   }}>
     {maxW ? (
-      <span title={typeof children === 'string' ? children : ''} style={{
-        display: 'block', maxWidth: maxW,
-        overflow: 'hidden', textOverflow: 'ellipsis',
-      }}>
+      <span
+        title={typeof children === 'string' ? children : ''}
+        style={{
+          display: 'block', maxWidth: maxW,
+          overflow: 'hidden', textOverflow: 'ellipsis',
+        }}
+      >
         {children || <span style={{ color: T.textMuted }}>—</span>}
       </span>
     ) : (
@@ -123,7 +129,9 @@ const ApproveRequired = () => {
     setLoading(true);
     setError(null);
     try {
-      const res = await fetch(`${import.meta.env.VITE_BACKEND_URL}/api/get-approve-Requied`);
+      const res = await fetch(
+        `${import.meta.env.VITE_BACKEND_URL}/api/get-approve-Requied`
+      );
       if (!res.ok) throw new Error(`HTTP ${res.status}`);
       const data = await res.json();
       setRequests(data.data || []);
@@ -137,12 +145,12 @@ const ApproveRequired = () => {
 
   useEffect(() => { fetchRequests(); }, []);
 
-  // ── Modal ──
+  // ── Modal Open ──────────────────────────────────────
   const openModal = (req) => {
     setSelectedRequest(req);
     setStatus('APPROVED');
     setRevisedQty('');
-    setDecidedBrand('');
+    setDecidedBrand(req.Brand_Name || ''); // ✅ Auto-fill from Brand_Name
     setRemarks('');
     setSaveSuccess(false);
     setSaveError('');
@@ -180,13 +188,14 @@ const ApproveRequired = () => {
       );
 
       const data = await res.json();
-
       if (!res.ok) throw new Error(data.error || 'Save failed');
 
       setSaveSuccess(true);
 
       if (status === 'APPROVED') {
-        setRequests(prev => prev.filter(r => r.UID !== selectedRequest.UID));
+        setRequests(prev =>
+          prev.filter(r => r.UID !== selectedRequest.UID)
+        );
       }
 
       setTimeout(() => closeModal(), 1500);
@@ -199,10 +208,10 @@ const ApproveRequired = () => {
     }
   };
 
-  // ── Can Save Check ──
+  // ── Can Save ──
   const canSave = !isSaving && !saveSuccess && decidedBrand.trim();
 
-  // ── Table columns ──
+  // ── Columns ──
   const columns = [
     { label: '#', w: 50 },
     { label: 'Planned Date', w: 110 },
@@ -214,7 +223,7 @@ const ApproveRequired = () => {
     { label: 'Material Name', w: 160 },
     { label: 'Size', w: 90 },
     { label: 'Specification', w: 130 },
-    // { label: 'Brand', w: 110 },
+    { label: 'Brand', w: 110 },
     { label: 'SKU', w: 100 },
     { label: 'Qty', w: 70 },
     { label: 'Unit', w: 70 },
@@ -225,10 +234,11 @@ const ApproveRequired = () => {
     { label: 'Action', w: 80 },
   ];
 
-  // ── Loading State ──
   if (loading) return <LoadingScreen />;
 
-  // ── Main Render ──
+  // ════════════════════════════════════════════════════
+  //  RENDER
+  // ════════════════════════════════════════════════════
   return (
     <div style={{ maxWidth: 1400, margin: '0 auto' }}>
 
@@ -249,11 +259,15 @@ const ApproveRequired = () => {
             <CheckCircle size={18} color={T.gold} />
           </div>
           <div>
-            <h2 style={{ fontSize: 16, fontWeight: 700, color: T.navy, margin: 0 }}>
+            <h2 style={{
+              fontSize: 16, fontWeight: 700,
+              color: T.navy, margin: 0,
+            }}>
               Approve Required
             </h2>
             <p style={{ fontSize: 12, color: T.textMuted, margin: 0 }}>
-              {requests.length} pending request{requests.length !== 1 ? 's' : ''}
+              {requests.length} pending request
+              {requests.length !== 1 ? 's' : ''}
             </p>
           </div>
         </div>
@@ -264,10 +278,15 @@ const ApproveRequired = () => {
             display: 'flex', alignItems: 'center', gap: 6,
             padding: '8px 14px', borderRadius: 8,
             border: `1.5px solid ${T.border}`, background: T.card,
-            color: T.textLight, fontSize: 13, fontWeight: 500, cursor: 'pointer',
+            color: T.textLight, fontSize: 13, fontWeight: 500,
+            cursor: 'pointer',
           }}
-          onMouseEnter={(e) => { e.currentTarget.style.borderColor = T.gold; }}
-          onMouseLeave={(e) => { e.currentTarget.style.borderColor = T.border; }}
+          onMouseEnter={(e) => {
+            e.currentTarget.style.borderColor = T.gold;
+          }}
+          onMouseLeave={(e) => {
+            e.currentTarget.style.borderColor = T.border;
+          }}
         >
           <RotateCcw size={14} /> Refresh
         </button>
@@ -303,14 +322,20 @@ const ApproveRequired = () => {
             padding: '60px 20px', color: T.textMuted,
           }}>
             <Package size={40} style={{ color: T.border, marginBottom: 12 }} />
-            <p style={{ fontSize: 15, fontWeight: 500, color: T.textLight }}>
+            <p style={{
+              fontSize: 15, fontWeight: 500, color: T.textLight,
+            }}>
               No pending approvals
             </p>
             <p style={{ fontSize: 13 }}>All requests have been processed</p>
           </div>
         ) : (
-          <div style={{ overflowX: 'auto', maxHeight: '65vh', overflowY: 'auto' }}>
-            <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 13 }}>
+          <div style={{
+            overflowX: 'auto', maxHeight: '65vh', overflowY: 'auto',
+          }}>
+            <table style={{
+              width: '100%', borderCollapse: 'collapse', fontSize: 13,
+            }}>
 
               {/* Table Header */}
               <thead style={{ position: 'sticky', top: 0, zIndex: 10 }}>
@@ -318,8 +343,10 @@ const ApproveRequired = () => {
                   {columns.map((col, i) => (
                     <th key={i} style={{
                       padding: '12px 14px',
-                      textAlign: col.label === 'Qty' ? 'right'
-                        : col.label === 'Action' ? 'center' : 'left',
+                      textAlign:
+                        col.label === 'Qty' ? 'right'
+                        : col.label === 'Action' ? 'center'
+                        : 'left',
                       color: T.goldLight, fontSize: 11, fontWeight: 700,
                       textTransform: 'uppercase', letterSpacing: 0.5,
                       whiteSpace: 'nowrap', minWidth: col.w,
@@ -336,16 +363,22 @@ const ApproveRequired = () => {
                 {requests.map((req, idx) => (
                   <tr
                     key={req.UID || idx}
-                    style={{ background: idx % 2 === 0 ? T.card : T.borderLight }}
-                    onMouseEnter={(e) => { e.currentTarget.style.background = `${T.gold}08`; }}
+                    style={{
+                      background: idx % 2 === 0 ? T.card : T.borderLight,
+                    }}
+                    onMouseEnter={(e) => {
+                      e.currentTarget.style.background = `${T.gold}08`;
+                    }}
                     onMouseLeave={(e) => {
-                      e.currentTarget.style.background = idx % 2 === 0 ? T.card : T.borderLight;
+                      e.currentTarget.style.background =
+                        idx % 2 === 0 ? T.card : T.borderLight;
                     }}
                   >
                     {/* # */}
                     <Td>
                       <span style={{
-                        display: 'inline-flex', alignItems: 'center', justifyContent: 'center',
+                        display: 'inline-flex', alignItems: 'center',
+                        justifyContent: 'center',
                         width: 26, height: 26, borderRadius: 6,
                         background: T.borderLight, fontSize: 12,
                         fontWeight: 600, color: T.textLight,
@@ -392,18 +425,21 @@ const ApproveRequired = () => {
                     <Td maxW={120}>{req.Specification}</Td>
 
                     {/* Brand */}
-                    {/* <Td>{req.Brand_Name}</Td> */}
+                    <Td>{req.Brand_Name}</Td>
 
                     {/* SKU */}
                     <Td>{req.SKU_Code}</Td>
 
                     {/* Quantity */}
                     <td style={{
-                      padding: '10px 14px', fontSize: 13,
-                      color: T.text, borderBottom: `1px solid ${T.border}`,
-                      textAlign: 'right', whiteSpace: 'nowrap', fontWeight: 600,
+                      padding: '10px 14px', fontSize: 13, color: T.text,
+                      borderBottom: `1px solid ${T.border}`,
+                      textAlign: 'right', whiteSpace: 'nowrap',
+                      fontWeight: 600,
                     }}>
-                      {req.Quantity || <span style={{ color: T.textMuted }}>—</span>}
+                      {req.Quantity || (
+                        <span style={{ color: T.textMuted }}>—</span>
+                      )}
                     </td>
 
                     {/* Unit */}
@@ -416,12 +452,15 @@ const ApproveRequired = () => {
                     <Td>
                       {req.Require_Days ? (
                         <span style={{
-                          background: req.Require_Days === '0' ? `${T.danger}15` : `${T.gold}15`,
-                          color: req.Require_Days === '0' ? T.danger : T.goldDark,
+                          background: req.Require_Days === '0'
+                            ? `${T.danger}15` : `${T.gold}15`,
+                          color: req.Require_Days === '0'
+                            ? T.danger : T.goldDark,
                           padding: '3px 8px', borderRadius: 6,
                           fontSize: 12, fontWeight: 600,
                         }}>
-                          {req.Require_Days === '0' ? 'Urgent' : `${req.Require_Days}d`}
+                          {req.Require_Days === '0'
+                            ? 'Urgent' : `${req.Require_Days}d`}
                         </span>
                       ) : '—'}
                     </Td>
@@ -505,12 +544,16 @@ const ApproveRequired = () => {
                 <div style={{
                   width: 32, height: 32, borderRadius: 8,
                   background: `${T.gold}20`,
-                  display: 'flex', alignItems: 'center', justifyContent: 'center',
+                  display: 'flex', alignItems: 'center',
+                  justifyContent: 'center',
                 }}>
                   <Edit3 size={16} color={T.gold} />
                 </div>
                 <div>
-                  <h3 style={{ fontSize: 15, fontWeight: 700, color: 'white', margin: 0 }}>
+                  <h3 style={{
+                    fontSize: 15, fontWeight: 700,
+                    color: 'white', margin: 0,
+                  }}>
                     Update Approval
                   </h3>
                   <p style={{ fontSize: 12, color: T.textMuted, margin: 0 }}>
@@ -522,10 +565,11 @@ const ApproveRequired = () => {
                 onClick={closeModal}
                 disabled={isSaving}
                 style={{
-                  width: 30, height: 30, borderRadius: 6, border: 'none',
-                  background: 'rgba(255,255,255,0.1)', color: 'white',
-                  cursor: 'pointer', display: 'flex',
-                  alignItems: 'center', justifyContent: 'center',
+                  width: 30, height: 30, borderRadius: 6,
+                  border: 'none', background: 'rgba(255,255,255,0.1)',
+                  color: 'white', cursor: 'pointer',
+                  display: 'flex', alignItems: 'center',
+                  justifyContent: 'center',
                 }}
               >
                 <X size={16} />
@@ -553,7 +597,7 @@ const ApproveRequired = () => {
                     ['Quantity', `${selectedRequest.Quantity} ${selectedRequest.Unit_Name}`],
                     ['SKU Code', selectedRequest.SKU_Code],
                     ['Contractor', selectedRequest.Contractor],
-                    ['Brand_Name', selectedRequest.Brand_Name],
+                    ['Brand Name', selectedRequest.Brand_Name],
                   ].map(([label, value]) => (
                     <div key={label}>
                       <span style={{ color: T.textMuted }}>{label}: </span>
@@ -576,8 +620,8 @@ const ApproveRequired = () => {
                   <div style={{
                     display: 'flex', alignItems: 'center', gap: 8,
                     padding: '10px 14px', background: T.successBg,
-                    border: `1px solid ${T.successBorder}`, borderRadius: 8,
-                    fontSize: 13, color: '#065f46',
+                    border: `1px solid ${T.successBorder}`,
+                    borderRadius: 8, fontSize: 13, color: '#065f46',
                   }}>
                     <CheckCircle size={16} color={T.success} />
                     Updated successfully!
@@ -589,20 +633,21 @@ const ApproveRequired = () => {
                   <div style={{
                     display: 'flex', alignItems: 'center', gap: 8,
                     padding: '10px 14px', background: T.dangerBg,
-                    border: `1px solid ${T.dangerBorder}`, borderRadius: 8,
-                    fontSize: 13, color: T.danger,
+                    border: `1px solid ${T.dangerBorder}`,
+                    borderRadius: 8, fontSize: 13, color: T.danger,
                   }}>
                     <AlertCircle size={16} /> {saveError}
                   </div>
                 )}
 
-                {/* STATUS → Column X */}
+                {/* STATUS */}
                 <div>
                   <label style={labelStyle}>
                     Status <span style={{ color: T.danger }}>*</span>
                     <span style={{
                       marginLeft: 8, fontSize: 10, color: T.textMuted,
-                      background: T.borderLight, padding: '2px 6px', borderRadius: 4,
+                      background: T.borderLight, padding: '2px 6px',
+                      borderRadius: 4,
                     }}>→ Column X</span>
                   </label>
                   <div style={{ position: 'relative' }}>
@@ -611,8 +656,10 @@ const ApproveRequired = () => {
                       onChange={(e) => setStatus(e.target.value)}
                       disabled={isSaving}
                       style={{
-                        ...inputStyle, paddingRight: 32,
-                        appearance: 'none', cursor: 'pointer',
+                        ...inputStyle,
+                        paddingRight: 32,
+                        appearance: 'none',
+                        cursor: 'pointer',
                       }}
                       onFocus={focusGold}
                       onBlur={blurNormal}
@@ -623,19 +670,20 @@ const ApproveRequired = () => {
                     </select>
                     <ChevronDown size={14} style={{
                       position: 'absolute', right: 10, top: '50%',
-                      transform: 'translateY(-50%)', color: T.textMuted,
-                      pointerEvents: 'none',
+                      transform: 'translateY(-50%)',
+                      color: T.textMuted, pointerEvents: 'none',
                     }} />
                   </div>
                 </div>
 
-                {/* REVISED QUANTITY → Column Y */}
+                {/* REVISED QUANTITY */}
                 <div>
                   <label style={labelStyle}>
                     Revised Quantity
                     <span style={{
                       marginLeft: 8, fontSize: 10, color: T.textMuted,
-                      background: T.borderLight, padding: '2px 6px', borderRadius: 4,
+                      background: T.borderLight, padding: '2px 6px',
+                      borderRadius: 4,
                     }}>→ Column Y</span>
                   </label>
                   <input
@@ -650,15 +698,28 @@ const ApproveRequired = () => {
                   />
                 </div>
 
-                {/* DECIDED BRAND/COMPANY NAME → Column Z (REQUIRED) */}
+                {/* ✅ DECIDED BRAND - Auto-filled from Brand_Name */}
                 <div>
                   <label style={labelStyle}>
                     Decided Brand / Company Name
                     <span style={{ color: T.danger, marginLeft: 2 }}>*</span>
                     <span style={{
                       marginLeft: 8, fontSize: 10, color: T.textMuted,
-                      background: T.borderLight, padding: '2px 6px', borderRadius: 4,
+                      background: T.borderLight, padding: '2px 6px',
+                      borderRadius: 4,
                     }}>→ Column Z</span>
+
+                    {/* ✅ Auto-filled badge - Brand_Name tha to dikhao */}
+                    {selectedRequest?.Brand_Name && (
+                      <span style={{
+                        marginLeft: 8, fontSize: 10, color: T.success,
+                        background: T.successBg, padding: '2px 8px',
+                        borderRadius: 10, fontWeight: 500,
+                        border: `1px solid ${T.successBorder}`,
+                      }}>
+                        Auto-filled
+                      </span>
+                    )}
                   </label>
                   <input
                     type="text"
@@ -668,8 +729,11 @@ const ApproveRequired = () => {
                     placeholder="Enter brand or company name (required)"
                     style={{
                       ...inputStyle,
-                      borderColor: decidedBrand === '' ? T.border
-                        : decidedBrand.trim() ? T.success : T.danger,
+                      borderColor: decidedBrand === ''
+                        ? T.border
+                        : decidedBrand.trim()
+                          ? T.success
+                          : T.danger,
                     }}
                     onFocus={focusGold}
                     onBlur={(e) => {
@@ -682,7 +746,6 @@ const ApproveRequired = () => {
                       }
                     }}
                   />
-                  {/* Required hint */}
                   {!decidedBrand.trim() && (
                     <p style={{
                       fontSize: 11, color: T.danger,
@@ -695,13 +758,14 @@ const ApproveRequired = () => {
                   )}
                 </div>
 
-                {/* REMARKS → Column AB */}
+                {/* REMARKS */}
                 <div>
                   <label style={labelStyle}>
                     Remarks
                     <span style={{
                       marginLeft: 8, fontSize: 10, color: T.textMuted,
-                      background: T.borderLight, padding: '2px 6px', borderRadius: 4,
+                      background: T.borderLight, padding: '2px 6px',
+                      borderRadius: 4,
                     }}>→ Column AB</span>
                   </label>
                   <textarea
@@ -729,12 +793,13 @@ const ApproveRequired = () => {
               justifyContent: 'space-between',
               gap: 10, flexShrink: 0,
             }}>
-              {/* Left side - validation hint */}
+              {/* Validation hint */}
               <div>
                 {!decidedBrand.trim() && !saveSuccess && (
                   <p style={{
                     fontSize: 12, color: T.danger,
-                    display: 'flex', alignItems: 'center', gap: 4, margin: 0,
+                    display: 'flex', alignItems: 'center',
+                    gap: 4, margin: 0,
                   }}>
                     <AlertCircle size={14} />
                     Fill Brand/Company to enable save
@@ -743,7 +808,8 @@ const ApproveRequired = () => {
                 {decidedBrand.trim() && !saveSuccess && (
                   <p style={{
                     fontSize: 12, color: T.success,
-                    display: 'flex', alignItems: 'center', gap: 4, margin: 0,
+                    display: 'flex', alignItems: 'center',
+                    gap: 4, margin: 0,
                   }}>
                     <CheckCircle size={14} />
                     Ready to save
@@ -751,7 +817,7 @@ const ApproveRequired = () => {
                 )}
               </div>
 
-              {/* Right side - buttons */}
+              {/* Buttons */}
               <div style={{ display: 'flex', gap: 10 }}>
                 <button
                   onClick={closeModal}
@@ -791,29 +857,28 @@ const ApproveRequired = () => {
                   onMouseEnter={(e) => {
                     if (canSave) {
                       e.currentTarget.style.transform = 'translateY(-1px)';
-                      e.currentTarget.style.boxShadow = `0 4px 14px ${T.gold}50`;
+                      e.currentTarget.style.boxShadow =
+                        `0 4px 14px ${T.gold}50`;
                     }
                   }}
                   onMouseLeave={(e) => {
                     e.currentTarget.style.transform = 'translateY(0)';
                     if (canSave) {
-                      e.currentTarget.style.boxShadow = `0 2px 8px ${T.gold}40`;
+                      e.currentTarget.style.boxShadow =
+                        `0 2px 8px ${T.gold}40`;
                     }
                   }}
                 >
                   {isSaving ? (
                     <>
-                      <Loader2 size={15} style={{ animation: 'spin 0.8s linear infinite' }} />
+                      <Loader2 size={15}
+                        style={{ animation: 'spin 0.8s linear infinite' }} />
                       Saving...
                     </>
                   ) : saveSuccess ? (
-                    <>
-                      <CheckCircle size={15} /> Saved!
-                    </>
+                    <><CheckCircle size={15} /> Saved!</>
                   ) : (
-                    <>
-                      <CheckCircle size={15} /> Save Changes
-                    </>
+                    <><CheckCircle size={15} /> Save Changes</>
                   )}
                 </button>
               </div>
@@ -822,7 +887,9 @@ const ApproveRequired = () => {
         </>
       )}
 
-      <style>{`@keyframes spin { to { transform: rotate(360deg); } }`}</style>
+      <style>{`
+        @keyframes spin { to { transform: rotate(360deg); } }
+      `}</style>
     </div>
   );
 };

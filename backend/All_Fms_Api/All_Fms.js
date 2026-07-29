@@ -40,7 +40,7 @@ router.get('/get-approve-Requied', async (req, res) => {
           Material_Type: (row[5]  || '').trim(), // F
           Material_Name: (row[6]  || '').trim(), // G
           Material_Size: (row[7]  || '').trim(), // H
-          Specification: (row[8]  || '').trim(), // I
+         
           Brand_Name:    (row[9]  || '').trim(), // J
           SKU_Code:      (row[10] || '').trim(), // K
           Quantity:      (row[11] || '').trim(), // L
