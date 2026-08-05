@@ -147,17 +147,41 @@ const LabourManagement = () => {
     }));
   }, [formData.Number_Of_Labour_1_3, formData.Labour_Rate_1_3, formData.Number_Of_Labour_2_3, formData.Labour_Rate_2_3, formData.Conveyanance_3, formData.Contractor_Commission, isRejected]);
 
+  // const handleAction = (item) => {
+  //   setSelectedItem(item); setFormError('');
+  //   setFormData({
+  //     Status_3: '', Labouar_Contractor_Name_3: '',
+  //     Labour_Category_1_3: item.labourCategory1 || '', Number_Of_Labour_1_3: item.numberOfLabour1 || '', Labour_Rate_1_3: '',
+  //     Labour_Category_2_3: item.labourCategory2 || '', Number_Of_Labour_2_3: item.numberOfLabour2 || '', Labour_Rate_2_3: '',
+  //     Total_Wages_3: '', Conveyanance_3: '', Contractor_Commission: '', Total_Paid_Amount_3: '',
+  //     Company_Head_Amount_3: '', Contractor_Head_Amount_3: '', Remark_3: ''
+  //   });
+  //   setShowModal(true);
+  // };
+
+
+
   const handleAction = (item) => {
-    setSelectedItem(item); setFormError('');
-    setFormData({
-      Status_3: '', Labouar_Contractor_Name_3: '',
-      Labour_Category_1_3: item.labourCategory1 || '', Number_Of_Labour_1_3: item.numberOfLabour1 || '', Labour_Rate_1_3: '',
-      Labour_Category_2_3: item.labourCategory2 || '', Number_Of_Labour_2_3: item.numberOfLabour2 || '', Labour_Rate_2_3: '',
-      Total_Wages_3: '', Conveyanance_3: '', Contractor_Commission: '', Total_Paid_Amount_3: '',
-      Company_Head_Amount_3: '', Contractor_Head_Amount_3: '', Remark_3: ''
-    });
-    setShowModal(true);
-  };
+  setSelectedItem(item); setFormError('');
+  setFormData({
+    Status_3: '', 
+    Labouar_Contractor_Name_3: '',
+    Labour_Category_1_3: item.labourCategory1 || '', 
+    Number_Of_Labour_1_3: '',        // ✅ Empty rakha (pehle: item.numberOfLabour1 || '')
+    Labour_Rate_1_3: '',
+    Labour_Category_2_3: item.labourCategory2 || '', 
+    Number_Of_Labour_2_3: '',        // ✅ Empty rakha (pehle: item.numberOfLabour2 || '')
+    Labour_Rate_2_3: '',
+    Total_Wages_3: '', 
+    Conveyanance_3: '', 
+    Contractor_Commission: '', 
+    Total_Paid_Amount_3: '',
+    Company_Head_Amount_3: '', 
+    Contractor_Head_Amount_3: '', 
+    Remark_3: ''
+  });
+  setShowModal(true);
+};
 
   const handleFormChange = (field, value) => {
     setFormData(prev => {

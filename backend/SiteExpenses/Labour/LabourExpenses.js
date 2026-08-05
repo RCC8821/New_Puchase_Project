@@ -288,7 +288,10 @@ router.post('/Post-labour-Approvel-1', async (req, res) => {
 
 
 
-/////////  labour management step 
+/////////  labour management step //////////
+
+
+
 
 
 router.get('/get-Labour-management', async (req, res) => {
