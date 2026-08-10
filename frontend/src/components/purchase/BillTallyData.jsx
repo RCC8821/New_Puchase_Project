@@ -1,5 +1,7 @@
 
 
+
+
 // import React, { useState, useEffect } from 'react';
 // import {
 //   Loader2, AlertCircle, CheckCircle, X,
@@ -125,17 +127,18 @@
 //         item => item.invoice11 === selectedInvoice && item.vendorFirmName === selectedVendor
 //       );
 
-//       // ✅ Initialize with rate + qty for calculation
 //       const initialItems = selectedItems.map((item, index) => ({
 //         materialName:   item.materialName || 'N/A',
 //         uid:            item.UID || `N/A-${index}`,
 //         materialSize:   item.materialSize || '',
 //         specification:  item.specification || '',
 //         unitName:       item.unitName || '',
-//         qty:            item.qty || '0',            // ✅ From Y column
+//         qty:            item.qty || '0',
 //         poAmount:       item.poAmount || '',
-//         rate:           '',                          // ✅ NEW - Rate input
-//         amount:         '0',                         // ✅ Auto = qty × rate
+//         discount:       item.discount || '',  // ✅ Discount % (e.g. 5 = 5%)
+//         rate:           '',
+//         finalRate:      '0',                  // ✅ Final Rate = Rate - (Rate × Discount%/100)
+//         amount:         '0',
 //         cgst:           'None',
 //         sgst:           'None',
 //         igst:           'None',
@@ -169,23 +172,31 @@
 //     setFormData(prev => ({ ...prev, items: newItems }));
 //   };
 
-//   // ✅ Auto Calculation: Qty × Rate = Amount → GST → Total
+//   // ✅ Auto Calculation:
+//   // Final Rate = Rate - (Rate × Discount% / 100)
+//   // Amount = Qty × Final Rate
+//   // GST → Total
 //   useEffect(() => {
 //     if (formData.items.length === 0) return;
 
 //     const updatedItems = formData.items.map(item => {
 //       const qty = parseFloat(item.qty) || 0;
 //       const rate = parseFloat(item.rate) || 0;
+//       const discountPercent = parseFloat(item.discount) || 0;
 
-//       // ✅ Amount = Qty × Rate
-//       const amount = qty * rate;
+//       // ✅ Final Rate = Rate - (Rate × Discount% / 100)
+//       const discountAmount = (rate * discountPercent) / 100;
+//       const finalRate = rate > 0 ? Math.max(0, rate - discountAmount) : 0;
+
+//       // ✅ Amount = Qty × Final Rate
+//       const amount = qty * finalRate;
 
 //       let cgstAmt = 0, sgstAmt = 0, igstAmt = 0;
 
 //       if (item.cgst !== 'None') {
 //         const gstRate = parseFloat(item.cgst) || 0;
-//         cgstAmt = amount * (gstRate / 200);  // Half for CGST
-//         sgstAmt = cgstAmt;                    // Half for SGST
+//         cgstAmt = amount * (gstRate / 200);
+//         sgstAmt = cgstAmt;
 //       } else if (item.igst !== 'None') {
 //         const gstRate = parseFloat(item.igst) || 0;
 //         igstAmt = amount * (gstRate / 100);
@@ -195,6 +206,7 @@
 
 //       return {
 //         ...item,
+//         finalRate: finalRate.toFixed(2),
 //         amount: amount.toFixed(2),
 //         cgstAmt: cgstAmt.toFixed(2),
 //         sgstAmt: sgstAmt.toFixed(2),
@@ -212,8 +224,7 @@
 
 //     setFormData(prev => ({ ...prev, items: updatedItems, netAmount }));
 //   }, [
-//     // ✅ Depend on qty + rate + gst
-//     formData.items.map(i => `${i.qty || 0}-${i.rate || 0}-${i.cgst}-${i.igst}`).join(','),
+//     formData.items.map(i => `${i.qty || 0}-${i.rate || 0}-${i.discount || 0}-${i.cgst}-${i.igst}`).join(','),
 //     formData.transportWOGST, formData.gstRate, formData.adjustmentAmount,
 //   ]);
 
@@ -417,7 +428,7 @@
 //           <div style={{
 //             position: 'fixed', top: '50%', left: '50%',
 //             transform: 'translate(-50%, -50%)',
-//             width: '95%', maxWidth: step === 1 ? 460 : 1400,
+//             width: '95%', maxWidth: step === 1 ? 460 : 1600,
 //             background: T.card, borderRadius: 14,
 //             boxShadow: '0 20px 60px rgba(0,0,0,0.2)',
 //             zIndex: 101, display: 'flex', flexDirection: 'column',
@@ -531,14 +542,14 @@
 //                     </div>
 //                   </div>
 
-//                   {/* ✅ Item Table with Rate → Auto Amount Calculation */}
+//                   {/* ✅ Item Table with Rate - Discount% → Final Rate → Amount */}
 //                   <div style={{ overflowX: 'auto', border: `1px solid ${T.border}`, borderRadius: 8 }}>
-//                     <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 13, minWidth: 1300 }}>
+//                     <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 13, minWidth: 1500 }}>
 //                       <thead>
 //                         <tr style={{ background: T.navy }}>
-//                           {['UID', 'Material', 'Size', 'Specification', 'Unit', 'Qty', 'PO Amount', 'Rate *', 'Amount', 'CGST', 'IGST', 'CGST Amt', 'SGST Amt', 'IGST Amt', 'Total'].map(h => (
+//                           {['UID', 'Material', 'Size', 'Specification', 'Unit', 'Qty', 'PO Amount', 'Discount %', 'Rate *', 'Final Rate', 'Amount', 'CGST', 'IGST', 'CGST Amt', 'SGST Amt', 'IGST Amt', 'Total'].map(h => (
 //                             <th key={h} style={{
-//                               padding: '10px 8px', color: T.goldLight, fontSize: 11, fontWeight: 700,
+//                               padding: '10px 6px', color: T.goldLight, fontSize: 11, fontWeight: 700,
 //                               textAlign: 'center', borderBottom: `2px solid ${T.gold}`, whiteSpace: 'nowrap',
 //                             }}>{h}</th>
 //                           ))}
@@ -580,7 +591,7 @@
 //                               {item.unitName || '—'}
 //                             </td>
 
-//                             {/* ✅ Qty */}
+//                             {/* Qty */}
 //                             <td style={{ padding: '8px 10px', textAlign: 'center', fontSize: 12 }}>
 //                               {item.qty ? (
 //                                 <span style={{
@@ -590,46 +601,81 @@
 //                               ) : '—'}
 //                             </td>
 
-//                             {/* PO Amount - DISABLED */}
-//                             <td style={{ padding: '8px 10px', textAlign: 'right' }}>
+//                             {/* PO Amount */}
+//                             <td style={{ padding: '8px 6px', textAlign: 'right' }}>
 //                               <input
 //                                 type="text"
-//                                 value={item.poAmount ? `₹ ${parseFloat(item.poAmount).toLocaleString('en-IN', { maximumFractionDigits: 2 })}` : '—'}
+//                                 value={item.poAmount ? `₹${parseFloat(item.poAmount).toLocaleString('en-IN', { maximumFractionDigits: 2 })}` : '—'}
 //                                 readOnly disabled
 //                                 style={{
-//                                   width: '100%', textAlign: 'right',
-//                                   border: `1.5px solid ${T.gold}40`, borderRadius: 6, padding: '5px 8px',
-//                                   fontSize: 12, fontWeight: 700,
+//                                   width: 90, textAlign: 'right',
+//                                   border: `1.5px solid ${T.gold}40`, borderRadius: 6, padding: '5px 6px',
+//                                   fontSize: 11, fontWeight: 700,
 //                                   background: `${T.gold}15`, color: T.goldDark, cursor: 'not-allowed',
 //                                 }}
 //                                 title="PO Amount (Reference from Purchase_FMS BJ column)"
 //                               />
 //                             </td>
 
+//                             {/* ✅ Discount % */}
+//                             <td style={{ padding: '8px 6px', textAlign: 'right' }}>
+//                               {item.discount && parseFloat(item.discount) > 0 ? (
+//                                 <input
+//                                   type="text"
+//                                   value={`${parseFloat(item.discount)}%`}
+//                                   readOnly disabled
+//                                   style={{
+//                                     width: 75, textAlign: 'center',
+//                                     border: `1.5px solid ${T.danger}40`, borderRadius: 6, padding: '5px 6px',
+//                                     fontSize: 11, fontWeight: 700,
+//                                     background: `${T.danger}10`, color: T.danger, cursor: 'not-allowed',
+//                                   }}
+//                                   title="Discount % (from Purchase_FMS BK column)"
+//                                 />
+//                               ) : (
+//                                 <span style={{ color: T.textMuted, fontSize: 12 }}>—</span>
+//                               )}
+//                             </td>
+
 //                             {/* ✅ Rate Input */}
-//                             <td style={{ padding: '8px 10px' }}>
+//                             <td style={{ padding: '8px 6px' }}>
 //                               <input type="number" name="rate" value={item.rate}
 //                                 onChange={e => handleItemChange(index, e)}
 //                                 style={{
-//                                   width: '100%', textAlign: 'center',
+//                                   width: 75, textAlign: 'center',
 //                                   border: `1.5px solid ${T.success}`, borderRadius: 6,
-//                                   padding: '5px 8px', fontSize: 12, fontWeight: 700,
+//                                   padding: '5px 6px', fontSize: 11, fontWeight: 700,
 //                                 }}
 //                                 placeholder="0" step="0.01" />
 //                             </td>
 
-//                             {/* ✅ Amount - Auto calculated (Qty × Rate) - DISABLED */}
-//                             <td style={{ padding: '8px 10px', textAlign: 'right' }}>
+//                             {/* ✅ Final Rate = Rate - (Rate × Discount%/100) */}
+//                             <td style={{ padding: '8px 6px', textAlign: 'right' }}>
 //                               <input type="text"
-//                                 value={item.amount ? `₹ ${parseFloat(item.amount).toLocaleString('en-IN', { maximumFractionDigits: 2 })}` : '₹ 0'}
+//                                 value={item.finalRate && parseFloat(item.finalRate) > 0 ? `₹${parseFloat(item.finalRate).toLocaleString('en-IN', { maximumFractionDigits: 2 })}` : '₹0'}
 //                                 readOnly disabled
 //                                 style={{
-//                                   width: '100%', textAlign: 'right',
+//                                   width: 85, textAlign: 'right',
+//                                   border: `1.5px solid ${T.purple}40`, borderRadius: 6,
+//                                   padding: '5px 6px', fontSize: 11, fontWeight: 700,
+//                                   background: `${T.purple}10`, color: T.purple, cursor: 'not-allowed',
+//                                 }}
+//                                 title="Final Rate = Rate - (Rate × Discount% / 100)"
+//                               />
+//                             </td>
+
+//                             {/* ✅ Amount = Qty × Final Rate */}
+//                             <td style={{ padding: '8px 6px', textAlign: 'right' }}>
+//                               <input type="text"
+//                                 value={item.amount ? `₹${parseFloat(item.amount).toLocaleString('en-IN', { maximumFractionDigits: 2 })}` : '₹0'}
+//                                 readOnly disabled
+//                                 style={{
+//                                   width: 95, textAlign: 'right',
 //                                   border: `1.5px solid ${T.navy}40`, borderRadius: 6,
-//                                   padding: '5px 8px', fontSize: 12, fontWeight: 700,
+//                                   padding: '5px 6px', fontSize: 11, fontWeight: 700,
 //                                   background: `${T.navy}10`, color: T.navy, cursor: 'not-allowed',
 //                                 }}
-//                                 title="Amount = Qty × Rate (auto calculated)"
+//                                 title="Amount = Qty × Final Rate (auto calculated)"
 //                               />
 //                             </td>
 
@@ -655,10 +701,10 @@
 //                               </select>
 //                             </td>
 
-//                             <td style={{ padding: '8px 10px', textAlign: 'center', fontSize: 12 }}>{item.cgstAmt}</td>
-//                             <td style={{ padding: '8px 10px', textAlign: 'center', fontSize: 12 }}>{item.sgstAmt}</td>
-//                             <td style={{ padding: '8px 10px', textAlign: 'center', fontSize: 12 }}>{item.igstAmt}</td>
-//                             <td style={{ padding: '8px 10px', textAlign: 'center', fontSize: 12, fontWeight: 700, color: T.success }}>{item.total}</td>
+//                             <td style={{ padding: '8px 6px', textAlign: 'center', fontSize: 11 }}>{item.cgstAmt}</td>
+//                             <td style={{ padding: '8px 6px', textAlign: 'center', fontSize: 11 }}>{item.sgstAmt}</td>
+//                             <td style={{ padding: '8px 6px', textAlign: 'center', fontSize: 11 }}>{item.igstAmt}</td>
+//                             <td style={{ padding: '8px 6px', textAlign: 'center', fontSize: 11, fontWeight: 700, color: T.success }}>{item.total}</td>
 //                           </tr>
 //                         ))}
 //                       </tbody>
@@ -667,31 +713,37 @@
 //                           <td colSpan="6" style={{ padding: '10px 12px', textAlign: 'right', fontSize: 12 }}>Total</td>
 
 //                           {/* PO Amount Total */}
-//                           <td style={{ padding: '10px 12px', textAlign: 'right', fontSize: 12, color: T.goldDark, fontWeight: 700 }}>
-//                             ₹ {formData.items.reduce((s, i) => s + (parseFloat(i.poAmount) || 0), 0).toLocaleString('en-IN', { maximumFractionDigits: 2 })}
+//                           <td style={{ padding: '10px 6px', textAlign: 'right', fontSize: 11, color: T.goldDark, fontWeight: 700 }}>
+//                             ₹{formData.items.reduce((s, i) => s + (parseFloat(i.poAmount) || 0), 0).toLocaleString('en-IN', { maximumFractionDigits: 2 })}
 //                           </td>
+
+//                           {/* Discount % blank */}
+//                           <td style={{ padding: '10px', textAlign: 'center' }}>-</td>
 
 //                           {/* Rate blank */}
 //                           <td style={{ padding: '10px', textAlign: 'center' }}>-</td>
 
+//                           {/* Final Rate blank */}
+//                           <td style={{ padding: '10px', textAlign: 'center' }}>-</td>
+
 //                           {/* Amount Total */}
-//                           <td style={{ padding: '10px 12px', textAlign: 'right', fontSize: 12, color: T.navy, fontWeight: 700 }}>
-//                             ₹ {formData.items.reduce((s, i) => s + (parseFloat(i.amount) || 0), 0).toFixed(2)}
+//                           <td style={{ padding: '10px 6px', textAlign: 'right', fontSize: 11, color: T.navy, fontWeight: 700 }}>
+//                             ₹{formData.items.reduce((s, i) => s + (parseFloat(i.amount) || 0), 0).toFixed(2)}
 //                           </td>
 
 //                           <td style={{ padding: '10px', textAlign: 'center' }}>-</td>
 //                           <td style={{ padding: '10px', textAlign: 'center' }}>-</td>
 
-//                           <td style={{ padding: '10px 12px', textAlign: 'center', fontSize: 12 }}>
+//                           <td style={{ padding: '10px 6px', textAlign: 'center', fontSize: 11 }}>
 //                             {formData.items.reduce((s, i) => s + (parseFloat(i.cgstAmt) || 0), 0).toFixed(2)}
 //                           </td>
-//                           <td style={{ padding: '10px 12px', textAlign: 'center', fontSize: 12 }}>
+//                           <td style={{ padding: '10px 6px', textAlign: 'center', fontSize: 11 }}>
 //                             {formData.items.reduce((s, i) => s + (parseFloat(i.sgstAmt) || 0), 0).toFixed(2)}
 //                           </td>
-//                           <td style={{ padding: '10px 12px', textAlign: 'center', fontSize: 12 }}>
+//                           <td style={{ padding: '10px 6px', textAlign: 'center', fontSize: 11 }}>
 //                             {formData.items.reduce((s, i) => s + (parseFloat(i.igstAmt) || 0), 0).toFixed(2)}
 //                           </td>
-//                           <td style={{ padding: '10px 12px', textAlign: 'center', fontSize: 12, fontWeight: 700, color: T.success }}>
+//                           <td style={{ padding: '10px 6px', textAlign: 'center', fontSize: 11, fontWeight: 700, color: T.success }}>
 //                             {formData.items.reduce((s, i) => s + (parseFloat(i.total) || 0), 0).toFixed(2)}
 //                           </td>
 //                         </tr>
@@ -814,6 +866,9 @@
 // };
 
 // export default BillTallyData14;
+
+
+
 
 
 
@@ -947,17 +1002,18 @@ const BillTallyData14 = () => {
         item => item.invoice11 === selectedInvoice && item.vendorFirmName === selectedVendor
       );
 
-      // ✅ Initialize with rate + qty for calculation
       const initialItems = selectedItems.map((item, index) => ({
         materialName:   item.materialName || 'N/A',
         uid:            item.UID || `N/A-${index}`,
+        poNumber:       item.poNumber || '',        // ✅ NEW - PO Number
         materialSize:   item.materialSize || '',
         specification:  item.specification || '',
         unitName:       item.unitName || '',
         qty:            item.qty || '0',
         poAmount:       item.poAmount || '',
-        discount:       item.discount || '',       // ✅ NEW - Discount from Purchase_FMS BK
+        discount:       item.discount || '',
         rate:           '',
+        finalRate:      '0',
         amount:         '0',
         cgst:           'None',
         sgst:           'None',
@@ -992,23 +1048,31 @@ const BillTallyData14 = () => {
     setFormData(prev => ({ ...prev, items: newItems }));
   };
 
-  // ✅ Auto Calculation: Qty × Rate = Amount → GST → Total
+  // ✅ Auto Calculation:
+  // Final Rate = Rate - (Rate × Discount% / 100)
+  // Amount = Qty × Final Rate
+  // GST → Total
   useEffect(() => {
     if (formData.items.length === 0) return;
 
     const updatedItems = formData.items.map(item => {
       const qty = parseFloat(item.qty) || 0;
       const rate = parseFloat(item.rate) || 0;
+      const discountPercent = parseFloat(item.discount) || 0;
 
-      // ✅ Amount = Qty × Rate
-      const amount = qty * rate;
+      // ✅ Final Rate = Rate - (Rate × Discount% / 100)
+      const discountAmount = (rate * discountPercent) / 100;
+      const finalRate = rate > 0 ? Math.max(0, rate - discountAmount) : 0;
+
+      // ✅ Amount = Qty × Final Rate
+      const amount = qty * finalRate;
 
       let cgstAmt = 0, sgstAmt = 0, igstAmt = 0;
 
       if (item.cgst !== 'None') {
         const gstRate = parseFloat(item.cgst) || 0;
-        cgstAmt = amount * (gstRate / 200);  // Half for CGST
-        sgstAmt = cgstAmt;                    // Half for SGST
+        cgstAmt = amount * (gstRate / 200);
+        sgstAmt = cgstAmt;
       } else if (item.igst !== 'None') {
         const gstRate = parseFloat(item.igst) || 0;
         igstAmt = amount * (gstRate / 100);
@@ -1018,6 +1082,7 @@ const BillTallyData14 = () => {
 
       return {
         ...item,
+        finalRate: finalRate.toFixed(2),
         amount: amount.toFixed(2),
         cgstAmt: cgstAmt.toFixed(2),
         sgstAmt: sgstAmt.toFixed(2),
@@ -1035,7 +1100,7 @@ const BillTallyData14 = () => {
 
     setFormData(prev => ({ ...prev, items: updatedItems, netAmount }));
   }, [
-    formData.items.map(i => `${i.qty || 0}-${i.rate || 0}-${i.cgst}-${i.igst}`).join(','),
+    formData.items.map(i => `${i.qty || 0}-${i.rate || 0}-${i.discount || 0}-${i.cgst}-${i.igst}`).join(','),
     formData.transportWOGST, formData.gstRate, formData.adjustmentAmount,
   ]);
 
@@ -1239,7 +1304,7 @@ const BillTallyData14 = () => {
           <div style={{
             position: 'fixed', top: '50%', left: '50%',
             transform: 'translate(-50%, -50%)',
-            width: '95%', maxWidth: step === 1 ? 460 : 1500,
+            width: '95%', maxWidth: step === 1 ? 460 : 1650,
             background: T.card, borderRadius: 14,
             boxShadow: '0 20px 60px rgba(0,0,0,0.2)',
             zIndex: 101, display: 'flex', flexDirection: 'column',
@@ -1353,14 +1418,14 @@ const BillTallyData14 = () => {
                     </div>
                   </div>
 
-                  {/* ✅ Item Table with Rate → Auto Amount Calculation */}
+                  {/* ✅ Item Table with PO Number + Rate - Discount% → Final Rate → Amount */}
                   <div style={{ overflowX: 'auto', border: `1px solid ${T.border}`, borderRadius: 8 }}>
-                    <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 13, minWidth: 1400 }}>
+                    <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 13, minWidth: 1600 }}>
                       <thead>
                         <tr style={{ background: T.navy }}>
-                          {['UID', 'Material', 'Size', 'Specification', 'Unit', 'Qty', 'PO Amount', 'Discount', 'Rate *', 'Amount', 'CGST', 'IGST', 'CGST Amt', 'SGST Amt', 'IGST Amt', 'Total'].map(h => (
+                          {['UID', 'PO No.', 'Material', 'Size', 'Specification', 'Unit', 'Qty', 'PO Amount', 'Discount %', 'Rate *', 'Final Rate', 'Amount', 'CGST', 'IGST', 'CGST Amt', 'SGST Amt', 'IGST Amt', 'Total'].map(h => (
                             <th key={h} style={{
-                              padding: '10px 8px', color: T.goldLight, fontSize: 11, fontWeight: 700,
+                              padding: '10px 6px', color: T.goldLight, fontSize: 11, fontWeight: 700,
                               textAlign: 'center', borderBottom: `2px solid ${T.gold}`, whiteSpace: 'nowrap',
                             }}>{h}</th>
                           ))}
@@ -1374,6 +1439,21 @@ const BillTallyData14 = () => {
                               <span style={{ background: `${T.navy}15`, color: T.navy, padding: '2px 7px', borderRadius: 5, fontWeight: 700, fontSize: 12 }}>
                                 {item.uid}
                               </span>
+                            </td>
+
+                            {/* ✅ NEW - PO Number */}
+                            <td style={{ padding: '8px 10px', textAlign: 'center' }}>
+                              {item.poNumber ? (
+                                <span style={{
+                                  background: T.navy, color: T.gold,
+                                  padding: '3px 8px', borderRadius: 5,
+                                  fontWeight: 700, fontSize: 11,
+                                }}>
+                                  {item.poNumber}
+                                </span>
+                              ) : (
+                                <span style={{ color: T.textMuted, fontSize: 12 }}>—</span>
+                              )}
                             </td>
 
                             {/* Material Name */}
@@ -1402,7 +1482,7 @@ const BillTallyData14 = () => {
                               {item.unitName || '—'}
                             </td>
 
-                            {/* ✅ Qty */}
+                            {/* Qty */}
                             <td style={{ padding: '8px 10px', textAlign: 'center', fontSize: 12 }}>
                               {item.qty ? (
                                 <span style={{
@@ -1412,36 +1492,36 @@ const BillTallyData14 = () => {
                               ) : '—'}
                             </td>
 
-                            {/* PO Amount - DISABLED */}
-                            <td style={{ padding: '8px 10px', textAlign: 'right' }}>
+                            {/* PO Amount */}
+                            <td style={{ padding: '8px 6px', textAlign: 'right' }}>
                               <input
                                 type="text"
-                                value={item.poAmount ? `₹ ${parseFloat(item.poAmount).toLocaleString('en-IN', { maximumFractionDigits: 2 })}` : '—'}
+                                value={item.poAmount ? `₹${parseFloat(item.poAmount).toLocaleString('en-IN', { maximumFractionDigits: 2 })}` : '—'}
                                 readOnly disabled
                                 style={{
-                                  width: '100%', textAlign: 'right',
-                                  border: `1.5px solid ${T.gold}40`, borderRadius: 6, padding: '5px 8px',
-                                  fontSize: 12, fontWeight: 700,
+                                  width: 90, textAlign: 'right',
+                                  border: `1.5px solid ${T.gold}40`, borderRadius: 6, padding: '5px 6px',
+                                  fontSize: 11, fontWeight: 700,
                                   background: `${T.gold}15`, color: T.goldDark, cursor: 'not-allowed',
                                 }}
                                 title="PO Amount (Reference from Purchase_FMS BJ column)"
                               />
                             </td>
 
-                            {/* ✅ NEW - Discount - DISABLED (Reference only) */}
-                            <td style={{ padding: '8px 10px', textAlign: 'right' }}>
+                            {/* ✅ Discount % */}
+                            <td style={{ padding: '8px 6px', textAlign: 'right' }}>
                               {item.discount && parseFloat(item.discount) > 0 ? (
                                 <input
                                   type="text"
-                                  value={`₹ ${parseFloat(item.discount).toLocaleString('en-IN', { maximumFractionDigits: 2 })}`}
+                                  value={`${parseFloat(item.discount)}%`}
                                   readOnly disabled
                                   style={{
-                                    width: '100%', textAlign: 'right',
-                                    border: `1.5px solid ${T.danger}40`, borderRadius: 6, padding: '5px 8px',
-                                    fontSize: 12, fontWeight: 700,
+                                    width: 75, textAlign: 'center',
+                                    border: `1.5px solid ${T.danger}40`, borderRadius: 6, padding: '5px 6px',
+                                    fontSize: 11, fontWeight: 700,
                                     background: `${T.danger}10`, color: T.danger, cursor: 'not-allowed',
                                   }}
-                                  title="Discount (Reference from Purchase_FMS BK column)"
+                                  title="Discount % (from Purchase_FMS BK column)"
                                 />
                               ) : (
                                 <span style={{ color: T.textMuted, fontSize: 12 }}>—</span>
@@ -1449,29 +1529,44 @@ const BillTallyData14 = () => {
                             </td>
 
                             {/* ✅ Rate Input */}
-                            <td style={{ padding: '8px 10px' }}>
+                            <td style={{ padding: '8px 6px' }}>
                               <input type="number" name="rate" value={item.rate}
                                 onChange={e => handleItemChange(index, e)}
                                 style={{
-                                  width: '100%', textAlign: 'center',
+                                  width: 75, textAlign: 'center',
                                   border: `1.5px solid ${T.success}`, borderRadius: 6,
-                                  padding: '5px 8px', fontSize: 12, fontWeight: 700,
+                                  padding: '5px 6px', fontSize: 11, fontWeight: 700,
                                 }}
                                 placeholder="0" step="0.01" />
                             </td>
 
-                            {/* ✅ Amount - Auto calculated (Qty × Rate) - DISABLED */}
-                            <td style={{ padding: '8px 10px', textAlign: 'right' }}>
+                            {/* ✅ Final Rate = Rate - (Rate × Discount%/100) */}
+                            <td style={{ padding: '8px 6px', textAlign: 'right' }}>
                               <input type="text"
-                                value={item.amount ? `₹ ${parseFloat(item.amount).toLocaleString('en-IN', { maximumFractionDigits: 2 })}` : '₹ 0'}
+                                value={item.finalRate && parseFloat(item.finalRate) > 0 ? `₹${parseFloat(item.finalRate).toLocaleString('en-IN', { maximumFractionDigits: 2 })}` : '₹0'}
                                 readOnly disabled
                                 style={{
-                                  width: '100%', textAlign: 'right',
+                                  width: 85, textAlign: 'right',
+                                  border: `1.5px solid ${T.purple}40`, borderRadius: 6,
+                                  padding: '5px 6px', fontSize: 11, fontWeight: 700,
+                                  background: `${T.purple}10`, color: T.purple, cursor: 'not-allowed',
+                                }}
+                                title="Final Rate = Rate - (Rate × Discount% / 100)"
+                              />
+                            </td>
+
+                            {/* ✅ Amount = Qty × Final Rate */}
+                            <td style={{ padding: '8px 6px', textAlign: 'right' }}>
+                              <input type="text"
+                                value={item.amount ? `₹${parseFloat(item.amount).toLocaleString('en-IN', { maximumFractionDigits: 2 })}` : '₹0'}
+                                readOnly disabled
+                                style={{
+                                  width: 95, textAlign: 'right',
                                   border: `1.5px solid ${T.navy}40`, borderRadius: 6,
-                                  padding: '5px 8px', fontSize: 12, fontWeight: 700,
+                                  padding: '5px 6px', fontSize: 11, fontWeight: 700,
                                   background: `${T.navy}10`, color: T.navy, cursor: 'not-allowed',
                                 }}
-                                title="Amount = Qty × Rate (auto calculated)"
+                                title="Amount = Qty × Final Rate (auto calculated)"
                               />
                             </td>
 
@@ -1497,48 +1592,50 @@ const BillTallyData14 = () => {
                               </select>
                             </td>
 
-                            <td style={{ padding: '8px 10px', textAlign: 'center', fontSize: 12 }}>{item.cgstAmt}</td>
-                            <td style={{ padding: '8px 10px', textAlign: 'center', fontSize: 12 }}>{item.sgstAmt}</td>
-                            <td style={{ padding: '8px 10px', textAlign: 'center', fontSize: 12 }}>{item.igstAmt}</td>
-                            <td style={{ padding: '8px 10px', textAlign: 'center', fontSize: 12, fontWeight: 700, color: T.success }}>{item.total}</td>
+                            <td style={{ padding: '8px 6px', textAlign: 'center', fontSize: 11 }}>{item.cgstAmt}</td>
+                            <td style={{ padding: '8px 6px', textAlign: 'center', fontSize: 11 }}>{item.sgstAmt}</td>
+                            <td style={{ padding: '8px 6px', textAlign: 'center', fontSize: 11 }}>{item.igstAmt}</td>
+                            <td style={{ padding: '8px 6px', textAlign: 'center', fontSize: 11, fontWeight: 700, color: T.success }}>{item.total}</td>
                           </tr>
                         ))}
                       </tbody>
                       <tfoot>
                         <tr style={{ background: T.borderLight, fontWeight: 700 }}>
-                          <td colSpan="6" style={{ padding: '10px 12px', textAlign: 'right', fontSize: 12 }}>Total</td>
+                          {/* ✅ colSpan changed from 6 to 7 (UID + PO No. + Material + Size + Spec + Unit + Qty) */}
+                          <td colSpan="7" style={{ padding: '10px 12px', textAlign: 'right', fontSize: 12 }}>Total</td>
 
                           {/* PO Amount Total */}
-                          <td style={{ padding: '10px 12px', textAlign: 'right', fontSize: 12, color: T.goldDark, fontWeight: 700 }}>
-                            ₹ {formData.items.reduce((s, i) => s + (parseFloat(i.poAmount) || 0), 0).toLocaleString('en-IN', { maximumFractionDigits: 2 })}
+                          <td style={{ padding: '10px 6px', textAlign: 'right', fontSize: 11, color: T.goldDark, fontWeight: 700 }}>
+                            ₹{formData.items.reduce((s, i) => s + (parseFloat(i.poAmount) || 0), 0).toLocaleString('en-IN', { maximumFractionDigits: 2 })}
                           </td>
 
-                          {/* ✅ NEW - Discount Total */}
-                          <td style={{ padding: '10px 12px', textAlign: 'right', fontSize: 12, color: T.danger, fontWeight: 700 }}>
-                            ₹ {formData.items.reduce((s, i) => s + (parseFloat(i.discount) || 0), 0).toLocaleString('en-IN', { maximumFractionDigits: 2 })}
-                          </td>
+                          {/* Discount % blank */}
+                          <td style={{ padding: '10px', textAlign: 'center' }}>-</td>
 
                           {/* Rate blank */}
                           <td style={{ padding: '10px', textAlign: 'center' }}>-</td>
 
+                          {/* Final Rate blank */}
+                          <td style={{ padding: '10px', textAlign: 'center' }}>-</td>
+
                           {/* Amount Total */}
-                          <td style={{ padding: '10px 12px', textAlign: 'right', fontSize: 12, color: T.navy, fontWeight: 700 }}>
-                            ₹ {formData.items.reduce((s, i) => s + (parseFloat(i.amount) || 0), 0).toFixed(2)}
+                          <td style={{ padding: '10px 6px', textAlign: 'right', fontSize: 11, color: T.navy, fontWeight: 700 }}>
+                            ₹{formData.items.reduce((s, i) => s + (parseFloat(i.amount) || 0), 0).toFixed(2)}
                           </td>
 
                           <td style={{ padding: '10px', textAlign: 'center' }}>-</td>
                           <td style={{ padding: '10px', textAlign: 'center' }}>-</td>
 
-                          <td style={{ padding: '10px 12px', textAlign: 'center', fontSize: 12 }}>
+                          <td style={{ padding: '10px 6px', textAlign: 'center', fontSize: 11 }}>
                             {formData.items.reduce((s, i) => s + (parseFloat(i.cgstAmt) || 0), 0).toFixed(2)}
                           </td>
-                          <td style={{ padding: '10px 12px', textAlign: 'center', fontSize: 12 }}>
+                          <td style={{ padding: '10px 6px', textAlign: 'center', fontSize: 11 }}>
                             {formData.items.reduce((s, i) => s + (parseFloat(i.sgstAmt) || 0), 0).toFixed(2)}
                           </td>
-                          <td style={{ padding: '10px 12px', textAlign: 'center', fontSize: 12 }}>
+                          <td style={{ padding: '10px 6px', textAlign: 'center', fontSize: 11 }}>
                             {formData.items.reduce((s, i) => s + (parseFloat(i.igstAmt) || 0), 0).toFixed(2)}
                           </td>
-                          <td style={{ padding: '10px 12px', textAlign: 'center', fontSize: 12, fontWeight: 700, color: T.success }}>
+                          <td style={{ padding: '10px 6px', textAlign: 'center', fontSize: 11, fontWeight: 700, color: T.success }}>
                             {formData.items.reduce((s, i) => s + (parseFloat(i.total) || 0), 0).toFixed(2)}
                           </td>
                         </tr>
