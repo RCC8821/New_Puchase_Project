@@ -483,46 +483,53 @@ const SiteExpensesForm = () => {
   };
 
   // ── Submit: Company Labour Attendance ─────────────────────
-  const handleSubmitCompanyLabour = async (e) => {
-    e.preventDefault();
+ // ── Submit: Company Labour Attendance ─────────────────────
+const handleSubmitCompanyLabour = async (e) => {
+  e.preventDefault();
 
-    if (!companyLabourData.Work_Date_1)
-      return showAlert('error', 'Work Date required hai');
-    if (!companyLabourData.Project_Name_1)
-      return showAlert('error', 'Project Name required hai');
-    if (!companyLabourData.Labour_Name_1)
-      return showAlert('error', 'Labour Name required hai');
-    if (!companyLabourData.Day_Night_1)
-      return showAlert('error', 'Day / Night required hai');
-    if (!companyLabourData.Day_Attendance_1)
-      return showAlert('error', 'Day Attendance required hai');
-    if (!companyLabourData.Head_Of_Contractor_Company_1)
-      return showAlert('error', 'Head Of Contractor/Company required hai');
+  if (!companyLabourData.Work_Date_1)
+    return showAlert('error', 'Work Date required hai');
+  if (!companyLabourData.Project_Name_1)
+    return showAlert('error', 'Project Name required hai');
+  if (!companyLabourData.Labour_Name_1)
+    return showAlert('error', 'Labour Name required hai');
+  if (!companyLabourData.Day_Night_1)
+    return showAlert('error', 'Day / Night required hai');
+  if (!companyLabourData.Day_Attendance_1)
+    return showAlert('error', 'Day Attendance required hai');
 
-    // ✅ Sirf Contractor Head hone par Contractor + Firm required
-    if (isCompanyLabourContractorHead) {
-      if (!companyLabourData.Name_Of_Contractor_1)
-        return showAlert('error', 'Name of Contractor required hai (Contractor Head select kiya hai)');
-      if (!companyLabourData.Contractor_Firm_Name_1)
-        return showAlert('error', 'Contractor Firm Name required hai (Contractor Head select kiya hai)');
-    }
+  // ✅ NEW - Work Type + Work Description required
+  if (!companyLabourData.Work_Type_1)
+    return showAlert('error', 'Work Type required hai');
+  if (!companyLabourData.Work_Description_1.trim())
+    return showAlert('error', 'Work Description required hai');
 
-    // ✅ Company Head hone par contractor fields empty bhejo
-    const payload = { ...companyLabourData };
-    if (!isCompanyLabourContractorHead) {
-      payload.Name_Of_Contractor_1 = '';
-      payload.Contractor_Firm_Name_1 = '';
-    }
+  if (!companyLabourData.Head_Of_Contractor_Company_1)
+    return showAlert('error', 'Head Of Contractor/Company required hai');
 
-    try {
-      const result = await postCompanyLabour(payload).unwrap();
-      showAlert('success', `${result.message} | UID: ${result.uid}`);
-      resetCompanyLabourForm();
-    } catch (err) {
-      showAlert('error', err?.data?.message || 'Company Labour submit karne mein error aaya');
-    }
-  };
+  // Contractor Head hone par Contractor + Firm required
+  if (isCompanyLabourContractorHead) {
+    if (!companyLabourData.Name_Of_Contractor_1)
+      return showAlert('error', 'Name of Contractor required hai (Contractor Head select kiya hai)');
+    if (!companyLabourData.Contractor_Firm_Name_1)
+      return showAlert('error', 'Contractor Firm Name required hai (Contractor Head select kiya hai)');
+  }
 
+  // Company Head hone par contractor fields empty
+  const payload = { ...companyLabourData };
+  if (!isCompanyLabourContractorHead) {
+    payload.Name_Of_Contractor_1 = '';
+    payload.Contractor_Firm_Name_1 = '';
+  }
+
+  try {
+    const result = await postCompanyLabour(payload).unwrap();
+    showAlert('success', `${result.message} | UID: ${result.uid}`);
+    resetCompanyLabourForm();
+  } catch (err) {
+    showAlert('error', err?.data?.message || 'Company Labour submit karne mein error aaya');
+  }
+};
   // ── Reset Handlers ────────────────────────────────────────
   const resetSiteExpensesForm = () => {
     setSiteExpensesData({
@@ -1523,7 +1530,7 @@ const SiteExpensesForm = () => {
                           focus:outline-none focus:ring-2 focus:ring-orange-500 appearance-none bg-white"
                       >
                         <option value="">-- Select --</option>
-                        {['Full Day', 'Half Day', 'Absent', '1', '0.5', '0'].map((opt, i) => (
+                        {['Full Day', 'Half Day',].map((opt, i) => (
                           <option key={i} value={opt}>{opt}</option>
                         ))}
                       </select>
@@ -1533,46 +1540,53 @@ const SiteExpensesForm = () => {
                 </div>
               </div>
 
-              {/* Work Type */}
-              <div>
-                <label className="block text-sm font-semibold text-gray-700 mb-2">
-                  <Wrench className="w-4 h-4 inline mr-1" />Work Type
-                  {isCompanyDropdownLoading && (
-                    <span className="text-xs text-gray-500 ml-2">(loading...)</span>
-                  )}
-                </label>
-                <div className="relative">
-                  <select
-                    value={companyLabourData.Work_Type_1}
-                    onChange={(e) => handleCompanyLabourChange('Work_Type_1', e.target.value)}
-                    disabled={isCompanyDropdownLoading}
-                    className="w-full px-4 py-3 border border-gray-300 rounded-xl
-                      focus:outline-none focus:ring-2 focus:ring-orange-500 appearance-none bg-white
-                      disabled:bg-gray-50 disabled:cursor-not-allowed"
-                  >
-                    <option value="">-- Select Work Type --</option>
-                    {companyWorkTypeOptions.map((opt, i) => (
-                      <option key={i} value={opt}>{opt}</option>
-                    ))}
-                  </select>
-                  <ChevronDown className="absolute right-3 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-400 pointer-events-none" />
-                </div>
-              </div>
 
-              {/* Work Description */}
-              <div>
-                <label className="block text-sm font-semibold text-gray-700 mb-2">
-                  <FileText className="w-4 h-4 inline mr-1" />Work Description
-                </label>
-                <textarea
-                  rows={3}
-                  value={companyLabourData.Work_Description_1}
-                  onChange={(e) => handleCompanyLabourChange('Work_Description_1', e.target.value)}
-                  placeholder="Describe the work performed..."
-                  className="w-full px-4 py-3 border border-gray-300 rounded-xl
-                    focus:outline-none focus:ring-2 focus:ring-orange-500 resize-none"
-                />
-              </div>
+            
+             {/* Work Type */}
+<div>
+  <label className="block text-sm font-semibold text-gray-700 mb-2">
+    <Wrench className="w-4 h-4 inline mr-1" />
+    Work Type <span className="text-red-500">*</span>
+    {isCompanyDropdownLoading && (
+      <span className="text-xs text-gray-500 ml-2">(loading...)</span>
+    )}
+  </label>
+  <div className="relative">
+    <select
+      value={companyLabourData.Work_Type_1}
+      onChange={(e) => handleCompanyLabourChange('Work_Type_1', e.target.value)}
+      disabled={isCompanyDropdownLoading}
+      className="w-full px-4 py-3 border border-gray-300 rounded-xl
+        focus:outline-none focus:ring-2 focus:ring-orange-500 appearance-none bg-white
+        disabled:bg-gray-50 disabled:cursor-not-allowed"
+    >
+      <option value="">-- Select Work Type --</option>
+      {companyWorkTypeOptions.map((opt, i) => (
+        <option key={i} value={opt}>{opt}</option>
+      ))}
+    </select>
+    <ChevronDown className="absolute right-3 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-400 pointer-events-none" />
+  </div>
+</div>
+
+           
+              
+{/* Work Description */}
+<div>
+  <label className="block text-sm font-semibold text-gray-700 mb-2">
+    <FileText className="w-4 h-4 inline mr-1" />
+    Work Description <span className="text-red-500">*</span>
+  </label>
+  <textarea
+    rows={3}
+    value={companyLabourData.Work_Description_1}
+    onChange={(e) => handleCompanyLabourChange('Work_Description_1', e.target.value)}
+    placeholder="Describe the work performed..."
+    className="w-full px-4 py-3 border border-gray-300 rounded-xl
+      focus:outline-none focus:ring-2 focus:ring-orange-500 resize-none"
+  />
+</div>
+
 
               {/* ✅ Head Of Contractor/Company + Conditional Fields */}
               <div className={`grid grid-cols-1 gap-4 ${isCompanyLabourContractorHead ? 'md:grid-cols-3' : ''}`}>
