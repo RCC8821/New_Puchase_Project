@@ -70,6 +70,8 @@ const OldPurchaseFormSheetId = process.env.OLDPURCHSEFORM_ID; // ✅ NEW - Old P
 
 const AdvanceSheetContractorId= process.env.CONTRSCTOR_ADVANCE_SHEET
 
+const CompanyLabourSheetId = process.env.COMPANY_LABOUR_SHEET; // ✅ NEW - Company Labour Sheet ID
+
 module.exports = {
   sheets,
   drive,
@@ -78,5 +80,6 @@ module.exports = {
   SignatureSheetId,
   SignatureProjectSheetId,
   OldPurchaseFormSheetId,
-  AdvanceSheetContractorId  // ✅ NEW export
+  AdvanceSheetContractorId  ,
+  CompanyLabourSheetId// ✅ NEW export
 };

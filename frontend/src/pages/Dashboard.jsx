@@ -1,3 +1,5 @@
+
+
 // Dashboard.jsx
 import React, { useState, useEffect, useRef, useCallback } from 'react';
 import {
@@ -27,11 +29,16 @@ import Bill_Checked_18Step from '../components/purchase/Bill_Checked_18Step';
 import ContractorPurchseForm from '../components/ContractorPurchase/ContractorPurchseForm';
 import OutStanding from '../components/purchase/OutStanding';
 import Advance_payment from '../components/purchase/Advance_payment';
+
 import Approvel1 from '../components/Labour/Approvel1';
 import LabourManagment from '../components/Labour/LabourManagment';
 import Approvel2 from '../components/Labour/Approvel2';
 import PaidAmount from '../components/Labour/PaidAmount';
 import LabourPDF from '../components/Labour/LabourPDF';
+
+// ✅ NEW - Company Labour Attendance Page
+import CompanyApprovel from '../components/Labour/CompanyApprovel';
+
 import SiteApprovel from '../components/SiteExpenses/SiteApprovel';
 import SitePaidAmount from '../components/SiteExpenses/SitePaidAmount';
 
@@ -63,252 +70,60 @@ const Dashboard = () => {
 
   const isSiteEngineer = userType?.startsWith('SE_');
 
-  // ✅ Check for Project-Locked User
   const isProjectLockedUser =
     userType && /^signature\s+.+\s+prj\d+/i.test(userType);
 
   // ── Purchase Pages ──
   const allPurchasePages = [
-    {
-      id: 'requirement-received',
-      name: 'Requirement Received',
-      icon: FileText,
-      component: RequirementReceived,
-      path: '/dashboard/requirement-received',
-      allowedUserTypes: ['admin', 'Site Engineer', 'Material Received'],
-    },
-    {
-      id: 'approve-required',
-      name: 'Approve Required',
-      icon: Package,
-      component: ApproveRequired,
-      path: '/dashboard/approve-required',
-      allowedUserTypes: ['admin', 'Ravindra Singh'],
-    },
-    {
-      id: 'indent-to-get-quotation',
-      name: 'Indent (To Get Quotation)',
-      icon: Truck,
-      component: IndentToGetQuotation,
-      path: '/dashboard/indent-to-get-quotation',
-      allowedUserTypes: ['admin', 'Ravi Rajak'],
-    },
-    {
-      id: 'Take_Quotation',
-      name: 'Take Quotation',
-      icon: Truck,
-      component: Take_Quotation,
-      path: '/dashboard/Take_Quotation',
-      allowedUserTypes: ['admin', 'Anjali Malviya', 'Neha Masani'],
-    },
-    {
-      id: 'Approval_Quotation',
-      name: 'Approval Quotation',
-      icon: Truck,
-      component: Approval_Quotation,
-      path: '/dashboard/Approval_Quotation',
-      allowedUserTypes: ['admin', 'Ravi Rajak'],
-    },
-    {
-      id: 'PO',
-      name: 'PO',
-      icon: Truck,
-      component: PO,
-      path: '/dashboard/PO',
-      allowedUserTypes: ['admin', 'Ravi Rajak'],
-    },
-    {
-      id: 'Vendor_FollowUp_Material',
-      name: 'Vendor Follow Up Material',
-      icon: Truck,
-      component: Vendor_FollowUp_Material,
-      path: '/dashboard/Vendor_FollowUp_Material',
-      allowedUserTypes: ['admin', 'Neha Masani'],
-    },
-    {
-      id: 'Material_Received',
-      name: 'Material Received',
-      icon: Truck,
-      component: Material_Received,
-      path: '/dashboard/Material_Received',
-      allowedUserTypes: ['admin', 'Material Received', 'Neha Masani', 'Site Engineer', 'Signature Requirement'],
-    },
-    {
-      id: 'Final_Material_Received',
-      name: 'Final Material Received',
-      icon: Truck,
-      component: Final_Material_Received,
-      path: '/dashboard/Final_Material_Received',
-      allowedUserTypes: ['admin', 'Final Material Received'],
-    },
-    {
-      id: 'MRN',
-      name: 'MRN',
-      icon: Truck,
-      component: MRN,
-      path: '/dashboard/MRN',
-      allowedUserTypes: ['admin', 'Varsha Kahar'],
-    },
-    {
-      id: 'Vendor_followup_billing',
-      name: 'Vendor Followup Billing',
-      icon: Truck,
-      component: Vendor_followup_billing,
-      path: '/dashboard/Vendor_followup_billing',
-      allowedUserTypes: ['admin', 'Neha Masani'],
-    },
-    {
-      id: 'Bill_Processing',
-      name: 'Bill Processing',
-      icon: Truck,
-      component: Bill_Processing,
-      path: '/dashboard/Bill_Processing',
-      allowedUserTypes: ['admin', 'Varsha Kahar'],
-    },
-    {
-      id: 'BillCheckedData',
-      name: 'Bill Checked Data',
-      icon: Truck,
-      component: BillCheckedData,
-      path: '/dashboard/BillCheckedData',
-      allowedUserTypes: ['admin', 'Ravi Rajak'],
-    },
-    {
-      id: 'BillTallyData',
-      name: 'Bill Tally Data',
-      icon: Truck,
-      component: BillTallyData,
-      path: '/dashboard/BillTallyData',
-      allowedUserTypes: ['admin', 'Govind Ram Nagar'],
-    },
-    {
-      id: 'Payment',
-      name: 'Payment',
-      icon: Truck,
-      component: Payment,
-      path: '/dashboard/Payment',
-      allowedUserTypes: ['admin', 'Govind Ram Nagar'],
-    },
-    {
-      id: 'Bill_Checked_18Step',
-      name: 'Bill Checked 18 Step',
-      icon: Truck,
-      component: Bill_Checked_18Step,
-      path: '/dashboard/Bill_Checked_18Step',
-      allowedUserTypes: ['admin', 'Abhishek Sharma'],
-    },
-    {
-      id: 'contractor-purchase-form',
-      name: 'Contractor Purchase Form',
-      icon: FileText,
-      component: ContractorPurchseForm,
-      path: '/dashboard/contractor-purchase-form',
-      allowedUserTypes: ['admin', 'Site Engineer', 'Material Received'],
-    },
-    {
-      id: 'outstanding',
-      name: 'Without System Bill Entry',
-      icon: DollarSign,
-      component: OutStanding,
-      path: '/dashboard/outstanding',
-      allowedUserTypes: ['admin', 'Govind Ram Nagar'],
-    },
-    {
-      id: 'Advance_payment',
-      name: 'Advance Payment',
-      icon: DollarSign,
-      component: Advance_payment,
-      path: '/dashboard/Advance_payment',
-      allowedUserTypes: ['admin', 'Govind Ram Nagar'],
-    },
+    { id: 'requirement-received', name: 'Requirement Received', icon: FileText, component: RequirementReceived, path: '/dashboard/requirement-received', allowedUserTypes: ['admin', 'Site Engineer', 'Material Received'] },
+    { id: 'approve-required', name: 'Approve Required', icon: Package, component: ApproveRequired, path: '/dashboard/approve-required', allowedUserTypes: ['admin', 'Ravindra Singh'] },
+    { id: 'indent-to-get-quotation', name: 'Indent (To Get Quotation)', icon: Truck, component: IndentToGetQuotation, path: '/dashboard/indent-to-get-quotation', allowedUserTypes: ['admin', 'Ravi Rajak'] },
+    { id: 'Take_Quotation', name: 'Take Quotation', icon: Truck, component: Take_Quotation, path: '/dashboard/Take_Quotation', allowedUserTypes: ['admin', 'Anjali Malviya', 'Neha Masani'] },
+    { id: 'Approval_Quotation', name: 'Approval Quotation', icon: Truck, component: Approval_Quotation, path: '/dashboard/Approval_Quotation', allowedUserTypes: ['admin', 'Ravi Rajak'] },
+    { id: 'PO', name: 'PO', icon: Truck, component: PO, path: '/dashboard/PO', allowedUserTypes: ['admin', 'Ravi Rajak'] },
+    { id: 'Vendor_FollowUp_Material', name: 'Vendor Follow Up Material', icon: Truck, component: Vendor_FollowUp_Material, path: '/dashboard/Vendor_FollowUp_Material', allowedUserTypes: ['admin', 'Neha Masani'] },
+    { id: 'Material_Received', name: 'Material Received', icon: Truck, component: Material_Received, path: '/dashboard/Material_Received', allowedUserTypes: ['admin', 'Material Received', 'Neha Masani', 'Site Engineer', 'Signature Requirement'] },
+    { id: 'Final_Material_Received', name: 'Final Material Received', icon: Truck, component: Final_Material_Received, path: '/dashboard/Final_Material_Received', allowedUserTypes: ['admin', 'Final Material Received'] },
+    { id: 'MRN', name: 'MRN', icon: Truck, component: MRN, path: '/dashboard/MRN', allowedUserTypes: ['admin', 'Varsha Kahar'] },
+    { id: 'Vendor_followup_billing', name: 'Vendor Followup Billing', icon: Truck, component: Vendor_followup_billing, path: '/dashboard/Vendor_followup_billing', allowedUserTypes: ['admin', 'Neha Masani'] },
+    { id: 'Bill_Processing', name: 'Bill Processing', icon: Truck, component: Bill_Processing, path: '/dashboard/Bill_Processing', allowedUserTypes: ['admin', 'Varsha Kahar'] },
+    { id: 'BillCheckedData', name: 'Bill Checked Data', icon: Truck, component: BillCheckedData, path: '/dashboard/BillCheckedData', allowedUserTypes: ['admin', 'Ravi Rajak'] },
+    { id: 'BillTallyData', name: 'Bill Tally Data', icon: Truck, component: BillTallyData, path: '/dashboard/BillTallyData', allowedUserTypes: ['admin', 'Govind Ram Nagar'] },
+    { id: 'Payment', name: 'Payment', icon: Truck, component: Payment, path: '/dashboard/Payment', allowedUserTypes: ['admin', 'Govind Ram Nagar'] },
+    { id: 'Bill_Checked_18Step', name: 'Bill Checked 18 Step', icon: Truck, component: Bill_Checked_18Step, path: '/dashboard/Bill_Checked_18Step', allowedUserTypes: ['admin', 'Abhishek Sharma'] },
+    { id: 'contractor-purchase-form', name: 'Contractor Purchase Form', icon: FileText, component: ContractorPurchseForm, path: '/dashboard/contractor-purchase-form', allowedUserTypes: ['admin', 'Site Engineer', 'Material Received'] },
+    { id: 'outstanding', name: 'Without System Bill Entry', icon: DollarSign, component: OutStanding, path: '/dashboard/outstanding', allowedUserTypes: ['admin', 'Govind Ram Nagar'] },
+    { id: 'Advance_payment', name: 'Advance Payment', icon: DollarSign, component: Advance_payment, path: '/dashboard/Advance_payment', allowedUserTypes: ['admin', 'Govind Ram Nagar'] },
   ];
 
   const allLabourPages = [
+    { id: 'Approvel1', name: 'Labour Approval', icon: FileText, component: Approvel1, path: '/dashboard/Approvel1', allowedUserTypes: ['admin', 'Ravindra Singh'] },
+    { id: 'Labourmanagement', name: 'Labour Management', icon: FileText, component: LabourManagment, path: '/dashboard/Labourmanagement', allowedUserTypes: ['admin', 'Labour Managment'] },
+    { id: 'Deployed', name: 'Labour Deployed', icon: FileText, component: Approvel2, path: '/dashboard/Approvel2', allowedUserTypes: ['admin', 'Ashok Pandey'] },
+    { id: 'PaidAmount', name: 'Labour Payment', icon: FileText, component: PaidAmount, path: '/dashboard/PaidAmount', allowedUserTypes: ['admin', 'Govind Ram Nagar', 'Varsha Kahar'] },
+    { id: 'LabourPDF', name: 'Labour PDF', icon: FileText, component: LabourPDF, path: '/dashboard/LabourPDF', allowedUserTypes: ['admin', 'Varsha Kahar'] },
+
+    // ✅ NEW
     {
-      id: 'Approvel1',
-      name: 'Labour Approval',
-      icon: FileText,
-      component: Approvel1,
-      path: '/dashboard/Approvel1',
-      allowedUserTypes: ['admin', 'Ravindra Singh'],
-    },
-    {
-      id: 'Labourmanagement',
-      name: 'Labour Management',
-      icon: FileText,
-      component: LabourManagment,
-      path: '/dashboard/Labourmanagement',
-      allowedUserTypes: ['admin', 'Labour Managment'],
-    },
-    {
-      id: 'Deployed',
-      name: 'Labour Deployed',
-      icon: FileText,
-      component: Approvel2,
-      path: '/dashboard/Approvel2',
-      allowedUserTypes: ['admin', 'Ashok Pandey'],
-    },
-    {
-      id: 'PaidAmount',
-      name: 'Labour Payment',
-      icon: FileText,
-      component: PaidAmount,
-      path: '/dashboard/PaidAmount',
-      allowedUserTypes: ['admin', 'Govind Ram Nagar', 'Varsha Kahar'],
-    },
-    {
-      id: 'LabourPDF',
-      name: 'Labour PDF',
-      icon: FileText,
-      component: LabourPDF,
-      path: '/dashboard/LabourPDF',
-      allowedUserTypes: ['admin', 'Varsha Kahar'],
+      id: 'CompanyApprovel',
+      name: 'Company Labour Approvel',
+      icon: ClipboardList,
+      component: CompanyApprovel,
+      path: '/dashboard/CompanyApprovel',
+      allowedUserTypes: ['admin', 'Ravindra Singh', 'Labour Managment'],
     },
   ];
 
   const allSiteExpensesPages = [
-    {
-      id: 'SiteApprovel',
-      name: 'Site Approval',
-      icon: FileText,
-      component: SiteApprovel,
-      path: '/dashboard/SiteApprovel',
-      allowedUserTypes: ['admin', 'Ravindra Singh'],
-    },
-    {
-      id: 'SitePaidAmount',
-      name: 'Site Paid Amount',
-      icon: DollarSign,
-      component: SitePaidAmount,
-      path: '/dashboard/SitePaidAmount',
-      allowedUserTypes: ['admin', 'Govind Ram Nagar', 'Varsha Kahar', 'Final Material Received'],
-    },
+    { id: 'SiteApprovel', name: 'Site Approval', icon: FileText, component: SiteApprovel, path: '/dashboard/SiteApprovel', allowedUserTypes: ['admin', 'Ravindra Singh'] },
+    { id: 'SitePaidAmount', name: 'Site Paid Amount', icon: DollarSign, component: SitePaidAmount, path: '/dashboard/SitePaidAmount', allowedUserTypes: ['admin', 'Govind Ram Nagar', 'Varsha Kahar', 'Final Material Received'] },
   ];
 
-  // ✅ JV Project pages
   const allJvProjectPages = [
-    {
-      id: 'heritage',
-      name: 'Heritage',
-      icon: Briefcase,
-      component: HeritageDashboard,
-      path: '/dashboard/heritage',
-      allowedUserTypes: ['admin', 'Signature Requirement'],
-      allowSiteEngineer: true,
-    },
-    {
-      id: 'heritage-requirement',
-      name: 'Requirement Form',
-      icon: ClipboardList,
-      component: HeritageRequirementForm,
-      path: '/dashboard/heritage/requirement-form',
-      allowedUserTypes: ['admin', 'Signature Requirement'],
-      allowSiteEngineer: true,
-      allowProjectLocked: true,
-    },
+    { id: 'heritage', name: 'Heritage', icon: Briefcase, component: HeritageDashboard, path: '/dashboard/heritage', allowedUserTypes: ['admin', 'Signature Requirement'], allowSiteEngineer: true },
+    { id: 'heritage-requirement', name: 'Requirement Form', icon: ClipboardList, component: HeritageRequirementForm, path: '/dashboard/heritage/requirement-form', allowedUserTypes: ['admin', 'Signature Requirement'], allowSiteEngineer: true, allowProjectLocked: true },
   ];
 
-  // ── Filter functions ──
   const getPurchasePages = () => {
     if (isProjectLockedUser) return [];
     return allPurchasePages.filter((p) => p.allowedUserTypes.includes(userType));
@@ -339,32 +154,11 @@ const Dashboard = () => {
     ...getJvProjectPages(),
   ];
 
-  // ── Menu Items ──
   const menuItems = [
-    {
-      id: 'purchase',
-      name: 'Purchase FMS',
-      icon: ShoppingCart,
-      pages: getPurchasePages(),
-    },
-    {
-      id: 'labour',
-      name: 'Labour',
-      icon: Users,
-      pages: getLabourPages(),
-    },
-    {
-      id: 'siteExpenses',
-      name: 'Site Expenses',
-      icon: DollarSign,
-      pages: getSiteExpensesPages(),
-    },
-    {
-      id: 'jvProject',
-      name: 'JV Project',
-      icon: Briefcase,
-      pages: getJvProjectPages(),
-    },
+    { id: 'purchase', name: 'Purchase FMS', icon: ShoppingCart, pages: getPurchasePages() },
+    { id: 'labour', name: 'Labour', icon: Users, pages: getLabourPages() },
+    { id: 'siteExpenses', name: 'Site Expenses', icon: DollarSign, pages: getSiteExpensesPages() },
+    { id: 'jvProject', name: 'JV Project', icon: Briefcase, pages: getJvProjectPages() },
     ...(!isProjectLockedUser ? [{
       id: 'sheet',
       name: 'Sheet Link',
@@ -399,6 +193,7 @@ const Dashboard = () => {
     Deployed: 'Labour Deployed',
     PaidAmount: 'Labour Payment',
     LabourPDF: 'Labour PDF',
+    CompanyApprovel: 'Company Labour Attendance', // ✅ NEW
     SiteApprovel: 'Site Approval',
     SitePaidAmount: 'Site Paid Amount',
     'no-access': 'No Access',
@@ -407,7 +202,7 @@ const Dashboard = () => {
     'heritage-store': 'Heritage — Store Inventory',
     'heritage-site': 'Heritage — Site Engineer',
     'heritage-requirement': 'Signature — Requirement Form',
-    'heritage-boq': 'Heritage — BOQ Quantity',   // ✅ NEW
+    'heritage-boq': 'Heritage — BOQ Quantity',
   };
 
   const handleScroll = useCallback(() => {
@@ -435,11 +230,8 @@ const Dashboard = () => {
 
   useEffect(() => {
     const stored = sessionStorage.getItem('userType');
-    if (stored) {
-      setUserType(stored);
-    } else {
-      navigate('/');
-    }
+    if (stored) setUserType(stored);
+    else navigate('/');
   }, [navigate]);
 
   useEffect(() => {
@@ -457,24 +249,10 @@ const Dashboard = () => {
       return;
     }
 
-    // ✅ Heritage sub-routes
-    if (location.pathname === '/dashboard/heritage/signature-form') {
-      setSelectedPage('heritage-signature');
-      return;
-    }
-    if (location.pathname === '/dashboard/heritage/store-inventory') {
-      setSelectedPage('heritage-store');
-      return;
-    }
-    if (location.pathname === '/dashboard/heritage/site-engineer') {
-      setSelectedPage('heritage-site');
-      return;
-    }
-    // ✅ NEW - BOQ Qty
-    if (location.pathname === '/dashboard/heritage/boq-qty') {
-      setSelectedPage('heritage-boq');
-      return;
-    }
+    if (location.pathname === '/dashboard/heritage/signature-form') { setSelectedPage('heritage-signature'); return; }
+    if (location.pathname === '/dashboard/heritage/store-inventory') { setSelectedPage('heritage-store'); return; }
+    if (location.pathname === '/dashboard/heritage/site-engineer') { setSelectedPage('heritage-site'); return; }
+    if (location.pathname === '/dashboard/heritage/boq-qty') { setSelectedPage('heritage-boq'); return; }
 
     setSelectedPage(allowed[0].id);
     navigate(allowed[0].path);
@@ -500,15 +278,13 @@ const Dashboard = () => {
 
   const CurrentComponent = getCurrentComponent();
 
-  // ✅ Heritage sub-routes (Outlet se render hote hain)
   const isHeritageSubRoute = [
     'heritage-signature',
     'heritage-store',
     'heritage-site',
-    'heritage-boq',   // ✅ NEW
+    'heritage-boq',
   ].includes(selectedPage);
 
-  // ✅ Display name
   const displayName = isSiteEngineer
     ? userType.replace('SE_', '')
     : isProjectLockedUser
@@ -521,6 +297,7 @@ const Dashboard = () => {
       background: T.bg,
       fontFamily: "'Segoe UI', system-ui, -apple-system, sans-serif",
     }}>
+      {/* ═══════════════════ NAVBAR ═══════════════════ */}
       <nav
         ref={dropdownRef}
         style={{
@@ -538,6 +315,7 @@ const Dashboard = () => {
           display: 'flex', alignItems: 'center',
           justifyContent: 'space-between', height: 56,
         }}>
+          {/* Logo */}
           <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
             <div style={{
               width: 34, height: 34, borderRadius: 8,
@@ -559,6 +337,7 @@ const Dashboard = () => {
             </span>
           </div>
 
+          {/* Desktop Menu */}
           <div className="desktop-menu" style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
             {menuItems.map((menu) => {
               if (menu.url) {
@@ -641,6 +420,7 @@ const Dashboard = () => {
             })}
           </div>
 
+          {/* Right Side */}
           <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
             <div className="desktop-menu" style={{
               display: 'flex', alignItems: 'center', gap: 6,
@@ -704,6 +484,7 @@ const Dashboard = () => {
           </div>
         </div>
 
+        {/* Mobile Menu */}
         {isMobileMenuOpen && (
           <div style={{
             background: T.navyDark,
@@ -823,6 +604,7 @@ const Dashboard = () => {
         )}
       </nav>
 
+      {/* ═══════════════════ MAIN CONTENT ═══════════════════ */}
       <div
         ref={mainRef}
         onScroll={handleScroll}

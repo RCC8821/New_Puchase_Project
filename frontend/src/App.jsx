@@ -39,6 +39,8 @@ import SiteEngineer from './components/Heritage/SiteEngineer';
 import HeritageRequirementForm from './components/Heritage/HeritageRequirementForm';  // ✅ NEW
 import BOQQty from './components/Heritage/BOQQty';
 
+import CompanyApprovel from './components/Labour/CompanyApprovel';
+
 const App = () => {
   return (
     <BrowserRouter>
@@ -73,6 +75,7 @@ const App = () => {
           <Route path='Approvel2' element={<Approvel2 />} />
           <Route path='PaidAmount' element={<PaidAmount />} />
           <Route path='LabourPDF' element={<LabourPDF />} />
+          <Route path='CompanyApprovel' element={<CompanyApprovel />} />
 
           {/* Site Expenses Routes */}
           <Route path='SiteApprovel' element={<SiteApprovel />} />
