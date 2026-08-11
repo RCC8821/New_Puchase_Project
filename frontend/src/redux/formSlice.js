@@ -8,7 +8,7 @@ export const formApi = createApi({
   reducerPath: 'formApi',
 
   baseQuery: fetchBaseQuery({
-    baseUrl: 'https://purchase-project-3iia.vercel.app',
+    baseUrl: 'https://new-puchase-project-silk.vercel.app',
     // baseUrl: 'http://localhost:5000',
     prepareHeaders: (headers) => {
       // Agar token chahiye to yahan add karo
