@@ -1,14 +1,14 @@
 
 
 // const express = require('express');
-// const { sheets, SiteExpeseSheetId,CompanyLabourSheetId ,drive } = require('../config/googleSheet');
+// const { sheets, SiteExpeseSheetId, CompanyLabourSheetId, drive } = require('../config/googleSheet');
 // const { Readable } = require('stream');
-// const sharp = require('sharp'); // npm install sharp
+// const sharp = require('sharp');
 
 // const router = express.Router();
 
 // // ============================================================
-// // HELPER: Current timestamp
+// // HELPER: Current timestamp (IST) — SHARED
 // // ============================================================
 // const getTimestamp = () => {
 //   const now = new Date();
@@ -30,7 +30,7 @@
 // };
 
 // // ============================================================
-// // HELPER: Find next empty row starting from row 7
+// // HELPER: Next empty row (SiteExpeseSheetId)
 // // ============================================================
 // const getNextEmptyRow = async (sheetName) => {
 //   try {
@@ -55,7 +55,7 @@
 // };
 
 // // ============================================================
-// // HELPER: Generate next unique UID
+// // HELPER: Generate UID (SiteExpeseSheetId)
 // // ============================================================
 // const generateUID = async (sheetName, prefix = '') => {
 //   try {
@@ -73,6 +73,54 @@
 //     return newUID;
 //   } catch (err) {
 //     console.error(`Error generating UID for ${sheetName}:`, err);
+//     throw err;
+//   }
+// };
+
+// // ============================================================
+// // HELPER: Next empty row (CompanyLabourSheetId) — DIFFERENT NAME
+// // ============================================================
+// const getNextEmptyRowCompany = async (sheetName) => {
+//   try {
+//     const response = await sheets.spreadsheets.values.get({
+//       spreadsheetId: CompanyLabourSheetId,
+//       range: `${sheetName}!A7:O10000`,
+//       majorDimension: 'ROWS',
+//     });
+//     const allRows = response.data.values || [];
+//     let lastUsedRow = 6;
+//     for (let i = 0; i < allRows.length; i++) {
+//       const row = allRows[i];
+//       if (row && row.some(cell => cell !== '' && cell !== null && cell !== undefined)) {
+//         lastUsedRow = 7 + i;
+//       }
+//     }
+//     return Math.max(lastUsedRow + 1, 7);
+//   } catch (err) {
+//     console.error(`Error finding next row in ${sheetName}:`, err);
+//     throw err;
+//   }
+// };
+
+// // ============================================================
+// // HELPER: Generate UID (CompanyLabourSheetId) — DIFFERENT NAME
+// // ============================================================
+// const generateUIDCompany = async (sheetName, prefix = 'LATT') => {
+//   try {
+//     const response = await sheets.spreadsheets.values.get({
+//       spreadsheetId: CompanyLabourSheetId,
+//       range: `${sheetName}!B7:B10000`,
+//     });
+//     const existing = (response.data.values || []).flat().filter(Boolean);
+//     let count = 1;
+//     let newUID;
+//     do {
+//       newUID = prefix + String(count).padStart(4, '0');
+//       count++;
+//     } while (existing.includes(newUID));
+//     return newUID;
+//   } catch (err) {
+//     console.error(`Error generating UID:`, err);
 //     throw err;
 //   }
 // };
@@ -105,53 +153,42 @@
 // };
 
 // // ============================================================
-// // HELPER: Compress image using Sharp (server side)
+// // HELPER: Compress image using Sharp
 // // ============================================================
 // const compressImageBuffer = async (buffer, mimeType) => {
 //   try {
-//     // PDF compress nahi karte
 //     if (mimeType === 'application/pdf') {
 //       console.log('[COMPRESS] PDF - skipping compression');
 //       return buffer;
 //     }
-
 //     const originalSize = buffer.length;
-
-//     // Sharp se compress karo - max 1200px, quality 70
 //     const compressed = await sharp(buffer)
-//       .resize(1200, 1200, {
-//         fit: 'inside',        // Aspect ratio maintain karo
-//         withoutEnlargement: true, // Choti image ko bada mat karo
-//       })
+//       .resize(1200, 1200, { fit: 'inside', withoutEnlargement: true })
 //       .jpeg({ quality: 70, progressive: true })
 //       .toBuffer();
-
 //     const compressedSize = compressed.length;
 //     console.log(
 //       `[COMPRESS] ${(originalSize / 1024).toFixed(0)}KB → ` +
 //       `${(compressedSize / 1024).toFixed(0)}KB ` +
 //       `(${Math.round((1 - compressedSize / originalSize) * 100)}% saved)`
 //     );
-
 //     return compressed;
 //   } catch (err) {
 //     console.warn('[COMPRESS] Sharp failed, using original:', err.message);
-//     return buffer; // Fail hone par original use karo
+//     return buffer;
 //   }
 // };
 
 // // ============================================================
-// // HELPER: Upload to Google Drive with retry + compression
+// // HELPER: Upload to Google Drive
 // // ============================================================
 // const uploadToGoogleDrive = async (base64Data, fileName, retries = 2) => {
 //   console.log(`[DRIVE UPLOAD START] ${fileName}`);
-
 //   if (!base64Data || typeof base64Data !== 'string') {
 //     console.warn(`[DRIVE FAILED] No base64 data`);
 //     return '';
 //   }
 
-//   // MimeType detect karo
 //   let mimeType = 'image/jpeg';
 //   let base64Content = base64Data;
 
@@ -160,75 +197,55 @@
 //     mimeType      = match[1];
 //     base64Content = match[2];
 //   } else {
-//     // Plain base64 - signature se detect karo
 //     const sample  = base64Data.substring(0, 16);
 //     const decoded = Buffer.from(sample, 'base64').toString('hex');
-//     if (decoded.startsWith('ffd8ff'))    { mimeType = 'image/jpeg'; }
+//     if (decoded.startsWith('ffd8ff'))        { mimeType = 'image/jpeg'; }
 //     else if (decoded.startsWith('89504e47')) { mimeType = 'image/png';  }
 //     else if (decoded.startsWith('25504446')) { mimeType = 'application/pdf'; }
 //     else if (decoded.startsWith('52494646')) { mimeType = 'image/webp'; }
 //   }
 
-//   // Extension map
 //   const mimeToExt = {
-//     'image/jpeg'       : 'jpg',
-//     'image/jpg'        : 'jpg',
-//     'image/png'        : 'png',
-//     'image/gif'        : 'gif',
-//     'image/webp'       : 'webp',
-//     'image/bmp'        : 'bmp',
-//     'image/heic'       : 'jpg', // HEIC ko JPEG me convert
-//     'image/heif'       : 'jpg',
-//     'application/pdf'  : 'pdf',
+//     'image/jpeg': 'jpg', 'image/jpg': 'jpg', 'image/png': 'png',
+//     'image/gif': 'gif', 'image/webp': 'webp', 'image/bmp': 'bmp',
+//     'image/heic': 'jpg', 'image/heif': 'jpg', 'application/pdf': 'pdf',
 //   };
 
 //   const fileExtension = mimeToExt[mimeType] || 'jpg';
 //   const baseName      = fileName.replace(/\.[^/.]+$/, '');
 
-//   // Retry loop
 //   for (let attempt = 1; attempt <= retries + 1; attempt++) {
 //     try {
 //       console.log(`[DRIVE] Attempt ${attempt}/${retries + 1}`);
-
-//       // Original buffer
 //       let buffer = Buffer.from(base64Content, 'base64');
-
-//       // ✅ Compress karo (image only)
 //       let finalMimeType = mimeType;
 //       let finalExt      = fileExtension;
 
 //       if (mimeType.startsWith('image/')) {
 //         buffer        = await compressImageBuffer(buffer, mimeType);
-//         finalMimeType = 'image/jpeg'; // Sharp hamesha JPEG output deta hai
+//         finalMimeType = 'image/jpeg';
 //         finalExt      = 'jpg';
 //       }
 
 //       const finalFileName = `${baseName}.${finalExt}`;
 //       console.log(`[DRIVE] Uploading: ${finalFileName} (${(buffer.length / 1024).toFixed(0)}KB)`);
 
-//       // Stream banao
 //       const fileStream = new Readable();
 //       fileStream.push(buffer);
 //       fileStream.push(null);
 
-//       // Drive pe upload
 //       const res = await drive.files.create({
 //         resource: {
 //           name   : finalFileName,
 //           parents: [process.env.GOOGLE_DRIVE_FOLDER_ID],
 //         },
-//         media: {
-//           mimeType: finalMimeType,
-//           body    : fileStream,
-//         },
+//         media: { mimeType: finalMimeType, body: fileStream },
 //         fields          : 'id',
 //         supportsAllDrives: true,
-//         timeout         : 60000, // 60 second timeout
+//         timeout         : 60000,
 //       });
 
 //       const fileId = res.data.id;
-
-//       // Public access do
 //       await drive.permissions.create({
 //         fileId,
 //         requestBody     : { role: 'reader', type: 'anyone' },
@@ -239,31 +256,23 @@
 //       const viewUrl = `https://drive.google.com/file/d/${fileId}/view?usp=drivesdk`;
 //       console.log(`[DRIVE SUCCESS] Attempt ${attempt}: ${viewUrl}`);
 //       return viewUrl;
-
 //     } catch (error) {
 //       console.error(`[DRIVE ERROR] Attempt ${attempt}:`, error.message);
-
 //       if (attempt <= retries) {
-//         const waitMs = attempt * 3000; // 3s, 6s
+//         const waitMs = attempt * 3000;
 //         console.log(`[DRIVE] Retrying in ${waitMs / 1000}s...`);
 //         await new Promise(r => setTimeout(r, waitMs));
 //       } else {
 //         console.error('[DRIVE] All attempts failed');
-//         return ''; // Empty return - form submit hone do
+//         return '';
 //       }
 //     }
 //   }
-
 //   return '';
 // };
 
-
-
-
-
-
 // // ============================================================
-// // POST /api/site-expense  — COLUMN ORDER FIXED (original jaisa)
+// // POST /api/site-expense
 // // ============================================================
 // router.post('/site-expense', async (req, res) => {
 //   const contentLength = parseInt(req.headers['content-length'] || '0');
@@ -281,7 +290,6 @@
 //       return res.status(400).json({ success: false, message: 'Koi valid item nahi mila' });
 //     }
 
-//     // Parallel calls — fast
 //     const [Rcc_Bill_No_1, startRow] = await Promise.all([
 //       generateRccBillNo(),
 //       getNextEmptyRow('Site_Exp_FMS'),
@@ -290,19 +298,14 @@
 //     const timestamp = getTimestamp();
 //     console.log(`[INFO] Bill: ${Rcc_Bill_No_1}, Start Row: ${startRow}`);
 
-//     // Photo upload + UIDs parallel
 //     const [billPhotoUrl, ...uids] = await Promise.all([
 //       common.Bill_Photo_1
-//         ? uploadToGoogleDrive(
-//             common.Bill_Photo_1,
-//             `Bill_${Rcc_Bill_No_1}_${Date.now()}.jpg`
-//           )
+//         ? uploadToGoogleDrive(common.Bill_Photo_1, `Bill_${Rcc_Bill_No_1}_${Date.now()}.jpg`)
 //         : Promise.resolve(''),
 //       ...validItems.map(() => generateUID('Site_Exp_FMS', 'SITE')),
 //     ]);
 
 //     console.log(`[PHOTO URL] ${billPhotoUrl || 'No photo'}`);
-
 //     const saved = [];
 
 //     for (let i = 0; i < validItems.length; i++) {
@@ -310,24 +313,19 @@
 //       const currentRow = startRow + i;
 //       const UID = uids[i];
 
-//       // ✅ ORIGINAL COLUMN ORDER — exactly jaisa pehle tha
 //       const rowValues = [[
-//         timestamp,                                  // A - Timestamp
-//         UID,                                        // B - UID
-//         Rcc_Bill_No_1,                              // C - Rcc_Bill_No._1
-//         common.Vendor_Payee_Name_1     || '',       // D - Vendor/Payee_Name_1
-//         common.Project_Name_1          || '',       // E - Project_Name_1
-//         common.Project_Engineer_Name_1 || '',       // F - Project_Engineer_Name_1
-//         Exp_Head_1,                                 // G - Exp_Head_1
-//         Details_of_Work_1,                          // H - Details_of_Work_1
-//         Amount_1,                                   // I - Amount_1
-//         common.Bill_No_1               || '',       // J - Bill_No._1
-//         common.Bill_Date_1             || '',       // K - Bill_Date_1
-//         billPhotoUrl,                               // L - Bill_Photo_1 (Drive URL)
-//         common.Head_Type_1             || '',       // M - Head_Type_1
-//         common.Contractor_Name_1       || '',       // N - Contractor_Name_1
-//         common.Contractor_Firm_Name_1  || '',       // O - Contractor_Firm_Name_1
-//         common.Remark_1                || '',       // P - Remark_1
+//         timestamp, UID, Rcc_Bill_No_1,
+//         common.Vendor_Payee_Name_1     || '',
+//         common.Project_Name_1          || '',
+//         common.Project_Engineer_Name_1 || '',
+//         Exp_Head_1, Details_of_Work_1, Amount_1,
+//         common.Bill_No_1               || '',
+//         common.Bill_Date_1             || '',
+//         billPhotoUrl,
+//         common.Head_Type_1             || '',
+//         common.Contractor_Name_1       || '',
+//         common.Contractor_Firm_Name_1  || '',
+//         common.Remark_1                || '',
 //       ]];
 
 //       await sheets.spreadsheets.values.update({
@@ -348,14 +346,11 @@
 //       billPhotoUrl: billPhotoUrl || '',
 //       saved,
 //     });
-
 //   } catch (error) {
 //     console.error('❌ Site Expense Error:', error);
 //     return res.status(500).json({ success: false, message: 'Server error: ' + error.message });
 //   }
 // });
-
-
 
 // // ============================================================
 // // POST /api/labour-request
@@ -375,12 +370,12 @@
 //     }
 
 //     const [nextRow, UID] = await Promise.all([
-//       getNextEmptyRow('Labour_FMS'),
-//       generateUID('Labour_FMS', 'LAB'),
+//       getNextEmptyRow('Labour_Requirement'),
+//       generateUID('Labour_Requirement', 'LAB'),
 //     ]);
 
 //     const values = [[
-//       getTimestamp(),
+//       getTimestamp(), 
 //       UID,
 //       Project_Name_1              || '',
 //       Project_Engineer_1          || '',
@@ -400,7 +395,7 @@
 
 //     await sheets.spreadsheets.values.update({
 //       spreadsheetId   : SiteExpeseSheetId,
-//       range           : `Labour_FMS!A${nextRow}`,
+//       range           : `Labour_Requirement!A${nextRow}`,
 //       valueInputOption: 'USER_ENTERED',
 //       requestBody     : { values },
 //     });
@@ -408,8 +403,7 @@
 //     return res.status(200).json({
 //       success: true,
 //       message: 'Labour Request successfully save ho gaya!',
-//       uid    : UID,
-//       row    : nextRow,
+//       uid: UID, row: nextRow,
 //     });
 //   } catch (error) {
 //     console.error('❌ Labour Request Error:', error);
@@ -441,8 +435,7 @@
 //     ]);
 
 //     const values = [[
-//       getTimestamp(),
-//       UID,
+//       getTimestamp(), UID,
 //       Project_Name_1        || '',
 //       Project_Engineer_1    || '',
 //       Contractor_Name_1     || '',
@@ -466,8 +459,7 @@
 //     return res.status(200).json({
 //       success: true,
 //       message: 'Contractor debit entry successfully save ho gayi!',
-//       uid    : UID,
-//       row    : nextRow,
+//       uid: UID, row: nextRow,
 //     });
 //   } catch (error) {
 //     console.error('❌ Contractor Debit Error:', error);
@@ -475,88 +467,8 @@
 //   }
 // });
 
-
-
-
-
-
-
-
-
-
-
 // // ============================================================
-// // HELPER: Current timestamp (IST)
-// // ============================================================
-// const getTimestamp = () => {
-//   const now = new Date();
-//   const options = {
-//     timeZone: 'Asia/Kolkata',
-//     year: 'numeric', month: '2-digit', day: '2-digit',
-//     hour: '2-digit', minute: '2-digit', second: '2-digit',
-//     hour12: false
-//   };
-//   const formatter = new Intl.DateTimeFormat('en-IN', options);
-//   const parts = formatter.formatToParts(now);
-//   const dd   = parts.find(p => p.type === 'day').value;
-//   const mm   = parts.find(p => p.type === 'month').value;
-//   const yyyy = parts.find(p => p.type === 'year').value;
-//   const hh   = parts.find(p => p.type === 'hour').value;
-//   const min  = parts.find(p => p.type === 'minute').value;
-//   const ss   = parts.find(p => p.type === 'second').value;
-//   return `${dd}/${mm}/${yyyy} ${hh}:${min}:${ss}`;
-// };
-
-// // ============================================================
-// // HELPER: Next empty row
-// // ============================================================
-// const getNextEmptyRow = async (sheetName) => {
-//   try {
-//     const response = await sheets.spreadsheets.values.get({
-//       spreadsheetId: CompanyLabourSheetId,
-//       range: `${sheetName}!A7:O10000`,
-//       majorDimension: 'ROWS',
-//     });
-//     const allRows = response.data.values || [];
-//     let lastUsedRow = 6;
-//     for (let i = 0; i < allRows.length; i++) {
-//       const row = allRows[i];
-//       if (row && row.some(cell => cell !== '' && cell !== null && cell !== undefined)) {
-//         lastUsedRow = 7 + i;
-//       }
-//     }
-//     return Math.max(lastUsedRow + 1, 7);
-//   } catch (err) {
-//     console.error(`Error finding next row in ${sheetName}:`, err);
-//     throw err;
-//   }
-// };
-
-// // ============================================================
-// // HELPER: Generate UID
-// // ============================================================
-// const generateUID = async (sheetName, prefix = 'LATT') => {
-//   try {
-//     const response = await sheets.spreadsheets.values.get({
-//       spreadsheetId: CompanyLabourSheetId,
-//       range: `${sheetName}!B7:B10000`,
-//     });
-//     const existing = (response.data.values || []).flat().filter(Boolean);
-//     let count = 1;
-//     let newUID;
-//     do {
-//       newUID = prefix + String(count).padStart(4, '0');
-//       count++;
-//     } while (existing.includes(newUID));
-//     return newUID;
-//   } catch (err) {
-//     console.error(`Error generating UID:`, err);
-//     throw err;
-//   }
-// };
-
-// // ============================================================
-// // GET /dropdowns — Project_Data sheet se dropdown data
+// // GET /api/Company-labour-dropdowns
 // // ============================================================
 // router.get('/Company-labour-dropdowns', async (req, res) => {
 //   try {
@@ -564,11 +476,13 @@
 
 //     const response = await sheets.spreadsheets.values.get({
 //       spreadsheetId: CompanyLabourSheetId,
-//       range: 'Project_Data!A3:G10000',
+//       range: 'Project_Data!A3:I10000',   // ✅ I tak fetch karo
 //       majorDimension: 'ROWS',
 //     });
 
 //     const rows = response.data.values || [];
+//     console.log(`[DROPDOWN] Total rows: ${rows.length}`);
+//     console.log('[DROPDOWN] First row sample:', rows[0]);
 
 //     const projectNames        = new Set();
 //     const projectEngineers    = new Set();
@@ -580,13 +494,17 @@
 //     const projectEngineerMap = {};
 //     const contractorFirmMap  = {};
 
-//     rows.forEach(row => {
+//     rows.forEach((row) => {
+//       // ✅ SHEET COLUMNS (0-based index):
+//       // A(0) Project     | B(1) Engineer | C(2) blank
+//       // D(3) Labour Name | E(4) blank    | F(5) Work Type
+//       // G(6) blank       | H(7) Contractor | I(8) Firm Name
 //       const projectName    = (row[0] || '').trim();
 //       const engineer       = (row[1] || '').trim();
 //       const labourName     = (row[3] || '').trim();
-//       const workType       = (row[4] || '').trim();
-//       const contractorName = (row[5] || '').trim();
-//       const contractorFirm = (row[6] || '').trim();
+//       const workType       = (row[5] || '').trim();
+//       const contractorName = (row[7] || '').trim();   // ✅ H (index 7)
+//       const contractorFirm = (row[8] || '').trim();   // ✅ I (index 8)
 
 //       if (projectName)    projectNames.add(projectName);
 //       if (engineer)       projectEngineers.add(engineer);
@@ -595,9 +513,16 @@
 //       if (contractorName) contractorNames.add(contractorName);
 //       if (contractorFirm) contractorFirmNames.add(contractorFirm);
 
-//       if (projectName && engineer)    projectEngineerMap[projectName]   = engineer;
-//       if (contractorName && contractorFirm) contractorFirmMap[contractorName] = contractorFirm;
+//       if (projectName && engineer) {
+//         projectEngineerMap[projectName] = engineer;
+//       }
+//       if (contractorName && contractorFirm) {
+//         contractorFirmMap[contractorName] = contractorFirm;
+//         console.log(`[MAP] "${contractorName}" → "${contractorFirm}"`);
+//       }
 //     });
+
+//     console.log('[DROPDOWN] Contractor Firm Map:', contractorFirmMap);
 
 //     return res.status(200).json({
 //       success: true,
@@ -619,7 +544,7 @@
 // });
 
 // // ============================================================
-// // POST / — Labour Attendance save karo
+// // POST /api/Company-labour — Labour Attendance save
 // // ============================================================
 // router.post('/Company-labour', async (req, res) => {
 //   try {
@@ -646,8 +571,8 @@
 //     }
 
 //     const [nextRow, UID] = await Promise.all([
-//       getNextEmptyRow('Labour_Attedace_FMS'),
-//       generateUID('Labour_Attedace_FMS', 'LATT'),
+//       getNextEmptyRowCompany('Labour_Attedace_FMS'),
+//       generateUIDCompany('Labour_Attedace_FMS', 'LATT'),
 //     ]);
 
 //     // Column Order:
@@ -684,8 +609,7 @@
 //     return res.status(200).json({
 //       success: true,
 //       message: 'Labour Attendance successfully save ho gayi!',
-//       uid    : UID,
-//       row    : nextRow,
+//       uid: UID, row: nextRow,
 //     });
 //   } catch (error) {
 //     console.error('❌ Labour Attendance Error:', error);
@@ -693,14 +617,81 @@
 //   }
 // });
 
+
+
+// // ============================================================
+// // ✅ NEW - POST /api/office-labour-request
+// // Office access only — data goes to Office_Labour_FMS sheet
+// // ============================================================
+// router.post('/office-labour-request', async (req, res) => {
+//   try {
+//     const {
+//       Project_Name_1, Project_Engineer_1, Work_Type_1,
+//       Work_Description_1, Labour_Category_1, Number_Of_Labour_1,
+//       Labour_Category_2, Number_Of_Labour_2, Total_Labour_1,
+//       Date_Of_Required_1, Head_Of_Contractor_Company_1,
+//       Name_Of_Contractor_1, Contractor_Firm_Name_1, Remark_1,
+//     } = req.body;
+
+//     if (!Project_Name_1 || !Work_Type_1) {
+//       return res.status(400).json({
+//         success: false,
+//         message: 'Project Name aur Work Type required hain'
+//       });
+//     }
+
+//     // ✅ Office_Labour_FMS sheet se next row + UID (LAB prefix)
+//     const [nextRow, UID] = await Promise.all([
+//       getNextEmptyRow('Office_Labour_FMS'),
+//       generateUID('Office_Labour_FMS', 'LAB'),
+//     ]);
+
+//     const values = [[
+//       getTimestamp(), UID,
+//       Project_Name_1               || '',
+//       Project_Engineer_1           || '',
+//       Work_Type_1                  || '',
+//       Work_Description_1           || '',
+//       Labour_Category_1            || '',
+//       Number_Of_Labour_1           || '',
+//       Labour_Category_2            || '',
+//       Number_Of_Labour_2           || '',
+//       Total_Labour_1               || '',
+//       Date_Of_Required_1           || '',
+//       Head_Of_Contractor_Company_1 || '',
+//       Name_Of_Contractor_1         || '',
+//       Contractor_Firm_Name_1       || '',
+//       Remark_1                     || '',
+//     ]];
+
+//     // ✅ Data Office_Labour_FMS sheet me save karo
+//     await sheets.spreadsheets.values.update({
+//       spreadsheetId   : SiteExpeseSheetId,
+//       range           : `Office_Labour_FMS!A${nextRow}`,
+//       valueInputOption: 'USER_ENTERED',
+//       requestBody     : { values },
+//     });
+
+//     console.log(`[OFFICE LABOUR SAVED] Row ${nextRow} | UID: ${UID}`);
+
+//     return res.status(200).json({
+//       success: true,
+//       message: 'Office Labour Request successfully save ho gaya!',
+//       uid: UID,
+//       row: nextRow,
+//     });
+//   } catch (error) {
+//     console.error('❌ Office Labour Request Error:', error);
+//     return res.status(500).json({
+//       success: false,
+//       message: 'Server error: ' + error.message
+//     });
+//   }
+// });
+
 // module.exports = router;
 
 
-
-
-
-
-//////////////////////////////////////
 
 
 
@@ -736,7 +727,7 @@ const getTimestamp = () => {
 };
 
 // ============================================================
-// HELPER: Next empty row (SiteExpeseSheetId)
+// HELPER: Next empty row (SiteExpeseSheetId) — Row 7 se check
 // ============================================================
 const getNextEmptyRow = async (sheetName) => {
   try {
@@ -761,7 +752,7 @@ const getNextEmptyRow = async (sheetName) => {
 };
 
 // ============================================================
-// HELPER: Generate UID (SiteExpeseSheetId)
+// HELPER: Generate UID (SiteExpeseSheetId) — B7 se check
 // ============================================================
 const generateUID = async (sheetName, prefix = '') => {
   try {
@@ -776,6 +767,74 @@ const generateUID = async (sheetName, prefix = '') => {
       newUID = prefix + String(count).padStart(4, '0');
       count++;
     } while (existing.includes(newUID));
+    return newUID;
+  } catch (err) {
+    console.error(`Error generating UID for ${sheetName}:`, err);
+    throw err;
+  }
+};
+
+// ============================================================
+// ✅ NEW HELPER: Next empty row (A2 se check) — Labour Requirement
+// ============================================================
+const getNextEmptyRowFromA2 = async (sheetName) => {
+  try {
+    const response = await sheets.spreadsheets.values.get({
+      spreadsheetId: SiteExpeseSheetId,
+      range: `${sheetName}!A2:P10000`,
+      majorDimension: 'ROWS',
+    });
+    const allRows = response.data.values || [];
+    let lastUsedRow = 1;  // Row 1 = headers, data starts from row 2
+
+    for (let i = 0; i < allRows.length; i++) {
+      const row = allRows[i];
+      if (row && row.some(cell => cell !== '' && cell !== null && cell !== undefined)) {
+        lastUsedRow = 2 + i;
+      }
+    }
+    return Math.max(lastUsedRow + 1, 2);
+  } catch (err) {
+    console.error(`Error finding next row in ${sheetName}:`, err);
+    throw err;
+  }
+};
+
+// ============================================================
+// ✅ NEW HELPER: Generate UID (B2 se check) — Labour Requirement
+// ============================================================
+// ============================================================
+// ✅ FIXED HELPER: Generate UID (B2 se check) — Highest + 1 logic
+// Ab agar LAB0896 last hai, toh next LAB0897 dega
+// ============================================================
+const generateUIDFromB2 = async (sheetName, prefix = 'LAB') => {
+  try {
+    const response = await sheets.spreadsheets.values.get({
+      spreadsheetId: SiteExpeseSheetId,
+      range: `${sheetName}!B2:B10000`,
+    });
+    
+    const existing = (response.data.values || []).flat().filter(Boolean);
+    
+    // ✅ Highest number nikaalo existing UIDs se
+    let maxNumber = 0;
+    existing.forEach(uid => {
+      const uidStr = String(uid).trim();
+      if (uidStr.startsWith(prefix)) {
+        const numPart = uidStr.replace(prefix, '');
+        const num = parseInt(numPart, 10);
+        if (!isNaN(num) && num > maxNumber) {
+          maxNumber = num;
+        }
+      }
+    });
+    
+    // ✅ Next UID = Highest + 1
+    const nextNumber = maxNumber + 1;
+    const newUID = prefix + String(nextNumber).padStart(4, '0');
+    
+    console.log(`[UID GEN] Existing UIDs: ${existing.length} | Max: ${prefix}${String(maxNumber).padStart(4, '0')} | Next: ${newUID}`);
+    
     return newUID;
   } catch (err) {
     console.error(`Error generating UID for ${sheetName}:`, err);
@@ -1059,7 +1118,8 @@ router.post('/site-expense', async (req, res) => {
 });
 
 // ============================================================
-// POST /api/labour-request
+// POST /api/labour-request → Labour_Requirement sheet
+// ✅ FIXED - Row 2 se data check, UID B2 se check (LAB0001 se start)
 // ============================================================
 router.post('/labour-request', async (req, res) => {
   try {
@@ -1075,13 +1135,17 @@ router.post('/labour-request', async (req, res) => {
       return res.status(400).json({ success: false, message: 'Project Name aur Work Type required hain' });
     }
 
+    // ✅ A2/B2 wale naye helpers use karo
     const [nextRow, UID] = await Promise.all([
-      getNextEmptyRow('Labour_FMS'),
-      generateUID('Labour_FMS', 'LAB'),
+      getNextEmptyRowFromA2('Labour_Requirement'),
+      generateUIDFromB2('Labour_Requirement', 'LAB'),
     ]);
 
+    console.log(`[LABOUR REQUEST] Next Row: ${nextRow} | UID: ${UID}`);
+
     const values = [[
-      getTimestamp(), UID,
+      getTimestamp(), 
+      UID,
       Project_Name_1              || '',
       Project_Engineer_1          || '',
       Work_Type_1                 || '',
@@ -1100,10 +1164,12 @@ router.post('/labour-request', async (req, res) => {
 
     await sheets.spreadsheets.values.update({
       spreadsheetId   : SiteExpeseSheetId,
-      range           : `Labour_FMS!A${nextRow}`,
+      range           : `Labour_Requirement!A${nextRow}`,
       valueInputOption: 'USER_ENTERED',
       requestBody     : { values },
     });
+
+    console.log(`[LABOUR REQUEST SAVED] Row ${nextRow} | UID: ${UID}`);
 
     return res.status(200).json({
       success: true,
@@ -1181,7 +1247,7 @@ router.get('/Company-labour-dropdowns', async (req, res) => {
 
     const response = await sheets.spreadsheets.values.get({
       spreadsheetId: CompanyLabourSheetId,
-      range: 'Project_Data!A3:I10000',   // ✅ I tak fetch karo
+      range: 'Project_Data!A3:I10000',
       majorDimension: 'ROWS',
     });
 
@@ -1200,16 +1266,12 @@ router.get('/Company-labour-dropdowns', async (req, res) => {
     const contractorFirmMap  = {};
 
     rows.forEach((row) => {
-      // ✅ SHEET COLUMNS (0-based index):
-      // A(0) Project     | B(1) Engineer | C(2) blank
-      // D(3) Labour Name | E(4) blank    | F(5) Work Type
-      // G(6) blank       | H(7) Contractor | I(8) Firm Name
       const projectName    = (row[0] || '').trim();
       const engineer       = (row[1] || '').trim();
       const labourName     = (row[3] || '').trim();
       const workType       = (row[5] || '').trim();
-      const contractorName = (row[7] || '').trim();   // ✅ H (index 7)
-      const contractorFirm = (row[8] || '').trim();   // ✅ I (index 8)
+      const contractorName = (row[7] || '').trim();
+      const contractorFirm = (row[8] || '').trim();
 
       if (projectName)    projectNames.add(projectName);
       if (engineer)       projectEngineers.add(engineer);
@@ -1280,10 +1342,6 @@ router.post('/Company-labour', async (req, res) => {
       generateUIDCompany('Labour_Attedace_FMS', 'LATT'),
     ]);
 
-    // Column Order:
-    // A-Timestamp | B-UID | C-Work_Date | D-Project | E-Engineer
-    // F-Blank | G-Labour | H-Day/Night | I-Attendance | J-WorkType
-    // K-WorkDesc | L-HeadContractor | M-ContractorName | N-FirmName | O-Remark
     const values = [[
       getTimestamp(),                       // A
       UID,                                  // B
@@ -1319,6 +1377,506 @@ router.post('/Company-labour', async (req, res) => {
   } catch (error) {
     console.error('❌ Labour Attendance Error:', error);
     return res.status(500).json({ success: false, message: 'Server error: ' + error.message });
+  }
+});
+
+// ============================================================
+// ✅ NEW - POST /api/office-labour-request
+// Office access only — data goes to Office_Labour_FMS sheet
+// ✅ FIXED - Row 2 se check karega (A2), UID B2 se check
+// ============================================================
+
+router.post('/office-labour-request', async (req, res) => {
+  try {
+    const {
+      Project_Name_1, Project_Engineer_1, Work_Type_1,
+      Work_Description_1, Labour_Category_1, Number_Of_Labour_1,
+      Labour_Category_2, Number_Of_Labour_2, Total_Labour_1,
+      Date_Of_Required_1, Head_Of_Contractor_Company_1,
+      Name_Of_Contractor_1, Contractor_Firm_Name_1, Remark_1,
+    } = req.body;
+
+    if (!Project_Name_1 || !Work_Type_1) {
+      return res.status(400).json({
+        success: false,
+        message: 'Project Name aur Work Type required hain'
+      });
+    }
+
+    // ✅ Default helpers use karo (A7 se check)
+    const [nextRow, UID] = await Promise.all([
+      getNextEmptyRow('Labour_FMS'),
+      generateUID('Labour_FMS', 'LAB'),
+    ]);
+
+    console.log(`[OFFICE LABOUR] Next Row: ${nextRow} | UID: ${UID}`);
+
+    const values = [[
+      getTimestamp(), UID,
+      Project_Name_1               || '',
+      Project_Engineer_1           || '',
+      Work_Type_1                  || '',
+      Work_Description_1           || '',
+      Labour_Category_1            || '',
+      Number_Of_Labour_1           || '',
+      Labour_Category_2            || '',
+      Number_Of_Labour_2           || '',
+      Total_Labour_1               || '',
+      Date_Of_Required_1           || '',
+      Head_Of_Contractor_Company_1 || '',
+      Name_Of_Contractor_1         || '',
+      Contractor_Firm_Name_1       || '',
+      Remark_1                     || '',
+    ]];
+
+    await sheets.spreadsheets.values.update({
+      spreadsheetId   : SiteExpeseSheetId,
+      range           : `Labour_FMS!A${nextRow}`,
+      valueInputOption: 'USER_ENTERED',
+      requestBody     : { values },
+    });
+
+    console.log(`[OFFICE LABOUR SAVED] Row ${nextRow} | UID: ${UID}`);
+
+    return res.status(200).json({
+      success: true,
+      message: 'Office Labour Request successfully save ho gaya!',
+      uid: UID,
+      row: nextRow,
+    });
+  } catch (error) {
+    console.error('❌ Office Labour Request Error:', error);
+    return res.status(500).json({
+      success: false,
+      message: 'Server error: ' + error.message
+    });
+  }
+});
+
+
+
+
+// ============================================================
+// ✅ NEW - GET /api/get-labour-requirements
+// Labour_Requirement sheet se pending (Status != "Done") data
+// ============================================================
+router.get('/get-labour-requirements', async (req, res) => {
+  try {
+    const response = await sheets.spreadsheets.values.get({
+      spreadsheetId: SiteExpeseSheetId,
+      range: 'Labour_Requirement!A2:Q10000',
+      majorDimension: 'ROWS',
+    });
+
+    const rows = response.data.values || [];
+    console.log(`[LABOUR REQ] Total rows: ${rows.length}`);
+
+    const pendingData = rows
+      .filter((row) => {
+        // UID (col B) mandatory
+        if (!row || !row[1] || String(row[1]).trim() === '') return false;
+        // Status (col Q - index 16) "Done" NAHI hona chahiye
+        const status = (row[16] || '').toString().trim();
+        return status !== 'Done';
+      })
+      .map((row, index) => ({
+        rowNumber                    : 2 + index,
+        timestamp                    : row[0]  || '',
+        uid                          : row[1]  || '',
+        Project_Name_1               : row[2]  || '',
+        Project_Engineer_1           : row[3]  || '',
+        Work_Type_1                  : row[4]  || '',
+        Work_Description_1           : row[5]  || '',
+        Labour_Category_1            : row[6]  || '',
+        Number_Of_Labour_1           : row[7]  || '',
+        Labour_Category_2            : row[8]  || '',
+        Number_Of_Labour_2           : row[9]  || '',
+        Total_Labour_1               : row[10] || '',
+        Date_Of_Required_1           : row[11] || '',
+        Head_Of_Contractor_Company_1 : row[12] || '',
+        Name_Of_Contractor_1         : row[13] || '',
+        Contractor_Firm_Name_1       : row[14] || '',
+        Remark_1                     : row[15] || '',
+        Status                       : row[16] || '',
+      }));
+
+    // Latest pehle
+    pendingData.reverse();
+
+    console.log(`[LABOUR REQ] Pending: ${pendingData.length}`);
+
+    res.json({
+      success: true,
+      count  : pendingData.length,
+      data   : pendingData,
+    });
+  } catch (error) {
+    console.error('❌ Get Labour Requirements Error:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Failed to fetch labour requirements',
+      error  : error.message,
+    });
+  }
+});
+
+// ============================================================
+// ✅ NEW - POST /api/update-labour-requirement
+// Existing entry ko edit karo (UID lock, baaki sab update)
+// ============================================================
+router.post('/update-labour-requirement', async (req, res) => {
+  const {
+    uid,
+    Project_Name_1, Project_Engineer_1, Work_Type_1,
+    Work_Description_1, Labour_Category_1, Number_Of_Labour_1,
+    Labour_Category_2, Number_Of_Labour_2, Total_Labour_1,
+    Date_Of_Required_1, Head_Of_Contractor_Company_1,
+    Name_Of_Contractor_1, Contractor_Firm_Name_1, Remark_1,
+  } = req.body;
+
+  if (!uid) {
+    return res.status(400).json({
+      success: false,
+      message: 'UID is required',
+    });
+  }
+
+  try {
+    const response = await sheets.spreadsheets.values.get({
+      spreadsheetId: SiteExpeseSheetId,
+      range: 'Labour_Requirement!A2:Q10000',
+    });
+
+    const rows = response.data.values || [];
+    const rowIndex = rows.findIndex(row =>
+      row[1] && String(row[1]).trim() === String(uid).trim()
+    );
+
+    if (rowIndex === -1) {
+      return res.status(404).json({
+        success: false,
+        message: `UID not found: ${uid}`,
+      });
+    }
+
+    const sheetRowNumber = 2 + rowIndex;
+    console.log(`[UPDATE REQ] UID ${uid} → row ${sheetRowNumber}`);
+
+    const batchData = [];
+    const addIfDefined = (colLetter, value) => {
+      if (value !== undefined) {
+        batchData.push({
+          range : `Labour_Requirement!${colLetter}${sheetRowNumber}`,
+          values: [[value || '']],
+        });
+      }
+    };
+
+    // A - Timestamp (skip)
+    // B - UID (LOCK - skip)
+    addIfDefined('C', Project_Name_1);
+    addIfDefined('D', Project_Engineer_1);
+    addIfDefined('E', Work_Type_1);
+    addIfDefined('F', Work_Description_1);
+    addIfDefined('G', Labour_Category_1);
+    addIfDefined('H', Number_Of_Labour_1);
+    addIfDefined('I', Labour_Category_2);
+    addIfDefined('J', Number_Of_Labour_2);
+    addIfDefined('K', Total_Labour_1);
+    addIfDefined('L', Date_Of_Required_1);
+    addIfDefined('M', Head_Of_Contractor_Company_1);
+    addIfDefined('N', Name_Of_Contractor_1);
+    addIfDefined('O', Contractor_Firm_Name_1);
+    addIfDefined('P', Remark_1);
+
+    if (batchData.length === 0) {
+      return res.json({ success: true, message: 'No fields to update' });
+    }
+
+    await sheets.spreadsheets.values.batchUpdate({
+      spreadsheetId: SiteExpeseSheetId,
+      resource: {
+        valueInputOption: 'USER_ENTERED',
+        data            : batchData,
+      },
+    });
+
+    console.log(`[UPDATE REQ SUCCESS] Row ${sheetRowNumber}`);
+
+    return res.json({
+      success  : true,
+      message  : 'Labour Requirement updated successfully',
+      rowNumber: sheetRowNumber,
+    });
+  } catch (error) {
+    console.error('❌ Update Labour Requirement Error:', error);
+    return res.status(500).json({
+      success: false,
+      message: 'Update failed',
+      error  : error.message,
+    });
+  }
+});
+
+// ============================================================
+// ✅ NEW - POST /api/submit-to-labour-fms
+// Row copy karo Labour_Requirement → Labour_FMS
+// + Original row me Q column = "Done" mark karo
+// ============================================================
+router.post('/submit-to-labour-fms', async (req, res) => {
+  const { uid } = req.body;
+
+  if (!uid) {
+    return res.status(400).json({
+      success: false,
+      message: 'UID is required',
+    });
+  }
+
+  try {
+    // 1. Labour_Requirement se row fetch karo
+    const response = await sheets.spreadsheets.values.get({
+      spreadsheetId: SiteExpeseSheetId,
+      range: 'Labour_Requirement!A2:Q10000',
+    });
+
+    const rows = response.data.values || [];
+    const rowIndex = rows.findIndex(row =>
+      row[1] && String(row[1]).trim() === String(uid).trim()
+    );
+
+    if (rowIndex === -1) {
+      return res.status(404).json({
+        success: false,
+        message: `UID not found: ${uid}`,
+      });
+    }
+
+    const sourceRow      = rows[rowIndex];
+    const sheetRowNumber = 2 + rowIndex;
+
+    // Check already Done ya nahi
+    const currentStatus = (sourceRow[16] || '').toString().trim();
+    if (currentStatus === 'Done') {
+      return res.status(400).json({
+        success: false,
+        message: `UID ${uid} already submitted (Status: Done)`,
+      });
+    }
+
+    console.log(`[SUBMIT] UID ${uid} at row ${sheetRowNumber}`);
+
+    // 2. Labour_FMS me next empty row nikaalo
+    const nextRow = await getNextEmptyRow('Labour_FMS');
+    console.log(`[SUBMIT] Labour_FMS next row: ${nextRow}`);
+
+    // 3. Data prepare karo (A-P columns, Q skip)
+    const values = [[
+      sourceRow[0]  || '',   // A - Timestamp
+      sourceRow[1]  || '',   // B - UID
+      sourceRow[2]  || '',   // C - Project_Name
+      sourceRow[3]  || '',   // D - Project_Engineer
+      sourceRow[4]  || '',   // E - Work_Type
+      sourceRow[5]  || '',   // F - Work_Description
+      sourceRow[6]  || '',   // G - Labour_Category_1
+      sourceRow[7]  || '',   // H - Number_Of_Labour_1
+      sourceRow[8]  || '',   // I - Labour_Category_2
+      sourceRow[9]  || '',   // J - Number_Of_Labour_2
+      sourceRow[10] || '',   // K - Total_Labour
+      sourceRow[11] || '',   // L - Date_Of_Required
+      sourceRow[12] || '',   // M - Head_Of_Contractor
+      sourceRow[13] || '',   // N - Name_Of_Contractor
+      sourceRow[14] || '',   // O - Contractor_Firm_Name
+      sourceRow[15] || '',   // P - Remark
+    ]];
+
+    // 4. Labour_FMS me save
+    await sheets.spreadsheets.values.update({
+      spreadsheetId   : SiteExpeseSheetId,
+      range           : `Labour_FMS!A${nextRow}`,
+      valueInputOption: 'USER_ENTERED',
+      requestBody     : { values },
+    });
+
+    // 5. Labour_Requirement ke Q column me "Done" mark karo
+    await sheets.spreadsheets.values.update({
+      spreadsheetId   : SiteExpeseSheetId,
+      range           : `Labour_Requirement!Q${sheetRowNumber}`,
+      valueInputOption: 'USER_ENTERED',
+      requestBody     : { values: [['Done']] },
+    });
+
+    console.log(`[SUBMIT SUCCESS] UID ${uid} → Labour_FMS row ${nextRow} + Status = Done`);
+
+    return res.json({
+      success        : true,
+      message        : 'Successfully submitted to Labour_FMS!',
+      uid            : uid,
+      labourFmsRow   : nextRow,
+      requirementRow : sheetRowNumber,
+    });
+  } catch (error) {
+    console.error('❌ Submit to Labour_FMS Error:', error);
+    return res.status(500).json({
+      success: false,
+      message: 'Submit failed',
+      error  : error.message,
+    });
+  }
+});
+
+
+
+
+///////////////. vinod step form new /////////////
+
+// ============================================================
+// ✅ GET /api/get-labour-requirements
+// Fetch data from Labour_Requirement sheet where Status (Col Q) != 'Done'
+// ============================================================
+// ============================================================
+
+
+
+// ============================================================
+// ✅ GUARANTEED COLUMN W (INDEX 22) FILTER
+// ============================================================
+router.get('/get-labour-requirements', async (req, res) => {
+  try {
+    const response = await sheets.spreadsheets.values.get({
+      spreadsheetId: SiteExpeseSheetId,
+      range: 'Labour_Requirement!A2:AL10000',
+      majorDimension: 'ROWS',
+    });
+
+    const rawRows = response.data.values || [];
+    const pendingData = [];
+
+    rawRows.forEach((row, index) => {
+      const uid = (row[1] || '').toString().trim();
+      if (!uid) return; // UID empty hai to skip
+
+      // ✅ Column W is Index 22 (A=0, B=1, ... Q=16, ... W=22)
+      // Agar row ki length kam hai to row[22] undefined hoga (khaali)
+      const statusColW = (row[22] || '').toString().trim().toLowerCase();
+
+      // Agar Column W me 'done' likha hai (Done, done, DONE), toh SKIP karo
+      if (statusColW === 'done') {
+        return;
+      }
+
+      pendingData.push({
+        rowNumber:                    2 + index,
+        timestamp:                    row[0]  || '',
+        uid:                          uid,
+        Project_Name_1:               row[2]  || '',
+        Project_Engineer_1:           row[3]  || '',
+        Work_Type_1:                  row[4]  || '',
+        Work_Description_1:           row[5]  || '',
+        Labour_Category_1:            row[6]  || '',
+        Number_Of_Labour_1:           row[7]  || '',
+        Labour_Category_2:            row[8]  || '',
+        Number_Of_Labour_2:           row[9]  || '',
+        Total_Labour_1:               row[10] || '',
+        Date_Of_Required_1:           row[11] || '',
+        Head_Of_Contractor_Company_1: row[12] || '',
+        Name_Of_Contractor_1:         row[13] || '',
+        Contractor_Firm_Name_1:       row[14] || '',
+        Remark_1:                     row[15] || '',
+        Status:                       row[22] || '', // Column W Status
+      });
+    });
+
+    pendingData.reverse();
+
+    // ✅ Naya log message
+    console.log(`[COL-W FILTER SUCCESS] Total: ${rawRows.length} | Pending (Col W != Done): ${pendingData.length}`);
+
+    res.json({
+      success: true,
+      count: pendingData.length,
+      data: pendingData,
+    });
+  } catch (error) {
+    console.error('❌ Error:', error);
+    res.status(500).json({ success: false, message: 'Error', error: error.message });
+  }
+});
+// ============================================================
+// ✅ POST /api/update-labour-req-management
+// Saves Modal Data to Col W-AK and sets Col Q to 'Done'
+// ============================================================
+
+router.post('/update-labour-req-management', async (req, res) => {
+  try {
+    const {
+      uid, Status_3, Labouar_Contractor_Name_3, Labour_Category_1_3,
+      Number_Of_Labour_1_3, Labour_Rate_1_3, Labour_Category_2_3,
+      Number_Of_Labour_2_3, Labour_Rate_2_3, Total_Wages_3, Conveyanance_3,
+      Contractor_Commission, Total_Paid_Amount_3, Company_Head_Amount_3,
+      Contractor_Head_Amount_3, Remark_3
+    } = req.body;
+
+    if (!uid) return res.status(400).json({ success: false, message: 'UID is required' });
+
+    const response = await sheets.spreadsheets.values.get({
+      spreadsheetId: SiteExpeseSheetId,
+      range: 'Labour_Requirement!A2:B10000',
+    });
+
+    const rows = response.data.values || [];
+    const rowIndex = rows.findIndex(row => row[1] && String(row[1]).trim() === String(uid).trim());
+
+    if (rowIndex === -1) {
+      return res.status(404).json({ success: false, message: `UID not found: ${uid}` });
+    }
+
+    const sheetRowNumber = 2 + rowIndex;
+    const batchData = [];
+
+    const addIfValid = (colLetter, value) => {
+      if (value !== undefined && value !== null) {
+        batchData.push({ 
+          range: `Labour_Requirement!${colLetter}${sheetRowNumber}`, 
+          values: [[String(value).trim()]] 
+        });
+      }
+    };
+
+    // ✅ EXACT COLUMN MAPPING MATCHED WITH SHEET:
+    addIfValid('W', Status_3 || 'Done');        // W  = Status_3
+    // Column X (Time_Delay_3) is auto/skipped
+    addIfValid('Y', Labouar_Contractor_Name_3); // Y  = Labouar_Contractor_Name_3
+    addIfValid('Z', Labour_Category_1_3);       // Z  = Labour_Category_1_3
+    addIfValid('AA', Number_Of_Labour_1_3);     // AA = Number_Of_Labour_1_3
+    addIfValid('AB', Labour_Rate_1_3);          // AB = Labour_Rate_1_3
+    addIfValid('AC', Labour_Category_2_3);       // AC = Labour_Category_2_3
+    addIfValid('AD', Number_Of_Labour_2_3);     // AD = Number_Of_Labour_2_3
+    addIfValid('AE', Labour_Rate_2_3);          // AE = Labour_Rate_2_3
+    addIfValid('AF', Total_Wages_3);            // AF = Total_Wages_3
+    addIfValid('AG', Conveyanance_3);           // AG = Conveyanance_3
+    addIfValid('AH', Contractor_Commission);    // AH = Contractor_Commission
+    addIfValid('AI', Total_Paid_Amount_3);      // AI = Total_Paid_Amount_3
+    addIfValid('AJ', Company_Head_Amount_3);    // AJ = Company_Head_Amount_3
+    addIfValid('AK', Contractor_Head_Amount_3); // AK = Contractor_Head_Amount_3
+    addIfValid('AL', Remark_3);                  // AL = Remark_3
+
+    if (batchData.length > 0) {
+      await sheets.spreadsheets.values.batchUpdate({
+        spreadsheetId: SiteExpeseSheetId,
+        resource: { valueInputOption: 'USER_ENTERED', data: batchData },
+      });
+    }
+
+    res.json({
+      success: true,
+      message: 'Management details saved correctly & Status marked as Done!',
+      rowNumber: sheetRowNumber
+    });
+
+  } catch (error) {
+    console.error('❌ Update Labour Req Management Error:', error);
+    res.status(500).json({ success: false, message: 'Update failed', error: error.message });
   }
 });
 

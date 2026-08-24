@@ -41,6 +41,7 @@ const STATIC_USER_TYPE_MAP = {
   'Final Material Received': 'Final Material Received',
   'Labour Managment': 'Labour Managment',
   'Signature Requirement': 'Signature Requirement',
+  'Labour Form': 'Labour Form',
 };
 
 // ─── THEME COLORS ────────────────────────────────────────

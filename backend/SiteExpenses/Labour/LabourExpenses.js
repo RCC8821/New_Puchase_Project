@@ -233,47 +233,164 @@ router.post('/Post-labour-Approvel-1', async (req, res) => {
 
 
 // ============================================================
+
 // GET /get-Labour-management
+// ============================================================
+// router.get('/get-Labour-management', async (req, res) => {
+//   try {
+//     const response = await sheets.spreadsheets.values.get({
+//       spreadsheetId: SiteExpeseSheetId,
+//       range: 'Labour_FMS!A7:AD',
+//     });
+
+//     const rows = response.data.values || [];
+
+//     const pendingLabour = rows
+//       .filter(row => {
+//         if (row.length < 18) return false;
+//         const planned3 = (row[28] || '').toString().trim();
+//         const actual3  = (row[29] || '').toString().trim();
+//         return planned3 !== '' && actual3 === '';
+//       })
+//       .map(row => ({
+//         timestamp:             row[0]  || '',
+//         uid:                   row[1]  || '',
+//         projectName:           row[2]  || '',
+//         projectEngineer:       row[3]  || '',
+//         workType:              row[4]  || '',
+//         workDescription:       row[5]  || '',
+//         labourCategory1:       row[6]  || '',
+//         numberOfLabour1:       row[7]  || '',
+//         labourCategory2:       row[8]  || '',
+//         numberOfLabour2:       row[9]  || '',
+//         totalLabour:           row[10] || '',
+//         dateRequired:          row[11] || '',
+//         headOfContractor:      row[12] || '',
+//         nameOfContractor:      row[13] || '',
+//         contractorFirmName:    row[14] || '',
+//         Approved_Head_2:       row[24] || '',
+//         Name_Of_Contractor_2:  row[25] || '',
+//         Contractor_Firm_Name_2:row[26] || '',
+//         remark:                row[27] || '',
+//         planned3:              row[28] || '',
+//         actual3:               row[29] || '',
+//       }));
+
+//     res.json({
+//       success: true,
+//       count: pendingLabour.length,
+//       data: pendingLabour
+//     });
+//   } catch (error) {
+//     console.error('Error fetching pending labour approvals:', error);
+//     res.status(500).json({ success: false, error: 'Failed to fetch pending labour approvals' });
+//   }
+// });
+
+
+
+
+
+// ============================================================
+// ✅ GET /get-Labour-management
+// Smart Clean UID Matching + Merges Labour_FMS with Labour_Requirement (W-AL)
 // ============================================================
 router.get('/get-Labour-management', async (req, res) => {
   try {
-    const response = await sheets.spreadsheets.values.get({
-      spreadsheetId: SiteExpeseSheetId,
-      range: 'Labour_FMS!A7:AD',
+    const [fmsResponse, reqResponse] = await Promise.all([
+      sheets.spreadsheets.values.get({
+        spreadsheetId: SiteExpeseSheetId,
+        range: 'Labour_FMS!A7:AD',
+      }),
+      sheets.spreadsheets.values.get({
+        spreadsheetId: SiteExpeseSheetId,
+        range: 'Labour_Requirement!A2:AL10000',
+      })
+    ]);
+
+    const fmsRows = fmsResponse.data.values || [];
+    const reqRows = reqResponse.data.values || [];
+
+    // ✅ Smart UID Cleaner: Handles "LAB0916", "LAB916", "lab0916 " seamlessly
+    const cleanUid = (str) => {
+      if (!str) return '';
+      const s = String(str).trim().toUpperCase();
+      const match = s.match(/^([A-Z]+)0*(\d+)$/);
+      return match ? `${match[1]}${match[2]}` : s;
+    };
+
+    // 1️⃣ Map Labour_Requirement by Cleaned UID
+    const reqMap = {};
+    reqRows.forEach(row => {
+      const rawUid = (row[1] || '').toString().trim();
+      if (!rawUid) return;
+
+      const key = cleanUid(rawUid);
+
+      const paddedRow = [...row];
+      while (paddedRow.length < 38) paddedRow.push('');
+
+      reqMap[key] = {
+        Status_3:                  paddedRow[22] || '',  // W
+        Time_Delay_3:              paddedRow[23] || '',  // X
+        Labouar_Contractor_Name_3: paddedRow[24] || '',  // Y
+        Labour_Category_1_3:       paddedRow[25] || '',  // Z
+        Number_Of_Labour_1_3:      paddedRow[26] || '',  // AA
+        Labour_Rate_1_3:           paddedRow[27] || '',  // AB
+        Labour_Category_2_3:       paddedRow[28] || '',  // AC
+        Number_Of_Labour_2_3:      paddedRow[29] || '',  // AD
+        Labour_Rate_2_3:           paddedRow[30] || '',  // AE
+        Total_Wages_3:             paddedRow[31] || '',  // AF
+        Conveyanance_3:            paddedRow[32] || '',  // AG
+        Contractor_Commission:     paddedRow[33] || '',  // AH
+        Total_Paid_Amount_3:       paddedRow[34] || '',  // AI
+        Company_Head_Amount_3:     paddedRow[35] || '',  // AJ
+        Contractor_Head_Amount_3:  paddedRow[36] || '',  // AK
+        Remark_3:                  paddedRow[37] || '',  // AL
+      };
     });
 
-    const rows = response.data.values || [];
+    console.log(`[LABOUR MGMT] Mapped ${Object.keys(reqMap).length} UIDs from Labour_Requirement`);
 
-    const pendingLabour = rows
+    // 2️⃣ Merge with Labour_FMS Pending list
+    const pendingLabour = fmsRows
       .filter(row => {
         if (row.length < 18) return false;
         const planned3 = (row[28] || '').toString().trim();
         const actual3  = (row[29] || '').toString().trim();
         return planned3 !== '' && actual3 === '';
       })
-      .map(row => ({
-        timestamp:             row[0]  || '',
-        uid:                   row[1]  || '',
-        projectName:           row[2]  || '',
-        projectEngineer:       row[3]  || '',
-        workType:              row[4]  || '',
-        workDescription:       row[5]  || '',
-        labourCategory1:       row[6]  || '',
-        numberOfLabour1:       row[7]  || '',
-        labourCategory2:       row[8]  || '',
-        numberOfLabour2:       row[9]  || '',
-        totalLabour:           row[10] || '',
-        dateRequired:          row[11] || '',
-        headOfContractor:      row[12] || '',
-        nameOfContractor:      row[13] || '',
-        contractorFirmName:    row[14] || '',
-        Approved_Head_2:       row[24] || '',
-        Name_Of_Contractor_2:  row[25] || '',
-        Contractor_Firm_Name_2:row[26] || '',
-        remark:                row[27] || '',
-        planned3:              row[28] || '',
-        actual3:               row[29] || '',
-      }));
+      .map(row => {
+        const rawUid = (row[1] || '').toString().trim();
+        const key = cleanUid(rawUid);
+        const reqData = reqMap[key] || {};
+
+        return {
+          timestamp:             row[0]  || '',
+          uid:                   rawUid,
+          projectName:           row[2]  || '',
+          projectEngineer:       row[3]  || '',
+          workType:              row[4]  || '',
+          workDescription:       row[5]  || '',
+          labourCategory1:       row[6]  || '',
+          numberOfLabour1:       row[7]  || '',
+          labourCategory2:       row[8]  || '',
+          numberOfLabour2:       row[9]  || '',
+          totalLabour:           row[10] || '',
+          dateRequired:          row[11] || '',
+          headOfContractor:      row[12] || '',
+          nameOfContractor:      row[13] || '',
+          contractorFirmName:    row[14] || '',
+          Approved_Head_2:       row[24] || '',
+          Name_Of_Contractor_2:  row[25] || '',
+          Contractor_Firm_Name_2:row[26] || '',
+          remark:                row[27] || '',
+          planned3:              row[28] || '',
+          actual3:               row[29] || '',
+
+          reqAutofill: reqData,
+        };
+      });
 
     res.json({
       success: true,
@@ -283,6 +400,114 @@ router.get('/get-Labour-management', async (req, res) => {
   } catch (error) {
     console.error('Error fetching pending labour approvals:', error);
     res.status(500).json({ success: false, error: 'Failed to fetch pending labour approvals' });
+  }
+});
+
+
+// ============================================================
+// ✅ GET /get-Labour-management
+// Labour_FMS + Labour_Requirement (W-AL) merged by UID
+// ============================================================
+router.get('/get-Labour-management', async (req, res) => {
+  try {
+    // 1️⃣ Fetch Labour_FMS + Labour_Requirement parallel
+    const [fmsResponse, reqResponse] = await Promise.all([
+      sheets.spreadsheets.values.get({
+        spreadsheetId: SiteExpeseSheetId,
+        range: 'Labour_FMS!A7:AD',
+      }),
+      sheets.spreadsheets.values.get({
+        spreadsheetId: SiteExpeseSheetId,
+        range: 'Labour_Requirement!A2:AL10000',
+      })
+    ]);
+
+    const fmsRows = fmsResponse.data.values || [];
+    const reqRows = reqResponse.data.values || [];
+
+    // 2️⃣ Labour_Requirement ka UID → W-AL data ka map banao
+    const reqMap = {};
+    reqRows.forEach(row => {
+      const uid = (row[1] || '').toString().trim();
+      if (!uid) return;
+
+      // Pad row to length 38 taaki AL (Index 37) tak safe access ho
+      const paddedRow = [...row];
+      while (paddedRow.length < 38) paddedRow.push('');
+
+      reqMap[uid] = {
+        Status_3:                  paddedRow[22] || '',  // W
+        Time_Delay_3:              paddedRow[23] || '',  // X
+        Labouar_Contractor_Name_3: paddedRow[24] || '',  // Y
+        Labour_Category_1_3:       paddedRow[25] || '',  // Z
+        Number_Of_Labour_1_3:      paddedRow[26] || '',  // AA
+        Labour_Rate_1_3:           paddedRow[27] || '',  // AB
+        Labour_Category_2_3:       paddedRow[28] || '',  // AC
+        Number_Of_Labour_2_3:      paddedRow[29] || '',  // AD
+        Labour_Rate_2_3:           paddedRow[30] || '',  // AE
+        Total_Wages_3:             paddedRow[31] || '',  // AF
+        Conveyanance_3:            paddedRow[32] || '',  // AG
+        Contractor_Commission:     paddedRow[33] || '',  // AH
+        Total_Paid_Amount_3:       paddedRow[34] || '',  // AI
+        Company_Head_Amount_3:     paddedRow[35] || '',  // AJ
+        Contractor_Head_Amount_3:  paddedRow[36] || '',  // AK
+        Remark_3:                  paddedRow[37] || '',  // AL
+      };
+    });
+
+    console.log(`[LABOUR MGMT] Requirement Map created for ${Object.keys(reqMap).length} UIDs`);
+
+    // 3️⃣ Labour_FMS ka pending data + merge with Requirement data
+    const pendingLabour = fmsRows
+      .filter(row => {
+        if (row.length < 18) return false;
+        const planned3 = (row[28] || '').toString().trim();
+        const actual3  = (row[29] || '').toString().trim();
+        return planned3 !== '' && actual3 === '';
+      })
+      .map(row => {
+        const uid = row[1] || '';
+        const reqData = reqMap[uid] || {}; // Match by UID
+
+        return {
+          // Labour_FMS ka original data
+          timestamp:             row[0]  || '',
+          uid:                   uid,
+          projectName:           row[2]  || '',
+          projectEngineer:       row[3]  || '',
+          workType:              row[4]  || '',
+          workDescription:       row[5]  || '',
+          labourCategory1:       row[6]  || '',
+          numberOfLabour1:       row[7]  || '',
+          labourCategory2:       row[8]  || '',
+          numberOfLabour2:       row[9]  || '',
+          totalLabour:           row[10] || '',
+          dateRequired:          row[11] || '',
+          headOfContractor:      row[12] || '',
+          nameOfContractor:      row[13] || '',
+          contractorFirmName:    row[14] || '',
+          Approved_Head_2:       row[24] || '',
+          Name_Of_Contractor_2:  row[25] || '',
+          Contractor_Firm_Name_2:row[26] || '',
+          remark:                row[27] || '',
+          planned3:              row[28] || '',
+          actual3:               row[29] || '',
+
+          // ✅ Labour_Requirement ka W-AL data (auto-fill ke liye)
+          reqAutofill: reqData,
+        };
+      });
+
+    console.log(`[LABOUR MGMT] Total Pending: ${pendingLabour.length}`);
+
+    res.json({
+      success: true,
+      count: pendingLabour.length,
+      data: pendingLabour
+    });
+  } catch (error) {
+    console.error('❌ Error fetching pending labour management:', error);
+    res.status(500).json({ success: false, error: 'Failed to fetch pending labour management' });
   }
 });
 
