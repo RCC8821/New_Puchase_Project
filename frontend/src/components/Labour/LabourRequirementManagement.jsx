@@ -205,14 +205,25 @@ const LabourRequirementManagement = () => {
     if (formError) setFormError('');
   };
 
-  const validateModal = () => {
-    if (!modalForm.Status_3) { setFormError('Select Status'); return false; }
-    if (modalForm.Status_3 === 'Reject') return true;
-    if (!isCompanyHeadModal && (!modalForm.Contractor_Head_Amount_3 || !modalForm.Contractor_Head_Amount_3.trim())) {
-      setFormError('Contractor Head Amount required'); return false;
-    }
-    return true;
-  };
+const validateModal = () => {
+  if (!modalForm.Status_3) {
+    setFormError('Select Status');
+    return false;
+  }
+  if (modalForm.Status_3 === 'Reject') return true;
+
+  // ✅ Labour Contractor Name required (Done mode me)
+  if (!modalForm.Labouar_Contractor_Name_3 || !String(modalForm.Labouar_Contractor_Name_3).trim()) {
+    setFormError('Labour Contractor Name required hai');
+    return false;
+  }
+
+  if (!isCompanyHeadModal && (!modalForm.Contractor_Head_Amount_3 || !String(modalForm.Contractor_Head_Amount_3).trim())) {
+    setFormError('Contractor Head Amount required');
+    return false;
+  }
+  return true;
+};
 
   const handleModalSubmit = async () => {
     if (!selectedItem || !validateModal()) return;
@@ -358,8 +369,16 @@ const LabourRequirementManagement = () => {
                 {!isRejected && (
                   <>
                     <div>
-                      <label style={{ display: 'block', fontSize: 12, fontWeight: 600, color: T.navyLight, marginBottom: 6 }}>Labour Contractor Name</label>
-                      <input type="text" value={modalForm.Labouar_Contractor_Name_3} onChange={(e) => handleModalChange('Labouar_Contractor_Name_3', e.target.value)} placeholder="Enter name..." style={inputBase} />
+                      <label style={{ display: 'block', fontSize: 12, fontWeight: 600, color: T.navyLight, marginBottom: 6 }}>
+  Labour Contractor Name <span style={{ color: T.danger }}>*</span>
+</label>
+<input
+  type="text"
+  value={modalForm.Labouar_Contractor_Name_3}
+  onChange={(e) => handleModalChange('Labouar_Contractor_Name_3', e.target.value)}
+  placeholder="Enter name..."
+  style={inputBase}
+/>
                     </div>
 
                     <div style={{ padding: 14, background: `${T.gold}08`, borderRadius: 10, border: `1px dashed ${T.gold}50` }}>
