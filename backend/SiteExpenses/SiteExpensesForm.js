@@ -872,16 +872,165 @@ router.post('/submit-to-labour-fms', async (req, res) => {
 
 ///////////////. vinod step form new /////////////
 
-// ============================================================
-// ✅ GET /api/get-labour-requirements
-// Fetch data from Labour_Requirement sheet where Status (Col Q) != 'Done'
-// ============================================================
-// ============================================================
 
 
 
 // ============================================================
 // ✅ GUARANTEED COLUMN W (INDEX 22) FILTER
+// ============================================================
+// router.get('/get-labour-requirements', async (req, res) => {
+//   try {
+//     const response = await sheets.spreadsheets.values.get({
+//       spreadsheetId: SiteExpeseSheetId,
+//       range: 'Labour_Requirement!A4:AL10000',
+//       majorDimension: 'ROWS',
+//     });
+
+//     const rawRows = response.data.values || [];
+//     const pendingData = [];
+
+//     rawRows.forEach((row, index) => {
+//       const uid = (row[1] || '').toString().trim();
+//       if (!uid) return; // UID empty hai to skip
+
+//       // ✅ Column W is Index 22 (A=0, B=1, ... Q=16, ... W=22)
+//       // Agar row ki length kam hai to row[22] undefined hoga (khaali)
+//       const statusColW = (row[16] || '').toString().trim().toLowerCase();
+
+//       // Agar Column W me 'done' likha hai (Done, done, DONE), toh SKIP karo
+//       if (statusColW === 'done') {
+//         return;
+//       }
+
+//       pendingData.push({
+//         rowNumber:                    2 + index,
+//         timestamp:                    row[0]  || '',
+//         uid:                          uid,
+//         Project_Name_1:               row[2]  || '',
+//         Project_Engineer_1:           row[3]  || '',
+//         Work_Type_1:                  row[4]  || '',
+//         Work_Description_1:           row[5]  || '',
+//         Labour_Category_1:            row[6]  || '',
+//         Number_Of_Labour_1:           row[7]  || '',
+//         Labour_Category_2:            row[8]  || '',
+//         Number_Of_Labour_2:           row[9]  || '',
+//         Total_Labour_1:               row[10] || '',
+//         Date_Of_Required_1:           row[11] || '',
+//         Head_Of_Contractor_Company_1: row[12] || '',
+//         Name_Of_Contractor_1:         row[13] || '',
+//         Contractor_Firm_Name_1:       row[14] || '',
+//         Remark_1:                     row[15] || '',
+//         Status:                       row[22] || '', // Column W Status
+//       });
+//     });
+
+//     pendingData.reverse();
+
+//     // ✅ Naya log message
+//     console.log(`[COL-W FILTER SUCCESS] Total: ${rawRows.length} | Pending (Col W != Done): ${pendingData.length}`);
+
+//     res.json({
+//       success: true,
+//       count: pendingData.length,
+//       data: pendingData,
+//     });
+//   } catch (error) {
+//     console.error('❌ Error:', error);
+//     res.status(500).json({ success: false, message: 'Error', error: error.message });
+//   }
+// });
+
+
+
+
+// ============================================================
+// ✅ POST /api/update-labour-req-management
+// Saves Modal Data to Col W-AK and sets Col Q to 'Done'
+// ============================================================
+
+// router.post('/update-labour-req-management', async (req, res) => {
+//   try {
+//     const {
+//       uid, Status_3, Labouar_Contractor_Name_3, Labour_Category_1_3,
+//       Number_Of_Labour_1_3, Labour_Rate_1_3, Labour_Category_2_3,
+//       Number_Of_Labour_2_3, Labour_Rate_2_3, Total_Wages_3, Conveyanance_3,
+//       Contractor_Commission, Total_Paid_Amount_3, Company_Head_Amount_3,
+//       Contractor_Head_Amount_3, Remark_3
+//     } = req.body;
+
+//     if (!uid) return res.status(400).json({ success: false, message: 'UID is required' });
+
+//     const response = await sheets.spreadsheets.values.get({
+//       spreadsheetId: SiteExpeseSheetId,
+//       range: 'Labour_Requirement!A2:B10000',
+//     });
+
+//     const rows = response.data.values || [];
+//     const rowIndex = rows.findIndex(row => row[1] && String(row[1]).trim() === String(uid).trim());
+
+//     if (rowIndex === -1) {
+//       return res.status(404).json({ success: false, message: `UID not found: ${uid}` });
+//     }
+
+//     const sheetRowNumber = 2 + rowIndex;
+//     const batchData = [];
+
+//     const addIfValid = (colLetter, value) => {
+//       if (value !== undefined && value !== null) {
+//         batchData.push({ 
+//           range: `Labour_Requirement!${colLetter}${sheetRowNumber}`, 
+//           values: [[String(value).trim()]] 
+//         });
+//       }
+//     };
+
+//     // ✅ EXACT COLUMN MAPPING MATCHED WITH SHEET:
+//     addIfValid('W', Status_3 || 'Done');        // W  = Status_3
+//     // Column X (Time_Delay_3) is auto/skipped
+//     addIfValid('Y', Labouar_Contractor_Name_3); // Y  = Labouar_Contractor_Name_3
+//     addIfValid('Z', Labour_Category_1_3);       // Z  = Labour_Category_1_3
+//     addIfValid('AA', Number_Of_Labour_1_3);     // AA = Number_Of_Labour_1_3
+//     addIfValid('AB', Labour_Rate_1_3);          // AB = Labour_Rate_1_3
+//     addIfValid('AC', Labour_Category_2_3);       // AC = Labour_Category_2_3
+//     addIfValid('AD', Number_Of_Labour_2_3);     // AD = Number_Of_Labour_2_3
+//     addIfValid('AE', Labour_Rate_2_3);          // AE = Labour_Rate_2_3
+//     addIfValid('AF', Total_Wages_3);            // AF = Total_Wages_3
+//     addIfValid('AG', Conveyanance_3);           // AG = Conveyanance_3
+//     addIfValid('AH', Contractor_Commission);    // AH = Contractor_Commission
+//     addIfValid('AI', Total_Paid_Amount_3);      // AI = Total_Paid_Amount_3
+//     addIfValid('AJ', Company_Head_Amount_3);    // AJ = Company_Head_Amount_3
+//     addIfValid('AK', Contractor_Head_Amount_3); // AK = Contractor_Head_Amount_3
+//     addIfValid('AL', Remark_3);                  // AL = Remark_3
+
+//     if (batchData.length > 0) {
+//       await sheets.spreadsheets.values.batchUpdate({
+//         spreadsheetId: SiteExpeseSheetId,
+//         resource: { valueInputOption: 'USER_ENTERED', data: batchData },
+//       });
+//     }
+
+//     res.json({
+//       success: true,
+//       message: 'Management details saved correctly & Status marked as Done!',
+//       rowNumber: sheetRowNumber
+//     });
+
+//   } catch (error) {
+//     console.error('❌ Update Labour Req Management Error:', error);
+//     res.status(500).json({ success: false, message: 'Update failed', error: error.message });
+//   }
+// });
+
+
+
+
+
+////////// try ///////////
+
+
+// ============================================================
+// ✅ GET /api/get-labour-requirements
+// Saara data bhejega. Frontend apne aap Q ya W se filter karega!
 // ============================================================
 router.get('/get-labour-requirements', async (req, res) => {
   try {
@@ -896,43 +1045,40 @@ router.get('/get-labour-requirements', async (req, res) => {
 
     rawRows.forEach((row, index) => {
       const uid = (row[1] || '').toString().trim();
-      if (!uid) return; // UID empty hai to skip
+      if (!uid || uid.toUpperCase() === 'UID' || uid.toLowerCase() === 'timestamp') return;
 
-      // ✅ Column W is Index 22 (A=0, B=1, ... Q=16, ... W=22)
-      // Agar row ki length kam hai to row[22] undefined hoga (khaali)
-      const statusColW = (row[22] || '').toString().trim().toLowerCase();
-
-      // Agar Column W me 'done' likha hai (Done, done, DONE), toh SKIP karo
-      if (statusColW === 'done') {
-        return;
+      const padded = [...row];
+      // Pad till index 22 (Column W)
+      while (padded.length < 23) {
+        padded.push('');
       }
 
       pendingData.push({
-        rowNumber:                    2 + index,
-        timestamp:                    row[0]  || '',
+        rowNumber:                    4 + index,
+        timestamp:                    padded[0]  || '',
         uid:                          uid,
-        Project_Name_1:               row[2]  || '',
-        Project_Engineer_1:           row[3]  || '',
-        Work_Type_1:                  row[4]  || '',
-        Work_Description_1:           row[5]  || '',
-        Labour_Category_1:            row[6]  || '',
-        Number_Of_Labour_1:           row[7]  || '',
-        Labour_Category_2:            row[8]  || '',
-        Number_Of_Labour_2:           row[9]  || '',
-        Total_Labour_1:               row[10] || '',
-        Date_Of_Required_1:           row[11] || '',
-        Head_Of_Contractor_Company_1: row[12] || '',
-        Name_Of_Contractor_1:         row[13] || '',
-        Contractor_Firm_Name_1:       row[14] || '',
-        Remark_1:                     row[15] || '',
-        Status:                       row[22] || '', // Column W Status
+        Project_Name_1:               padded[2]  || '',
+        Project_Engineer_1:           padded[3]  || '',
+        Work_Type_1:                  padded[4]  || '',
+        Work_Description_1:           padded[5]  || '',
+        Labour_Category_1:            padded[6]  || '',
+        Number_Of_Labour_1:           padded[7]  || '',
+        Labour_Category_2:            padded[8]  || '',
+        Number_Of_Labour_2:           padded[9]  || '',
+        Total_Labour_1:               padded[10] || '',
+        Date_Of_Required_1:           padded[11] || '',
+        Head_Of_Contractor_Company_1: padded[12] || '',
+        Name_Of_Contractor_1:         padded[13] || '',
+        Contractor_Firm_Name_1:       padded[14] || '',
+        Remark_1:                     padded[15] || '',
+        Status:                       padded[16] || '', // Column Q
+        Status_3:                     padded[22] || '', // Column W
       });
     });
 
-    pendingData.reverse();
+    pendingData.reverse(); // Latest on top
 
-    // ✅ Naya log message
-    console.log(`[COL-W FILTER SUCCESS] Total: ${rawRows.length} | Pending (Col W != Done): ${pendingData.length}`);
+    console.log(`[GET LABOUR REQ] Total Data: ${pendingData.length} rows sent to frontend`);
 
     res.json({
       success: true,
@@ -940,15 +1086,15 @@ router.get('/get-labour-requirements', async (req, res) => {
       data: pendingData,
     });
   } catch (error) {
-    console.error('❌ Error:', error);
-    res.status(500).json({ success: false, message: 'Error', error: error.message });
+    console.error('❌ Get Labour Requirements Error:', error);
+    res.status(500).json({ success: false, message: 'Failed to fetch requirements', error: error.message });
   }
 });
+
 // ============================================================
 // ✅ POST /api/update-labour-req-management
-// Saves Modal Data to Col W-AK and sets Col Q to 'Done'
+// Modal ka data W-AL me save karega (Vinod form ke liye)
 // ============================================================
-
 router.post('/update-labour-req-management', async (req, res) => {
   try {
     const {
@@ -963,7 +1109,7 @@ router.post('/update-labour-req-management', async (req, res) => {
 
     const response = await sheets.spreadsheets.values.get({
       spreadsheetId: SiteExpeseSheetId,
-      range: 'Labour_Requirement!A2:B10000',
+      range: 'Labour_Requirement!A4:B10000',
     });
 
     const rows = response.data.values || [];
@@ -973,7 +1119,7 @@ router.post('/update-labour-req-management', async (req, res) => {
       return res.status(404).json({ success: false, message: `UID not found: ${uid}` });
     }
 
-    const sheetRowNumber = 2 + rowIndex;
+    const sheetRowNumber = 4 + rowIndex; // Range starts at A4
     const batchData = [];
 
     const addIfValid = (colLetter, value) => {
@@ -985,23 +1131,22 @@ router.post('/update-labour-req-management', async (req, res) => {
       }
     };
 
-    // ✅ EXACT COLUMN MAPPING MATCHED WITH SHEET:
-    addIfValid('W', Status_3 || 'Done');        // W  = Status_3
-    // Column X (Time_Delay_3) is auto/skipped
-    addIfValid('Y', Labouar_Contractor_Name_3); // Y  = Labouar_Contractor_Name_3
-    addIfValid('Z', Labour_Category_1_3);       // Z  = Labour_Category_1_3
-    addIfValid('AA', Number_Of_Labour_1_3);     // AA = Number_Of_Labour_1_3
-    addIfValid('AB', Labour_Rate_1_3);          // AB = Labour_Rate_1_3
-    addIfValid('AC', Labour_Category_2_3);       // AC = Labour_Category_2_3
-    addIfValid('AD', Number_Of_Labour_2_3);     // AD = Number_Of_Labour_2_3
-    addIfValid('AE', Labour_Rate_2_3);          // AE = Labour_Rate_2_3
-    addIfValid('AF', Total_Wages_3);            // AF = Total_Wages_3
-    addIfValid('AG', Conveyanance_3);           // AG = Conveyanance_3
-    addIfValid('AH', Contractor_Commission);    // AH = Contractor_Commission
-    addIfValid('AI', Total_Paid_Amount_3);      // AI = Total_Paid_Amount_3
-    addIfValid('AJ', Company_Head_Amount_3);    // AJ = Company_Head_Amount_3
-    addIfValid('AK', Contractor_Head_Amount_3); // AK = Contractor_Head_Amount_3
-    addIfValid('AL', Remark_3);                  // AL = Remark_3
+    // W - AL columns update (Vinod)
+    addIfValid('W', Status_3 || 'Done');        // W
+    addIfValid('Y', Labouar_Contractor_Name_3); // Y
+    addIfValid('Z', Labour_Category_1_3);       // Z
+    addIfValid('AA', Number_Of_Labour_1_3);     // AA
+    addIfValid('AB', Labour_Rate_1_3);          // AB
+    addIfValid('AC', Labour_Category_2_3);      // AC
+    addIfValid('AD', Number_Of_Labour_2_3);     // AD
+    addIfValid('AE', Labour_Rate_2_3);          // AE
+    addIfValid('AF', Total_Wages_3);            // AF
+    addIfValid('AG', Conveyanance_3);           // AG
+    addIfValid('AH', Contractor_Commission);    // AH
+    addIfValid('AI', Total_Paid_Amount_3);      // AI
+    addIfValid('AJ', Company_Head_Amount_3);    // AJ
+    addIfValid('AK', Contractor_Head_Amount_3); // AK
+    addIfValid('AL', Remark_3);                 // AL
 
     if (batchData.length > 0) {
       await sheets.spreadsheets.values.batchUpdate({
