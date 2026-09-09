@@ -36,10 +36,15 @@ import SignatureRequirement from './components/purchase/SignatureRequirement';
 import HeritageDashboard from './components/Heritage/HeritageDashboard';
 import StoreInventory from './components/Heritage/StoreInventory';
 import SiteEngineer from './components/Heritage/SiteEngineer';
-import HeritageRequirementForm from './components/Heritage/HeritageRequirementForm';  // ✅ NEW
+import HeritageRequirementForm from './components/Heritage/HeritageRequirementForm';
 import BOQQty from './components/Heritage/BOQQty';
 
 import CompanyApprovel from './components/Labour/CompanyApprovel';
+
+// ✅ NEW - Office Labour Form (Purchase Folder)
+import OfficeLabourForm from './components/purchase/OfficeLabourForm';
+
+import LabourRequirementManagement from './components/Labour/LabourRequirementManagement';
 
 const App = () => {
   return (
@@ -69,6 +74,10 @@ const App = () => {
           <Route path='outstanding' element={<OutStanding />} />
           <Route path='advance_payment' element={<Advance_payment />} />
 
+          {/* ✅ NEW - Office Labour Form (Purchase menu me) */}
+          <Route path='OfficeLabourForm' element={<OfficeLabourForm />} />
+          <Route path='LabourRequirementManagement' element={<LabourRequirementManagement />} />
+
           {/* Labour Routes */}
           <Route path='Approvel1' element={<Approvel1 />} />
           <Route path='Labourmanagement' element={<LabourManagment />} />
@@ -87,16 +96,13 @@ const App = () => {
           <Route path="customer-billing" element={<BillingFMS selectedPage="customer-billing" />} />
           <Route path="financial-reports" element={<BillingFMS selectedPage="financial-reports" />} />
 
-          {/* ═══ ✅ JV PROJECT — HERITAGE ROUTES ═══ */}
+          {/* ═══ JV PROJECT — HERITAGE ROUTES ═══ */}
           <Route path='heritage' element={<HeritageDashboard />} />
           <Route path='heritage/signature-form' element={<SignatureRequirement />} />
           <Route path='heritage/store-inventory' element={<StoreInventory />} />
           <Route path='heritage/site-engineer' element={<SiteEngineer />} />
-          <Route path='heritage/requirement-form' element={<HeritageRequirementForm />} />  {/* ✅ NEW */}
+          <Route path='heritage/requirement-form' element={<HeritageRequirementForm />} />
           <Route path='heritage/boq-qty' element={<BOQQty />} />
-
-          {/* ❌ OLD ROUTE REMOVED (moved to /heritage/signature-form) */}
-          {/* <Route path='signature-requirement' element={<SignatureRequirement />} /> */}
         </Route>
       </Routes>
     </BrowserRouter>

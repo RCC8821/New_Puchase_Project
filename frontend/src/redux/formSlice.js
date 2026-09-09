@@ -1,7 +1,3 @@
-
-
-
-
 import { createApi, fetchBaseQuery } from '@reduxjs/toolkit/query/react';
 
 export const formApi = createApi({
@@ -9,7 +5,7 @@ export const formApi = createApi({
 
   baseQuery: fetchBaseQuery({
     baseUrl: 'https://new-puchase-project-silk.vercel.app',
-    // baseUrl: 'http://localhost:5000',
+    // baseUrl: 'http://localhost:5001',
     prepareHeaders: (headers) => {
       // Agar token chahiye to yahan add karo
       // const token = localStorage.getItem('token');
@@ -18,7 +14,8 @@ export const formApi = createApi({
     },
   }),
 
-  tagTypes: ['SiteExpense', 'LabourRequest', 'ContractorDebit', 'CompanyLabour'],
+  // ✅ Added 'LabourRequirements' here for auto-refreshing table
+  tagTypes: ['SiteExpense', 'LabourRequest', 'ContractorDebit', 'CompanyLabour', 'LabourRequirements'],
 
   endpoints: (builder) => ({
 
@@ -35,7 +32,7 @@ export const formApi = createApi({
     }),
 
     // ============================================================
-    // 2️⃣  POST /api/labour-request  →  Sheet: Labour_FMS
+    // 2️⃣  POST /api/labour-request  →  Sheet: Labour_Requirement
     // ============================================================
     postLabourRequest: builder.mutation({
       query: (payload) => ({
@@ -43,7 +40,7 @@ export const formApi = createApi({
         method: 'POST',
         body: payload,
       }),
-      invalidatesTags: ['LabourRequest'],
+      invalidatesTags: ['LabourRequest', 'LabourRequirements'], // Invalidates so table updates immediately on new request
     }),
 
     // ============================================================
@@ -61,20 +58,6 @@ export const formApi = createApi({
     // ============================================================
     // 4️⃣  GET /api/Company-labour-dropdowns  →  Dropdowns fetch
     // ============================================================
-    // Response:
-    // {
-    //   success: true,
-    //   data: {
-    //     projectNames: [...],
-    //     projectEngineers: [...],
-    //     labourNames: [...],
-    //     workTypes: [...],
-    //     contractorNames: [...],
-    //     contractorFirmNames: [...],
-    //     projectEngineerMap: { "Project A": "Engineer X", ... },
-    //     contractorFirmMap: { "Contractor A": "Firm X", ... }
-    //   }
-    // }
     getCompanyLabourDropdowns: builder.query({
       query: () => ({
         url: '/api/Company-labour-dropdowns',
@@ -86,22 +69,6 @@ export const formApi = createApi({
     // ============================================================
     // 5️⃣  POST /api/Company-labour  →  Sheet: Labour_Attedace_FMS
     // ============================================================
-    // Payload:
-    // {
-    //   Work_Date_1: '',                    ← REQUIRED
-    //   Project_Name_1: '',                 ← REQUIRED
-    //   Project_Engineer_1: '',
-    //   Labour_Name_1: '',                  ← REQUIRED
-    //   Day_Night_1: '',                    (Day / Night)
-    //   Day_Attendance_1: '',               (Full / Half / Absent)
-    //   Work_Type_1: '',
-    //   Work_Description_1: '',
-    //   Head_Of_Contractor_Company_1: '',
-    //   Name_Of_Contractor_1: '',
-    //   Contractor_Firm_Name_1: '',
-    //   Remark_1: '',
-    // }
-    // Backend khud UID (LATT0001...) generate karta hai
     postCompanyLabour: builder.mutation({
       query: (payload) => ({
         url: '/api/Company-labour',
@@ -109,6 +76,63 @@ export const formApi = createApi({
         body: payload,
       }),
       invalidatesTags: ['CompanyLabour'],
+    }),
+
+    // ============================================================
+    // ✅ NEW - Office Labour Request (goes to Office_Labour_FMS sheet)
+    // ============================================================
+    postOfficeLabourRequest: builder.mutation({
+      query: (payload) => ({
+        url: '/api/office-labour-request',
+        method: 'POST',
+        body: payload,
+      }),
+    }),
+
+    // ============================================================
+    // ✅ NEW - Get Labour Requirements (pending, Status != Done)
+    // ============================================================
+    getLabourRequirements: builder.query({
+      query: () => '/api/get-labour-requirements',
+      providesTags: ['LabourRequirements'],
+      transformResponse: (response) => response.data || [],
+    }),
+
+    // ============================================================
+    // ✅ NEW - Update Labour Requirement (edit existing basic details)
+    // ============================================================
+    updateLabourRequirement: builder.mutation({
+      query: (payload) => ({
+        url: '/api/update-labour-requirement',
+        method: 'POST',
+        body: payload,
+      }),
+      invalidatesTags: ['LabourRequirements'],
+    }),
+
+    // ============================================================
+    // ✅ NEW - Submit to Labour_FMS (Direct Submit)
+    // ============================================================
+    submitToLabourFms: builder.mutation({
+      query: (payload) => ({
+        url: '/api/submit-to-labour-fms',
+        method: 'POST',
+        body: payload,
+      }),
+      invalidatesTags: ['LabourRequirements'],
+    }),
+
+    // ============================================================
+    // ✅ NEW - Update Labour Req Management (Modal Submit for Vinod)
+    // Updates Columns W to AK and sets Q to "Done"
+    // ============================================================
+    updateLabourReqManagement: builder.mutation({
+      query: (payload) => ({
+        url: '/api/update-labour-req-management',
+        method: 'POST',
+        body: payload,
+      }),
+      invalidatesTags: ['LabourRequirements'], // Refreshes table so hidden row disappears
     }),
 
   }),
@@ -123,4 +147,11 @@ export const {
   usePostContractorDebitMutation,       // Contractor Debit form
   useGetCompanyLabourDropdownsQuery,    // Company Labour dropdowns (GET)
   usePostCompanyLabourMutation,         // Company Labour Attendance (POST)
+  usePostOfficeLabourRequestMutation,   // Office Labour Request
+  
+  // Naye Labour Management (Vinod) wale hooks:
+  useGetLabourRequirementsQuery,
+  useUpdateLabourRequirementMutation,
+  useSubmitToLabourFmsMutation,
+  useUpdateLabourReqManagementMutation, // Modal Submit hook
 } = formApi;

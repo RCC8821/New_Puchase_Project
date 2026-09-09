@@ -1,5 +1,6 @@
 
 
+
 // Dashboard.jsx
 import React, { useState, useEffect, useRef, useCallback } from 'react';
 import {
@@ -36,8 +37,11 @@ import Approvel2 from '../components/Labour/Approvel2';
 import PaidAmount from '../components/Labour/PaidAmount';
 import LabourPDF from '../components/Labour/LabourPDF';
 
-// ✅ NEW - Company Labour Attendance Page
+// ✅ Company Labour Attendance Page
 import CompanyApprovel from '../components/Labour/CompanyApprovel';
+
+// ✅ NEW - Office Labour Form (Purchase Folder)
+import OfficeLabourForm from '../components/purchase/OfficeLabourForm';
 
 import SiteApprovel from '../components/SiteExpenses/SiteApprovel';
 import SitePaidAmount from '../components/SiteExpenses/SitePaidAmount';
@@ -45,6 +49,7 @@ import SitePaidAmount from '../components/SiteExpenses/SitePaidAmount';
 import SignatureRequirement from '../components/purchase/SignatureRequirement';
 import HeritageDashboard from '../components/Heritage/HeritageDashboard';
 import HeritageRequirementForm from '../components/Heritage/HeritageRequirementForm';
+import LabourRequirementManagement from '../components/Labour/LabourRequirementManagement';
 
 const T = {
   navy: '#1e293b', navyLight: '#334155', navyDark: '#0f172a',
@@ -94,24 +99,40 @@ const Dashboard = () => {
     { id: 'contractor-purchase-form', name: 'Contractor Purchase Form', icon: FileText, component: ContractorPurchseForm, path: '/dashboard/contractor-purchase-form', allowedUserTypes: ['admin', 'Site Engineer', 'Material Received'] },
     { id: 'outstanding', name: 'Without System Bill Entry', icon: DollarSign, component: OutStanding, path: '/dashboard/outstanding', allowedUserTypes: ['admin', 'Govind Ram Nagar'] },
     { id: 'Advance_payment', name: 'Advance Payment', icon: DollarSign, component: Advance_payment, path: '/dashboard/Advance_payment', allowedUserTypes: ['admin', 'Govind Ram Nagar'] },
+
+    // ✅ NEW - Office Labour Form (Purchase menu me)
+    {
+      id: 'OfficeLabourForm',
+      name: 'Office Labour Form',
+      icon: HardHat,
+      component: OfficeLabourForm,
+      path: '/dashboard/OfficeLabourForm',
+      allowedUserTypes: ['admin', 'Labour Form'],  // 👈 Sirf admin + Office Labour login access karega
+    },
   ];
 
   const allLabourPages = [
     { id: 'Approvel1', name: 'Labour Approval', icon: FileText, component: Approvel1, path: '/dashboard/Approvel1', allowedUserTypes: ['admin', 'Ravindra Singh'] },
-    { id: 'Labourmanagement', name: 'Labour Management', icon: FileText, component: LabourManagment, path: '/dashboard/Labourmanagement', allowedUserTypes: ['admin', 'Labour Managment'] },
+    { id: 'Labourmanagement', name: 'Labour Management', icon: FileText, component: LabourManagment, path: '/dashboard/Labourmanagement', allowedUserTypes: ['admin', 'Labour Managment','Labour Form'] },
     { id: 'Deployed', name: 'Labour Deployed', icon: FileText, component: Approvel2, path: '/dashboard/Approvel2', allowedUserTypes: ['admin', 'Ashok Pandey'] },
     { id: 'PaidAmount', name: 'Labour Payment', icon: FileText, component: PaidAmount, path: '/dashboard/PaidAmount', allowedUserTypes: ['admin', 'Govind Ram Nagar', 'Varsha Kahar'] },
     { id: 'LabourPDF', name: 'Labour PDF', icon: FileText, component: LabourPDF, path: '/dashboard/LabourPDF', allowedUserTypes: ['admin', 'Varsha Kahar'] },
-
-    // ✅ NEW
     {
       id: 'CompanyApprovel',
       name: 'Company Labour Approvel',
       icon: ClipboardList,
       component: CompanyApprovel,
       path: '/dashboard/CompanyApprovel',
-      allowedUserTypes: ['admin', 'Ravindra Singh', 'Labour Managment'],
+      allowedUserTypes: ['admin', 'Ravindra Singh',],
     },
+    {
+  id: 'LabourRequirementManagement',
+  name: 'Labour Req Management',
+  icon: HardHat,
+  component: LabourRequirementManagement,
+  path: '/dashboard/LabourRequirementManagement',
+  allowedUserTypes: ['admin', 'Labour Managment'], // ✅ Vinod & Admin
+},
   ];
 
   const allSiteExpensesPages = [
@@ -188,12 +209,14 @@ const Dashboard = () => {
     'contractor-purchase-form': 'Contractor Purchase Form',
     outstanding: 'Without System Bill Entry',
     Advance_payment: 'Advance Payment',
+    OfficeLabourForm: 'Office Labour Form',  // ✅ NEW
+    'LabourRequirementManagement': 'Labour Requirement Management',
     Approvel1: 'Labour Approval',
     Labourmanagement: 'Labour Management',
     Deployed: 'Labour Deployed',
     PaidAmount: 'Labour Payment',
     LabourPDF: 'Labour PDF',
-    CompanyApprovel: 'Company Labour Attendance', // ✅ NEW
+    CompanyApprovel: 'Company Labour Attendance',
     SiteApprovel: 'Site Approval',
     SitePaidAmount: 'Site Paid Amount',
     'no-access': 'No Access',

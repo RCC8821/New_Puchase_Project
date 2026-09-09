@@ -39,8 +39,7 @@ const Td = ({ children, right, maxW, center, bold }) => (
   </td>
 );
 
-// ── Mobile Card ──
-const MobileCard = ({ item, onAction }) => {
+const MobileCard = ({ item, onAction, canTakeAction }) => {
   const [expanded, setExpanded] = useState(false);
   return (
     <div style={{ background: T.card, borderRadius: 12, border: `1px solid ${T.border}`, marginBottom: 10, overflow: 'hidden' }}>
@@ -53,9 +52,11 @@ const MobileCard = ({ item, onAction }) => {
           <p style={{ color: 'white', fontSize: 14, fontWeight: 600, margin: 0 }}>{item.projectName || 'N/A'}</p>
           <p style={{ color: T.textMuted, fontSize: 12, margin: '2px 0 0' }}>{item.projectEngineer || 'N/A'}</p>
         </div>
-        <button onClick={() => onAction(item)} style={{ width: 36, height: 36, borderRadius: 8, border: 'none', background: T.gold, color: T.navyDark, cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
-          <Pencil size={16} />
-        </button>
+        {canTakeAction && (
+          <button onClick={() => onAction(item)} style={{ width: 36, height: 36, borderRadius: 8, border: 'none', background: T.gold, color: T.navyDark, cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
+            <Pencil size={16} />
+          </button>
+        )}
       </div>
       <div style={{ padding: '12px 14px' }}>
         <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: 8, marginBottom: 10 }}>
@@ -102,6 +103,9 @@ const MobileCard = ({ item, onAction }) => {
 };
 
 const LabourManagement = () => {
+  const userType = sessionStorage.getItem('userType') || '';
+  const canTakeAction = userType === 'admin' || userType === 'Labour Form';
+
   const { data: labourData, isLoading, isError, error, refetch, isFetching } = useGetLabourManagementQuery();
   const [postLabourManagement, { isLoading: isSubmitting }] = usePostLabourManagementMutation();
 
@@ -139,47 +143,74 @@ const LabourManagement = () => {
     const comm = parseFloat(formData.Contractor_Commission) || 0;
     const totalWages = (num1 * rate1) + (num2 * rate2);
     const totalPaid = totalWages + conv + comm;
-    setFormData(prev => ({
-      ...prev,
-      Total_Wages_3: totalWages > 0 ? totalWages.toString() : '',
-      Total_Paid_Amount_3: totalPaid > 0 ? totalPaid.toString() : '',
-      Company_Head_Amount_3: totalPaid > 0 ? totalPaid.toString() : ''
-    }));
-  }, [formData.Number_Of_Labour_1_3, formData.Labour_Rate_1_3, formData.Number_Of_Labour_2_3, formData.Labour_Rate_2_3, formData.Conveyanance_3, formData.Contractor_Commission, isRejected]);
+    
+    // Calculate if user typed rates or if values exist
+    if (rate1 > 0 || rate2 > 0 || conv > 0 || comm > 0) {
+      setFormData(prev => ({
+        ...prev,
+        Total_Wages_3: totalWages > 0 ? totalWages.toString() : prev.Total_Wages_3,
+        Total_Paid_Amount_3: totalPaid > 0 ? totalPaid.toString() : prev.Total_Paid_Amount_3,
+        Company_Head_Amount_3: isCompanyHead ? (totalPaid > 0 ? totalPaid.toString() : prev.Company_Head_Amount_3) : '',
+        Contractor_Head_Amount_3: !isCompanyHead ? (totalPaid > 0 ? totalPaid.toString() : prev.Contractor_Head_Amount_3) : ''
+      }));
+    }
+  }, [formData.Number_Of_Labour_1_3, formData.Labour_Rate_1_3, formData.Number_Of_Labour_2_3, formData.Labour_Rate_2_3, formData.Conveyanance_3, formData.Contractor_Commission, isRejected, isCompanyHead]);
 
-  // const handleAction = (item) => {
-  //   setSelectedItem(item); setFormError('');
-  //   setFormData({
-  //     Status_3: '', Labouar_Contractor_Name_3: '',
-  //     Labour_Category_1_3: item.labourCategory1 || '', Number_Of_Labour_1_3: item.numberOfLabour1 || '', Labour_Rate_1_3: '',
-  //     Labour_Category_2_3: item.labourCategory2 || '', Number_Of_Labour_2_3: item.numberOfLabour2 || '', Labour_Rate_2_3: '',
-  //     Total_Wages_3: '', Conveyanance_3: '', Contractor_Commission: '', Total_Paid_Amount_3: '',
-  //     Company_Head_Amount_3: '', Contractor_Head_Amount_3: '', Remark_3: ''
-  //   });
-  //   setShowModal(true);
-  // };
+  // ✅ ACTION CLICK WITH FIX: Contractor Name stays EMPTY unless filled in requirement!
+  
+  // ✅ ACTION: Sirf Labour_Requirement (reqAutofill) se fill.
+// Labour_FMS ke Cat1/Cat2 fallback HATA DIYE — isse upar wali row ka Carpenter mix nahi hoga.
+const handleAction = (item) => {
+  setSelectedItem(item);
+  setFormError('');
 
+  const req = item.reqAutofill || {};
+  const hasReq =
+    Object.keys(req).length > 0 &&
+    Object.values(req).some((v) => v !== undefined && v !== null && String(v).trim() !== '');
 
+  console.log('[ACTION]', item.uid, 'hasReq:', hasReq, req);
 
-  const handleAction = (item) => {
-  setSelectedItem(item); setFormError('');
-  setFormData({
-    Status_3: '', 
-    Labouar_Contractor_Name_3: '',
-    Labour_Category_1_3: item.labourCategory1 || '', 
-    Number_Of_Labour_1_3: '',        // ✅ Empty rakha (pehle: item.numberOfLabour1 || '')
-    Labour_Rate_1_3: '',
-    Labour_Category_2_3: item.labourCategory2 || '', 
-    Number_Of_Labour_2_3: '',        // ✅ Empty rakha (pehle: item.numberOfLabour2 || '')
-    Labour_Rate_2_3: '',
-    Total_Wages_3: '', 
-    Conveyanance_3: '', 
-    Contractor_Commission: '', 
-    Total_Paid_Amount_3: '',
-    Company_Head_Amount_3: '', 
-    Contractor_Head_Amount_3: '', 
-    Remark_3: ''
-  });
+  if (hasReq) {
+    // ✅ Sirf Requirement sheet (W-AL) — no FMS mix
+    setFormData({
+      Status_3:                  req.Status_3 || '',
+      Labouar_Contractor_Name_3: req.Labouar_Contractor_Name_3 || '', // empty hi rahega agar sheet me nahi
+      Labour_Category_1_3:       req.Labour_Category_1_3 || '',
+      Number_Of_Labour_1_3:      req.Number_Of_Labour_1_3 || '',
+      Labour_Rate_1_3:           req.Labour_Rate_1_3 || '',
+      Labour_Category_2_3:       req.Labour_Category_2_3 || '',
+      Number_Of_Labour_2_3:      req.Number_Of_Labour_2_3 || '',
+      Labour_Rate_2_3:           req.Labour_Rate_2_3 || '',
+      Total_Wages_3:             req.Total_Wages_3 || '',
+      Conveyanance_3:            req.Conveyanance_3 || '',
+      Contractor_Commission:     req.Contractor_Commission || '',
+      Total_Paid_Amount_3:       req.Total_Paid_Amount_3 || '',
+      Company_Head_Amount_3:     req.Company_Head_Amount_3 || '',
+      Contractor_Head_Amount_3:  req.Contractor_Head_Amount_3 || '',
+      Remark_3:                  req.Remark_3 || '',
+    });
+  } else {
+    // Requirement me abhi kuch nahi → naya form (FMS se sirf category names optional)
+    setFormData({
+      Status_3: '',
+      Labouar_Contractor_Name_3: '', // hamesha empty start
+      Labour_Category_1_3: item.labourCategory1 || '',
+      Number_Of_Labour_1_3: item.numberOfLabour1 || '',
+      Labour_Rate_1_3: '',
+      Labour_Category_2_3: item.labourCategory2 || '',
+      Number_Of_Labour_2_3: item.numberOfLabour2 || '',
+      Labour_Rate_2_3: '',
+      Total_Wages_3: '',
+      Conveyanance_3: '',
+      Contractor_Commission: '',
+      Total_Paid_Amount_3: '',
+      Company_Head_Amount_3: '',
+      Contractor_Head_Amount_3: '',
+      Remark_3: '',
+    });
+  }
+
   setShowModal(true);
 };
 
@@ -248,7 +279,8 @@ const LabourManagement = () => {
     { label: 'Engineer', w: 130 }, { label: 'Work Type', w: 100 }, { label: 'Description', w: 200 },
     { label: 'Cat 1', w: 100 }, { label: 'No.1', w: 60 }, { label: 'Cat 2', w: 100 }, { label: 'No.2', w: 60 },
     { label: 'Total', w: 60 }, { label: 'Date Req.', w: 120 }, { label: 'Contractor', w: 140 },
-    { label: 'Firm', w: 130 }, { label: 'Head', w: 120 }, { label: 'Remark', w: 130 }, { label: 'Action', w: 80 },
+    { label: 'Firm', w: 130 }, { label: 'Head', w: 120 }, { label: 'Remark', w: 130 },
+    ...(canTakeAction ? [{ label: 'Action', w: 80 }] : [])
   ];
 
   return (
@@ -291,7 +323,7 @@ const LabourManagement = () => {
         <>
           {/* Mobile */}
           <div className="mobile-cards" style={{ display: 'none' }}>
-            {filteredData.map((item, idx) => <MobileCard key={item.uid || idx} item={item} onAction={handleAction} />)}
+            {filteredData.map((item, idx) => <MobileCard key={item.uid || idx} item={item} onAction={handleAction} canTakeAction={canTakeAction} />)}
           </div>
 
           {/* Desktop */}
@@ -326,13 +358,15 @@ const LabourManagement = () => {
                       <Td maxW={120}>{item.Contractor_Firm_Name_2}</Td>
                       <Td><span style={{ background: `${T.purple}15`, color: T.purple, padding: '2px 8px', borderRadius: 4, fontSize: 11, fontWeight: 600 }}>{item.Approved_Head_2 || 'N/A'}</span></Td>
                       <Td maxW={120}>{item.remark}</Td>
-                      <td style={{ padding: '10px 14px', textAlign: 'center', borderBottom: `1px solid ${T.border}` }}>
-                        <button onClick={() => handleAction(item)} style={{ width: 34, height: 34, borderRadius: 8, border: `1.5px solid ${T.gold}40`, background: `${T.gold}10`, color: T.goldDark, cursor: 'pointer', display: 'inline-flex', alignItems: 'center', justifyContent: 'center', transition: 'all 0.2s' }}
-                          onMouseEnter={e => { e.currentTarget.style.background = T.gold; e.currentTarget.style.color = T.navyDark; }}
-                          onMouseLeave={e => { e.currentTarget.style.background = `${T.gold}10`; e.currentTarget.style.color = T.goldDark; }}>
-                          <Pencil size={15} />
-                        </button>
-                      </td>
+                      {canTakeAction && (
+                        <td style={{ padding: '10px 14px', textAlign: 'center', borderBottom: `1px solid ${T.border}` }}>
+                          <button onClick={() => handleAction(item)} style={{ width: 34, height: 34, borderRadius: 8, border: `1.5px solid ${T.gold}40`, background: `${T.gold}10`, color: T.goldDark, cursor: 'pointer', display: 'inline-flex', alignItems: 'center', justifyContent: 'center', transition: 'all 0.2s' }}
+                            onMouseEnter={e => { e.currentTarget.style.background = T.gold; e.currentTarget.style.color = T.navyDark; }}
+                            onMouseLeave={e => { e.currentTarget.style.background = `${T.gold}10`; e.currentTarget.style.color = T.goldDark; }}>
+                            <Pencil size={15} />
+                          </button>
+                        </td>
+                      )}
                     </tr>
                   ))}
                 </tbody>

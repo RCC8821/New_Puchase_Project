@@ -6,7 +6,7 @@ export const labourApi = createApi({
 
   baseQuery: fetchBaseQuery({
     baseUrl: 'https://new-puchase-project-silk.vercel.app',
-    // baseUrl: 'http://localhost:5000',
+    // baseUrl: 'http://localhost:5001',
     prepareHeaders: (headers) => {
       // Agar token chahiye to yahan add karo
       // const token = localStorage.getItem('token');
