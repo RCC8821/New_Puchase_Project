@@ -1,9 +1,3 @@
-<<<<<<< HEAD
-=======
-
-
->>>>>>> 36182969ca55980c84851548899057ecc497b404
-
 const express = require('express');
 const { google } = require('googleapis');
 const { validateEnv } = require('./config/env');
@@ -45,22 +39,27 @@ const HeritageRequirement = require('./All_Fms_Api/heritageRequirement');
 
 const app = express();
 
-// ===== 1. CORS (sabse pehle) =====
-app.use(cors({
-  origin: (origin, callback) => {
-    callback(null, true); // sab origins allow
-  },
+// ===== 1. CORS Setup (Sabse Pehle) =====
+const corsOptions = {
+  origin: true, // Sabhi origins allow honge
   credentials: true,
   methods: ["GET", "POST", "PUT", "DELETE", "PATCH", "OPTIONS"],
-  allowedHeaders: ["Content-Type", "Authorization"]
-}));
+  allowedHeaders: ["Content-Type", "Authorization", "X-Requested-With", "Accept"]
+};
+
+app.use(cors(corsOptions));
+app.options('*', cors(corsOptions)); // Preflight requests handle karne ke liye
 
 // ===== 2. Body Parsers =====
 app.use(express.json({ limit: '30mb' }));
 app.use(express.urlencoded({ limit: '30mb', extended: true }));
 
-// ===== 3. Env validate =====
-validateEnv();
+// ===== 3. Env validate (Try-Catch taaki server crash na ho) =====
+try {
+  validateEnv();
+} catch (err) {
+  console.error("Environment Validation Warning/Error:", err.message);
+}
 
 // ===== 4. Cloudinary =====
 cloudinary.config({
@@ -117,8 +116,15 @@ app.use('/api/signature', SignatureRequirement);
 // Heritage Requirement (JV Project)
 app.use('/api/heritage-requirement', HeritageRequirement);
 
-// ===== 7. Start server =====
+// ===== 7. Local vs Vercel Handling =====
 const PORT = process.env.PORT || 5001;
-app.listen(PORT, () => {
-  console.log(`✅ Server running on port ${PORT}`);
-});
+
+// Local development ke liye listen karega
+if (process.env.NODE_ENV !== 'production') {
+  app.listen(PORT, () => {
+    console.log(`✅ Server running on port ${PORT}`);
+  });
+}
+
+// Vercel serverless deployment ke liye export zaroori hai
+module.exports = app;
