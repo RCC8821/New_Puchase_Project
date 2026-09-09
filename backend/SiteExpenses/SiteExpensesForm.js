@@ -1,14 +1,4 @@
 
-<<<<<<< HEAD
-
-//////////////////////////////////////
-
-
-
-
-
-=======
->>>>>>> 36182969ca55980c84851548899057ecc497b404
 const express = require('express');
 const { sheets, SiteExpeseSheetId, CompanyLabourSheetId, drive } = require('../config/googleSheet');
 const { Readable } = require('stream');

@@ -1,23 +1,23 @@
 const express = require('express');
 const { google } = require('googleapis');
 const { validateEnv } = require('./config/env');
-const cors = require("cors");
-const cloudinary = require("cloudinary").v2;
+const cors = require('cors');
+const cloudinary = require('cloudinary').v2;
 
 // ===== Routes =====
 const authRoutes = require('./routes/auth');
 const AllFMS = require('./All_Fms_Api/RequirementForm');
 const AllFMSData = require('./All_Fms_Api/All_Fms');
-const IndentData = require("./All_Fms_Api/Indent");
-const TakeQuotation = require("./All_Fms_Api/Take_Quotation");
+const IndentData = require('./All_Fms_Api/Indent');
+const TakeQuotation = require('./All_Fms_Api/Take_Quotation');
 const ApprovalQuotation = require('./All_Fms_Api/Approval_Quotation');
-const PO = require("./All_Fms_Api/PO");
-const vendorFollowUpMaterial = require("./All_Fms_Api/Vendor_FollowUp_Material");
+const PO = require('./All_Fms_Api/PO');
+const vendorFollowUpMaterial = require('./All_Fms_Api/Vendor_FollowUp_Material');
 const MaterialReceived = require('./All_Fms_Api/Material_Received');
 const FinalMaterial = require('./All_Fms_Api/Final_Material');
-const MRNDATA = require("./All_Fms_Api/MRN");
-const VendorFollowupBlling = require("./All_Fms_Api/Vendor_Followup_Billing");
-const BillProcessing = require("./All_Fms_Api/Bill_Processing");
+const MRNDATA = require('./All_Fms_Api/MRN');
+const VendorFollowupBlling = require('./All_Fms_Api/Vendor_Followup_Billing');
+const BillProcessing = require('./All_Fms_Api/Bill_Processing');
 const Bill_Checked = require('./All_Fms_Api/Bill_Checked');
 const Bill_Tally = require('./All_Fms_Api/BILL_TALLY_ENTRY');
 const Payment = require('./All_Fms_Api/Payment');
@@ -28,7 +28,7 @@ const contractorForm = require('./All_Fms_Api/ContractorForm/ContractorForm');
 const Form = require('./SiteExpenses/SiteExpensesForm');
 const DebitApprovel1 = require('./SiteExpenses/Debit/DebitApprovel1');
 const SiteApprovels = require('./SiteExpenses/SiteExpenses/SiteApprovels');
-const LabourApprovel = require("./SiteExpenses/Labour/LabourExpenses");
+const LabourApprovel = require('./SiteExpenses/Labour/LabourExpenses');
 const LabourPDF = require('./SiteExpenses/Labour/PDFGenerate');
 
 // Other
@@ -39,26 +39,27 @@ const HeritageRequirement = require('./All_Fms_Api/heritageRequirement');
 
 const app = express();
 
-// ===== 1. CORS Setup (Sabse Pehle) =====
-const corsOptions = {
-  origin: true, // Sabhi origins allow honge
-  credentials: true,
-  methods: ["GET", "POST", "PUT", "DELETE", "PATCH", "OPTIONS"],
-  allowedHeaders: ["Content-Type", "Authorization", "X-Requested-With", "Accept"]
-};
-
-app.use(cors(corsOptions));
-app.options('*', cors(corsOptions)); // Preflight requests handle karne ke liye
+// ===== 1. CORS Setup (Bina kisi syntax error ke) =====
+app.use(
+  cors({
+    origin: true, // Sabhi domains ko allow karega
+    credentials: true,
+    methods: ['GET', 'POST', 'PUT', 'DELETE', 'PATCH', 'OPTIONS'],
+    allowedHeaders: ['Content-Type', 'Authorization', 'X-Requested-With', 'Accept'],
+  })
+);
 
 // ===== 2. Body Parsers =====
 app.use(express.json({ limit: '30mb' }));
 app.use(express.urlencoded({ limit: '30mb', extended: true }));
 
-// ===== 3. Env validate (Try-Catch taaki server crash na ho) =====
+// ===== 3. Env validate (Safety ke sath) =====
 try {
-  validateEnv();
+  if (typeof validateEnv === 'function') {
+    validateEnv();
+  }
 } catch (err) {
-  console.error("Environment Validation Warning/Error:", err.message);
+  console.warn('⚠️ Env warning:', err.message);
 }
 
 // ===== 4. Cloudinary =====
@@ -68,9 +69,9 @@ cloudinary.config({
   api_secret: process.env.CLOUDINARY_API_SECRET,
 });
 
-// ===== 5. Test route =====
+// ===== 5. Test Route =====
 app.get('/', (req, res) => {
-  res.send('✅ Backend server is running!');
+  res.send('✅ Backend server is running successfully!');
 });
 
 // ===== 6. API Routes =====
@@ -116,13 +117,18 @@ app.use('/api/signature', SignatureRequirement);
 // Heritage Requirement (JV Project)
 app.use('/api/heritage-requirement', HeritageRequirement);
 
-// ===== 7. Local vs Vercel Handling =====
+// ===== 7. Global Error Handler (CORS & Crash Protection) =====
+app.use((err, req, res, next) => {
+  console.error('Server Error:', err.stack || err.message);
+  res.status(500).json({ error: err.message || 'Internal Server Error' });
+});
+
+// ===== 8. Start Server (Local & Vercel Support) =====
 const PORT = process.env.PORT || 5001;
 
-// Local development ke liye listen karega
 if (process.env.NODE_ENV !== 'production') {
   app.listen(PORT, () => {
-    console.log(`✅ Server running on port ${PORT}`);
+    console.log(`✅ Server running on http://localhost:${PORT}`);
   });
 }
 
