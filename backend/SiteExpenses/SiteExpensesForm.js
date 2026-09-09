@@ -1,4 +1,3 @@
-
 const express = require('express');
 const { sheets, SiteExpeseSheetId, CompanyLabourSheetId, drive } = require('../config/googleSheet');
 const { Readable } = require('stream');
@@ -77,7 +76,7 @@ const generateUID = async (sheetName, prefix = '') => {
 };
 
 // ============================================================
-// ✅ NEW HELPER: Next empty row (A2 se check) — Labour Requirement
+// HELPER: Next empty row (A2 se check) — Labour Requirement
 // ============================================================
 const getNextEmptyRowFromA2 = async (sheetName) => {
   try {
@@ -87,7 +86,7 @@ const getNextEmptyRowFromA2 = async (sheetName) => {
       majorDimension: 'ROWS',
     });
     const allRows = response.data.values || [];
-    let lastUsedRow = 1;  // Row 1 = headers, data starts from row 2
+    let lastUsedRow = 1;
 
     for (let i = 0; i < allRows.length; i++) {
       const row = allRows[i];
@@ -103,11 +102,7 @@ const getNextEmptyRowFromA2 = async (sheetName) => {
 };
 
 // ============================================================
-// ✅ NEW HELPER: Generate UID (B2 se check) — Labour Requirement
-// ============================================================
-// ============================================================
-// ✅ FIXED HELPER: Generate UID (B2 se check) — Highest + 1 logic
-// Ab agar LAB0896 last hai, toh next LAB0897 dega
+// HELPER: Generate UID (B2 se check) — Highest + 1 logic
 // ============================================================
 const generateUIDFromB2 = async (sheetName, prefix = 'LAB') => {
   try {
@@ -115,10 +110,9 @@ const generateUIDFromB2 = async (sheetName, prefix = 'LAB') => {
       spreadsheetId: SiteExpeseSheetId,
       range: `${sheetName}!B2:B10000`,
     });
-    
+
     const existing = (response.data.values || []).flat().filter(Boolean);
-    
-    // ✅ Highest number nikaalo existing UIDs se
+
     let maxNumber = 0;
     existing.forEach(uid => {
       const uidStr = String(uid).trim();
@@ -130,13 +124,12 @@ const generateUIDFromB2 = async (sheetName, prefix = 'LAB') => {
         }
       }
     });
-    
-    // ✅ Next UID = Highest + 1
+
     const nextNumber = maxNumber + 1;
     const newUID = prefix + String(nextNumber).padStart(4, '0');
-    
+
     console.log(`[UID GEN] Existing UIDs: ${existing.length} | Max: ${prefix}${String(maxNumber).padStart(4, '0')} | Next: ${newUID}`);
-    
+
     return newUID;
   } catch (err) {
     console.error(`Error generating UID for ${sheetName}:`, err);
@@ -145,7 +138,7 @@ const generateUIDFromB2 = async (sheetName, prefix = 'LAB') => {
 };
 
 // ============================================================
-// HELPER: Next empty row (CompanyLabourSheetId) — DIFFERENT NAME
+// HELPER: Next empty row (CompanyLabourSheetId)
 // ============================================================
 const getNextEmptyRowCompany = async (sheetName) => {
   try {
@@ -170,7 +163,7 @@ const getNextEmptyRowCompany = async (sheetName) => {
 };
 
 // ============================================================
-// HELPER: Generate UID (CompanyLabourSheetId) — DIFFERENT NAME
+// HELPER: Generate UID (CompanyLabourSheetId)
 // ============================================================
 const generateUIDCompany = async (sheetName, prefix = 'LATT') => {
   try {
@@ -261,15 +254,15 @@ const uploadToGoogleDrive = async (base64Data, fileName, retries = 2) => {
 
   const match = base64Data.match(/^data:([a-zA-Z0-9\/\-\+\.]+);base64,(.+)$/);
   if (match) {
-    mimeType      = match[1];
+    mimeType = match[1];
     base64Content = match[2];
   } else {
-    const sample  = base64Data.substring(0, 16);
+    const sample = base64Data.substring(0, 16);
     const decoded = Buffer.from(sample, 'base64').toString('hex');
-    if (decoded.startsWith('ffd8ff'))        { mimeType = 'image/jpeg'; }
-    else if (decoded.startsWith('89504e47')) { mimeType = 'image/png';  }
-    else if (decoded.startsWith('25504446')) { mimeType = 'application/pdf'; }
-    else if (decoded.startsWith('52494646')) { mimeType = 'image/webp'; }
+    if (decoded.startsWith('ffd8ff')) mimeType = 'image/jpeg';
+    else if (decoded.startsWith('89504e47')) mimeType = 'image/png';
+    else if (decoded.startsWith('25504446')) mimeType = 'application/pdf';
+    else if (decoded.startsWith('52494646')) mimeType = 'image/webp';
   }
 
   const mimeToExt = {
@@ -279,19 +272,19 @@ const uploadToGoogleDrive = async (base64Data, fileName, retries = 2) => {
   };
 
   const fileExtension = mimeToExt[mimeType] || 'jpg';
-  const baseName      = fileName.replace(/\.[^/.]+$/, '');
+  const baseName = fileName.replace(/\.[^/.]+$/, '');
 
   for (let attempt = 1; attempt <= retries + 1; attempt++) {
     try {
       console.log(`[DRIVE] Attempt ${attempt}/${retries + 1}`);
       let buffer = Buffer.from(base64Content, 'base64');
       let finalMimeType = mimeType;
-      let finalExt      = fileExtension;
+      let finalExt = fileExtension;
 
       if (mimeType.startsWith('image/')) {
-        buffer        = await compressImageBuffer(buffer, mimeType);
+        buffer = await compressImageBuffer(buffer, mimeType);
         finalMimeType = 'image/jpeg';
-        finalExt      = 'jpg';
+        finalExt = 'jpg';
       }
 
       const finalFileName = `${baseName}.${finalExt}`;
@@ -303,21 +296,21 @@ const uploadToGoogleDrive = async (base64Data, fileName, retries = 2) => {
 
       const res = await drive.files.create({
         resource: {
-          name   : finalFileName,
+          name: finalFileName,
           parents: [process.env.GOOGLE_DRIVE_FOLDER_ID],
         },
         media: { mimeType: finalMimeType, body: fileStream },
-        fields          : 'id',
+        fields: 'id',
         supportsAllDrives: true,
-        timeout         : 60000,
+        timeout: 60000,
       });
 
       const fileId = res.data.id;
       await drive.permissions.create({
         fileId,
-        requestBody     : { role: 'reader', type: 'anyone' },
+        requestBody: { role: 'reader', type: 'anyone' },
         supportsAllDrives: true,
-        timeout         : 15000,
+        timeout: 15000,
       });
 
       const viewUrl = `https://drive.google.com/file/d/${fileId}/view?usp=drivesdk`;
@@ -421,7 +414,6 @@ router.post('/site-expense', async (req, res) => {
 
 // ============================================================
 // POST /api/labour-request → Labour_Requirement sheet
-// ✅ FIXED - Row 2 se data check, UID B2 se check (LAB0001 se start)
 // ============================================================
 router.post('/labour-request', async (req, res) => {
   try {
@@ -437,7 +429,6 @@ router.post('/labour-request', async (req, res) => {
       return res.status(400).json({ success: false, message: 'Project Name aur Work Type required hain' });
     }
 
-    // ✅ A2/B2 wale naye helpers use karo
     const [nextRow, UID] = await Promise.all([
       getNextEmptyRowFromA2('Labour_Requirement'),
       generateUIDFromB2('Labour_Requirement', 'LAB'),
@@ -446,29 +437,29 @@ router.post('/labour-request', async (req, res) => {
     console.log(`[LABOUR REQUEST] Next Row: ${nextRow} | UID: ${UID}`);
 
     const values = [[
-      getTimestamp(), 
+      getTimestamp(),
       UID,
-      Project_Name_1              || '',
-      Project_Engineer_1          || '',
-      Work_Type_1                 || '',
-      Work_Description_1          || '',
-      Labour_Category_1           || '',
-      Number_Of_Labour_1          || '',
-      Labour_Category_2           || '',
-      Number_Of_Labour_2          || '',
-      Total_Labour_1              || '',
-      Date_Of_Required_1          || '',
-      Head_Of_Contractor_Company_1|| '',
-      Name_Of_Contractor_1        || '',
-      Contractor_Firm_Name_1      || '',
-      Remark_1                    || '',
+      Project_Name_1               || '',
+      Project_Engineer_1           || '',
+      Work_Type_1                  || '',
+      Work_Description_1           || '',
+      Labour_Category_1            || '',
+      Number_Of_Labour_1           || '',
+      Labour_Category_2            || '',
+      Number_Of_Labour_2           || '',
+      Total_Labour_1               || '',
+      Date_Of_Required_1           || '',
+      Head_Of_Contractor_Company_1 || '',
+      Name_Of_Contractor_1         || '',
+      Contractor_Firm_Name_1       || '',
+      Remark_1                     || '',
     ]];
 
     await sheets.spreadsheets.values.update({
-      spreadsheetId   : SiteExpeseSheetId,
-      range           : `Labour_Requirement!A${nextRow}`,
+      spreadsheetId: SiteExpeseSheetId,
+      range: `Labour_Requirement!A${nextRow}`,
       valueInputOption: 'USER_ENTERED',
-      requestBody     : { values },
+      requestBody: { values },
     });
 
     console.log(`[LABOUR REQUEST SAVED] Row ${nextRow} | UID: ${UID}`);
@@ -476,7 +467,8 @@ router.post('/labour-request', async (req, res) => {
     return res.status(200).json({
       success: true,
       message: 'Labour Request successfully save ho gaya!',
-      uid: UID, row: nextRow,
+      uid: UID,
+      row: nextRow,
     });
   } catch (error) {
     console.error('❌ Labour Request Error:', error);
@@ -509,30 +501,31 @@ router.post('/contractor-debit', async (req, res) => {
 
     const values = [[
       getTimestamp(), UID,
-      Project_Name_1        || '',
-      Project_Engineer_1    || '',
-      Contractor_Name_1     || '',
-      Contractor_Firm_Name_1|| '',
-      Work_Type_1           || '',
-      Work_Date_1           || '',
-      Work_Description_1    || '',
-      Particular_1          || '',
-      Qty_1                 || '',
-      Rate_Wages_1          || '',
-      Amount_1              || '',
+      Project_Name_1         || '',
+      Project_Engineer_1     || '',
+      Contractor_Name_1      || '',
+      Contractor_Firm_Name_1 || '',
+      Work_Type_1            || '',
+      Work_Date_1            || '',
+      Work_Description_1     || '',
+      Particular_1           || '',
+      Qty_1                  || '',
+      Rate_Wages_1           || '',
+      Amount_1               || '',
     ]];
 
     await sheets.spreadsheets.values.update({
-      spreadsheetId   : SiteExpeseSheetId,
-      range           : `Contractor_Debit_FMS!A${nextRow}`,
+      spreadsheetId: SiteExpeseSheetId,
+      range: `Contractor_Debit_FMS!A${nextRow}`,
       valueInputOption: 'USER_ENTERED',
-      requestBody     : { values },
+      requestBody: { values },
     });
 
     return res.status(200).json({
       success: true,
       message: 'Contractor debit entry successfully save ho gayi!',
-      uid: UID, row: nextRow,
+      uid: UID,
+      row: nextRow,
     });
   } catch (error) {
     console.error('❌ Contractor Debit Error:', error);
@@ -557,28 +550,28 @@ router.get('/Company-labour-dropdowns', async (req, res) => {
     console.log(`[DROPDOWN] Total rows: ${rows.length}`);
     console.log('[DROPDOWN] First row sample:', rows[0]);
 
-    const projectNames        = new Set();
-    const projectEngineers    = new Set();
-    const labourNames         = new Set();
-    const workTypes           = new Set();
-    const contractorNames     = new Set();
+    const projectNames = new Set();
+    const projectEngineers = new Set();
+    const labourNames = new Set();
+    const workTypes = new Set();
+    const contractorNames = new Set();
     const contractorFirmNames = new Set();
 
     const projectEngineerMap = {};
-    const contractorFirmMap  = {};
+    const contractorFirmMap = {};
 
     rows.forEach((row) => {
-      const projectName    = (row[0] || '').trim();
-      const engineer       = (row[1] || '').trim();
-      const labourName     = (row[3] || '').trim();
-      const workType       = (row[5] || '').trim();
+      const projectName = (row[0] || '').trim();
+      const engineer = (row[1] || '').trim();
+      const labourName = (row[3] || '').trim();
+      const workType = (row[5] || '').trim();
       const contractorName = (row[7] || '').trim();
       const contractorFirm = (row[8] || '').trim();
 
-      if (projectName)    projectNames.add(projectName);
-      if (engineer)       projectEngineers.add(engineer);
-      if (labourName)     labourNames.add(labourName);
-      if (workType)       workTypes.add(workType);
+      if (projectName) projectNames.add(projectName);
+      if (engineer) projectEngineers.add(engineer);
+      if (labourName) labourNames.add(labourName);
+      if (workType) workTypes.add(workType);
       if (contractorName) contractorNames.add(contractorName);
       if (contractorFirm) contractorFirmNames.add(contractorFirm);
 
@@ -596,12 +589,12 @@ router.get('/Company-labour-dropdowns', async (req, res) => {
     return res.status(200).json({
       success: true,
       data: {
-        projectNames        : Array.from(projectNames),
-        projectEngineers    : Array.from(projectEngineers),
-        labourNames         : Array.from(labourNames),
-        workTypes           : Array.from(workTypes),
-        contractorNames     : Array.from(contractorNames),
-        contractorFirmNames : Array.from(contractorFirmNames),
+        projectNames: Array.from(projectNames),
+        projectEngineers: Array.from(projectEngineers),
+        labourNames: Array.from(labourNames),
+        workTypes: Array.from(workTypes),
+        contractorNames: Array.from(contractorNames),
+        contractorFirmNames: Array.from(contractorFirmNames),
         projectEngineerMap,
         contractorFirmMap,
       },
@@ -645,28 +638,28 @@ router.post('/Company-labour', async (req, res) => {
     ]);
 
     const values = [[
-      getTimestamp(),                       // A
-      UID,                                  // B
-      Work_Date_1                  || '',   // C
-      Project_Name_1               || '',   // D
-      Project_Engineer_1           || '',   // E
-      '',                                   // F - Blank
-      Labour_Name_1                || '',   // G
-      Day_Night_1                  || '',   // H
-      Day_Attendance_1             || '',   // I
-      Work_Type_1                  || '',   // J
-      Work_Description_1           || '',   // K
-      Head_Of_Contractor_Company_1 || '',   // L
-      Name_Of_Contractor_1         || '',   // M
-      Contractor_Firm_Name_1       || '',   // N
-      Remark_1                     || '',   // O
+      getTimestamp(),
+      UID,
+      Work_Date_1 || '',
+      Project_Name_1 || '',
+      Project_Engineer_1 || '',
+      '',
+      Labour_Name_1 || '',
+      Day_Night_1 || '',
+      Day_Attendance_1 || '',
+      Work_Type_1 || '',
+      Work_Description_1 || '',
+      Head_Of_Contractor_Company_1 || '',
+      Name_Of_Contractor_1 || '',
+      Contractor_Firm_Name_1 || '',
+      Remark_1 || '',
     ]];
 
     await sheets.spreadsheets.values.update({
-      spreadsheetId   : CompanyLabourSheetId,
-      range           : `Labour_Attedace_FMS!A${nextRow}`,
+      spreadsheetId: CompanyLabourSheetId,
+      range: `Labour_Attedace_FMS!A${nextRow}`,
       valueInputOption: 'USER_ENTERED',
-      requestBody     : { values },
+      requestBody: { values },
     });
 
     console.log(`[LABOUR ATT SAVED] Row ${nextRow} | UID: ${UID}`);
@@ -674,7 +667,8 @@ router.post('/Company-labour', async (req, res) => {
     return res.status(200).json({
       success: true,
       message: 'Labour Attendance successfully save ho gayi!',
-      uid: UID, row: nextRow,
+      uid: UID,
+      row: nextRow,
     });
   } catch (error) {
     console.error('❌ Labour Attendance Error:', error);
@@ -683,11 +677,8 @@ router.post('/Company-labour', async (req, res) => {
 });
 
 // ============================================================
-// ✅ NEW - POST /api/office-labour-request
-// Office access only — data goes to Office_Labour_FMS sheet
-// ✅ FIXED - Row 2 se check karega (A2), UID B2 se check
+// POST /api/office-labour-request
 // ============================================================
-
 router.post('/office-labour-request', async (req, res) => {
   try {
     const {
@@ -705,7 +696,6 @@ router.post('/office-labour-request', async (req, res) => {
       });
     }
 
-    // ✅ Default helpers use karo (A7 se check)
     const [nextRow, UID] = await Promise.all([
       getNextEmptyRow('Labour_FMS'),
       generateUID('Labour_FMS', 'LAB'),
@@ -715,27 +705,27 @@ router.post('/office-labour-request', async (req, res) => {
 
     const values = [[
       getTimestamp(), UID,
-      Project_Name_1               || '',
-      Project_Engineer_1           || '',
-      Work_Type_1                  || '',
-      Work_Description_1           || '',
-      Labour_Category_1            || '',
-      Number_Of_Labour_1           || '',
-      Labour_Category_2            || '',
-      Number_Of_Labour_2           || '',
-      Total_Labour_1               || '',
-      Date_Of_Required_1           || '',
+      Project_Name_1 || '',
+      Project_Engineer_1 || '',
+      Work_Type_1 || '',
+      Work_Description_1 || '',
+      Labour_Category_1 || '',
+      Number_Of_Labour_1 || '',
+      Labour_Category_2 || '',
+      Number_Of_Labour_2 || '',
+      Total_Labour_1 || '',
+      Date_Of_Required_1 || '',
       Head_Of_Contractor_Company_1 || '',
-      Name_Of_Contractor_1         || '',
-      Contractor_Firm_Name_1       || '',
-      Remark_1                     || '',
+      Name_Of_Contractor_1 || '',
+      Contractor_Firm_Name_1 || '',
+      Remark_1 || '',
     ]];
 
     await sheets.spreadsheets.values.update({
-      spreadsheetId   : SiteExpeseSheetId,
-      range           : `Labour_FMS!A${nextRow}`,
+      spreadsheetId: SiteExpeseSheetId,
+      range: `Labour_FMS!A${nextRow}`,
       valueInputOption: 'USER_ENTERED',
-      requestBody     : { values },
+      requestBody: { values },
     });
 
     console.log(`[OFFICE LABOUR SAVED] Row ${nextRow} | UID: ${UID}`);
@@ -755,15 +745,8 @@ router.post('/office-labour-request', async (req, res) => {
   }
 });
 
-
-
-
-
-
 // ============================================================
-// ✅ NEW - POST /api/submit-to-labour-fms
-// Row copy karo Labour_Requirement → Labour_FMS
-// + Original row me Q column = "Done" mark karo
+// POST /api/submit-to-labour-fms
 // ============================================================
 router.post('/submit-to-labour-fms', async (req, res) => {
   const { uid } = req.body;
@@ -776,7 +759,6 @@ router.post('/submit-to-labour-fms', async (req, res) => {
   }
 
   try {
-    // 1. Labour_Requirement se row fetch karo
     const response = await sheets.spreadsheets.values.get({
       spreadsheetId: SiteExpeseSheetId,
       range: 'Labour_Requirement!A2:Q10000',
@@ -794,10 +776,9 @@ router.post('/submit-to-labour-fms', async (req, res) => {
       });
     }
 
-    const sourceRow      = rows[rowIndex];
+    const sourceRow = rows[rowIndex];
     const sheetRowNumber = 2 + rowIndex;
 
-    // Check already Done ya nahi
     const currentStatus = (sourceRow[16] || '').toString().trim();
     if (currentStatus === 'Done') {
       return res.status(400).json({
@@ -808,229 +789,63 @@ router.post('/submit-to-labour-fms', async (req, res) => {
 
     console.log(`[SUBMIT] UID ${uid} at row ${sheetRowNumber}`);
 
-    // 2. Labour_FMS me next empty row nikaalo
     const nextRow = await getNextEmptyRow('Labour_FMS');
     console.log(`[SUBMIT] Labour_FMS next row: ${nextRow}`);
 
-    // 3. Data prepare karo (A-P columns, Q skip)
     const values = [[
-      sourceRow[0]  || '',   // A - Timestamp
-      sourceRow[1]  || '',   // B - UID
-      sourceRow[2]  || '',   // C - Project_Name
-      sourceRow[3]  || '',   // D - Project_Engineer
-      sourceRow[4]  || '',   // E - Work_Type
-      sourceRow[5]  || '',   // F - Work_Description
-      sourceRow[6]  || '',   // G - Labour_Category_1
-      sourceRow[7]  || '',   // H - Number_Of_Labour_1
-      sourceRow[8]  || '',   // I - Labour_Category_2
-      sourceRow[9]  || '',   // J - Number_Of_Labour_2
-      sourceRow[10] || '',   // K - Total_Labour
-      sourceRow[11] || '',   // L - Date_Of_Required
-      sourceRow[12] || '',   // M - Head_Of_Contractor
-      sourceRow[13] || '',   // N - Name_Of_Contractor
-      sourceRow[14] || '',   // O - Contractor_Firm_Name
-      sourceRow[15] || '',   // P - Remark
+      sourceRow[0]  || '',
+      sourceRow[1]  || '',
+      sourceRow[2]  || '',
+      sourceRow[3]  || '',
+      sourceRow[4]  || '',
+      sourceRow[5]  || '',
+      sourceRow[6]  || '',
+      sourceRow[7]  || '',
+      sourceRow[8]  || '',
+      sourceRow[9]  || '',
+      sourceRow[10] || '',
+      sourceRow[11] || '',
+      sourceRow[12] || '',
+      sourceRow[13] || '',
+      sourceRow[14] || '',
+      sourceRow[15] || '',
     ]];
 
-    // 4. Labour_FMS me save
     await sheets.spreadsheets.values.update({
-      spreadsheetId   : SiteExpeseSheetId,
-      range           : `Labour_FMS!A${nextRow}`,
+      spreadsheetId: SiteExpeseSheetId,
+      range: `Labour_FMS!A${nextRow}`,
       valueInputOption: 'USER_ENTERED',
-      requestBody     : { values },
+      requestBody: { values },
     });
 
-    // 5. Labour_Requirement ke Q column me "Done" mark karo
     await sheets.spreadsheets.values.update({
-      spreadsheetId   : SiteExpeseSheetId,
-      range           : `Labour_Requirement!Q${sheetRowNumber}`,
+      spreadsheetId: SiteExpeseSheetId,
+      range: `Labour_Requirement!Q${sheetRowNumber}`,
       valueInputOption: 'USER_ENTERED',
-      requestBody     : { values: [['Done']] },
+      requestBody: { values: [['Done']] },
     });
 
     console.log(`[SUBMIT SUCCESS] UID ${uid} → Labour_FMS row ${nextRow} + Status = Done`);
 
     return res.json({
-      success        : true,
-      message        : 'Successfully submitted to Labour_FMS!',
-      uid            : uid,
-      labourFmsRow   : nextRow,
-      requirementRow : sheetRowNumber,
+      success: true,
+      message: 'Successfully submitted to Labour_FMS!',
+      uid: uid,
+      labourFmsRow: nextRow,
+      requirementRow: sheetRowNumber,
     });
   } catch (error) {
     console.error('❌ Submit to Labour_FMS Error:', error);
     return res.status(500).json({
       success: false,
       message: 'Submit failed',
-      error  : error.message,
+      error: error.message,
     });
   }
 });
 
-
-
-
-///////////////. vinod step form new /////////////
-
-
-
-
 // ============================================================
-// ✅ GUARANTEED COLUMN W (INDEX 22) FILTER
-// ============================================================
-// router.get('/get-labour-requirements', async (req, res) => {
-//   try {
-//     const response = await sheets.spreadsheets.values.get({
-//       spreadsheetId: SiteExpeseSheetId,
-//       range: 'Labour_Requirement!A4:AL10000',
-//       majorDimension: 'ROWS',
-//     });
-
-//     const rawRows = response.data.values || [];
-//     const pendingData = [];
-
-//     rawRows.forEach((row, index) => {
-//       const uid = (row[1] || '').toString().trim();
-//       if (!uid) return; // UID empty hai to skip
-
-//       // ✅ Column W is Index 22 (A=0, B=1, ... Q=16, ... W=22)
-//       // Agar row ki length kam hai to row[22] undefined hoga (khaali)
-//       const statusColW = (row[16] || '').toString().trim().toLowerCase();
-
-//       // Agar Column W me 'done' likha hai (Done, done, DONE), toh SKIP karo
-//       if (statusColW === 'done') {
-//         return;
-//       }
-
-//       pendingData.push({
-//         rowNumber:                    2 + index,
-//         timestamp:                    row[0]  || '',
-//         uid:                          uid,
-//         Project_Name_1:               row[2]  || '',
-//         Project_Engineer_1:           row[3]  || '',
-//         Work_Type_1:                  row[4]  || '',
-//         Work_Description_1:           row[5]  || '',
-//         Labour_Category_1:            row[6]  || '',
-//         Number_Of_Labour_1:           row[7]  || '',
-//         Labour_Category_2:            row[8]  || '',
-//         Number_Of_Labour_2:           row[9]  || '',
-//         Total_Labour_1:               row[10] || '',
-//         Date_Of_Required_1:           row[11] || '',
-//         Head_Of_Contractor_Company_1: row[12] || '',
-//         Name_Of_Contractor_1:         row[13] || '',
-//         Contractor_Firm_Name_1:       row[14] || '',
-//         Remark_1:                     row[15] || '',
-//         Status:                       row[22] || '', // Column W Status
-//       });
-//     });
-
-//     pendingData.reverse();
-
-//     // ✅ Naya log message
-//     console.log(`[COL-W FILTER SUCCESS] Total: ${rawRows.length} | Pending (Col W != Done): ${pendingData.length}`);
-
-//     res.json({
-//       success: true,
-//       count: pendingData.length,
-//       data: pendingData,
-//     });
-//   } catch (error) {
-//     console.error('❌ Error:', error);
-//     res.status(500).json({ success: false, message: 'Error', error: error.message });
-//   }
-// });
-
-
-
-
-// ============================================================
-// ✅ POST /api/update-labour-req-management
-// Saves Modal Data to Col W-AK and sets Col Q to 'Done'
-// ============================================================
-
-// router.post('/update-labour-req-management', async (req, res) => {
-//   try {
-//     const {
-//       uid, Status_3, Labouar_Contractor_Name_3, Labour_Category_1_3,
-//       Number_Of_Labour_1_3, Labour_Rate_1_3, Labour_Category_2_3,
-//       Number_Of_Labour_2_3, Labour_Rate_2_3, Total_Wages_3, Conveyanance_3,
-//       Contractor_Commission, Total_Paid_Amount_3, Company_Head_Amount_3,
-//       Contractor_Head_Amount_3, Remark_3
-//     } = req.body;
-
-//     if (!uid) return res.status(400).json({ success: false, message: 'UID is required' });
-
-//     const response = await sheets.spreadsheets.values.get({
-//       spreadsheetId: SiteExpeseSheetId,
-//       range: 'Labour_Requirement!A2:B10000',
-//     });
-
-//     const rows = response.data.values || [];
-//     const rowIndex = rows.findIndex(row => row[1] && String(row[1]).trim() === String(uid).trim());
-
-//     if (rowIndex === -1) {
-//       return res.status(404).json({ success: false, message: `UID not found: ${uid}` });
-//     }
-
-//     const sheetRowNumber = 2 + rowIndex;
-//     const batchData = [];
-
-//     const addIfValid = (colLetter, value) => {
-//       if (value !== undefined && value !== null) {
-//         batchData.push({ 
-//           range: `Labour_Requirement!${colLetter}${sheetRowNumber}`, 
-//           values: [[String(value).trim()]] 
-//         });
-//       }
-//     };
-
-//     // ✅ EXACT COLUMN MAPPING MATCHED WITH SHEET:
-//     addIfValid('W', Status_3 || 'Done');        // W  = Status_3
-//     // Column X (Time_Delay_3) is auto/skipped
-//     addIfValid('Y', Labouar_Contractor_Name_3); // Y  = Labouar_Contractor_Name_3
-//     addIfValid('Z', Labour_Category_1_3);       // Z  = Labour_Category_1_3
-//     addIfValid('AA', Number_Of_Labour_1_3);     // AA = Number_Of_Labour_1_3
-//     addIfValid('AB', Labour_Rate_1_3);          // AB = Labour_Rate_1_3
-//     addIfValid('AC', Labour_Category_2_3);       // AC = Labour_Category_2_3
-//     addIfValid('AD', Number_Of_Labour_2_3);     // AD = Number_Of_Labour_2_3
-//     addIfValid('AE', Labour_Rate_2_3);          // AE = Labour_Rate_2_3
-//     addIfValid('AF', Total_Wages_3);            // AF = Total_Wages_3
-//     addIfValid('AG', Conveyanance_3);           // AG = Conveyanance_3
-//     addIfValid('AH', Contractor_Commission);    // AH = Contractor_Commission
-//     addIfValid('AI', Total_Paid_Amount_3);      // AI = Total_Paid_Amount_3
-//     addIfValid('AJ', Company_Head_Amount_3);    // AJ = Company_Head_Amount_3
-//     addIfValid('AK', Contractor_Head_Amount_3); // AK = Contractor_Head_Amount_3
-//     addIfValid('AL', Remark_3);                  // AL = Remark_3
-
-//     if (batchData.length > 0) {
-//       await sheets.spreadsheets.values.batchUpdate({
-//         spreadsheetId: SiteExpeseSheetId,
-//         resource: { valueInputOption: 'USER_ENTERED', data: batchData },
-//       });
-//     }
-
-//     res.json({
-//       success: true,
-//       message: 'Management details saved correctly & Status marked as Done!',
-//       rowNumber: sheetRowNumber
-//     });
-
-//   } catch (error) {
-//     console.error('❌ Update Labour Req Management Error:', error);
-//     res.status(500).json({ success: false, message: 'Update failed', error: error.message });
-//   }
-// });
-
-
-
-
-
-////////// try ///////////
-
-
-// ============================================================
-// ✅ GET /api/get-labour-requirements
-// Saara data bhejega. Frontend apne aap Q ya W se filter karega!
+// GET /api/get-labour-requirements
 // ============================================================
 router.get('/get-labour-requirements', async (req, res) => {
   try {
@@ -1048,35 +863,48 @@ router.get('/get-labour-requirements', async (req, res) => {
       if (!uid || uid.toUpperCase() === 'UID' || uid.toLowerCase() === 'timestamp') return;
 
       const padded = [...row];
-      // Pad till index 22 (Column W)
-      while (padded.length < 23) {
+      while (padded.length < 38) {
         padded.push('');
       }
 
       pendingData.push({
-        rowNumber:                    4 + index,
-        timestamp:                    padded[0]  || '',
-        uid:                          uid,
-        Project_Name_1:               padded[2]  || '',
-        Project_Engineer_1:           padded[3]  || '',
-        Work_Type_1:                  padded[4]  || '',
-        Work_Description_1:           padded[5]  || '',
-        Labour_Category_1:            padded[6]  || '',
-        Number_Of_Labour_1:           padded[7]  || '',
-        Labour_Category_2:            padded[8]  || '',
-        Number_Of_Labour_2:           padded[9]  || '',
-        Total_Labour_1:               padded[10] || '',
-        Date_Of_Required_1:           padded[11] || '',
+        rowNumber: 4 + index,
+        timestamp: padded[0] || '',
+        uid: uid,
+        Project_Name_1: padded[2] || '',
+        Project_Engineer_1: padded[3] || '',
+        Work_Type_1: padded[4] || '',
+        Work_Description_1: padded[5] || '',
+        Labour_Category_1: padded[6] || '',
+        Number_Of_Labour_1: padded[7] || '',
+        Labour_Category_2: padded[8] || '',
+        Number_Of_Labour_2: padded[9] || '',
+        Total_Labour_1: padded[10] || '',
+        Date_Of_Required_1: padded[11] || '',
         Head_Of_Contractor_Company_1: padded[12] || '',
-        Name_Of_Contractor_1:         padded[13] || '',
-        Contractor_Firm_Name_1:       padded[14] || '',
-        Remark_1:                     padded[15] || '',
-        Status:                       padded[16] || '', // Column Q
-        Status_3:                     padded[22] || '', // Column W
+        Name_Of_Contractor_1: padded[13] || '',
+        Contractor_Firm_Name_1: padded[14] || '',
+        Remark_1: padded[15] || '',
+        Status: padded[16] || '',
+        Status_3: padded[22] || '',
+        Labouar_Contractor_Name_3: padded[24] || '',
+        Labour_Category_1_3: padded[25] || '',
+        Number_Of_Labour_1_3: padded[26] || '',
+        Labour_Rate_1_3: padded[27] || '',
+        Labour_Category_2_3: padded[28] || '',
+        Number_Of_Labour_2_3: padded[29] || '',
+        Labour_Rate_2_3: padded[30] || '',
+        Total_Wages_3: padded[31] || '',
+        Conveyanance_3: padded[32] || '',
+        Contractor_Commission: padded[33] || '',
+        Total_Paid_Amount_3: padded[34] || '',
+        Company_Head_Amount_3: padded[35] || '',
+        Contractor_Head_Amount_3: padded[36] || '',
+        Remark_3: padded[37] || '',
       });
     });
 
-    pendingData.reverse(); // Latest on top
+    pendingData.reverse();
 
     console.log(`[GET LABOUR REQ] Total Data: ${pendingData.length} rows sent to frontend`);
 
@@ -1092,20 +920,54 @@ router.get('/get-labour-requirements', async (req, res) => {
 });
 
 // ============================================================
-// ✅ POST /api/update-labour-req-management
-// Modal ka data W-AL me save karega (Vinod form ke liye)
+// SHARED UPDATE HANDLER
+// Initial fields (C-P) + Management fields (W-AL) dono update
 // ============================================================
-router.post('/update-labour-req-management', async (req, res) => {
+const handleLabourRequirementUpdate = async (req, res) => {
   try {
     const {
-      uid, Status_3, Labouar_Contractor_Name_3, Labour_Category_1_3,
-      Number_Of_Labour_1_3, Labour_Rate_1_3, Labour_Category_2_3,
-      Number_Of_Labour_2_3, Labour_Rate_2_3, Total_Wages_3, Conveyanance_3,
-      Contractor_Commission, Total_Paid_Amount_3, Company_Head_Amount_3,
-      Contractor_Head_Amount_3, Remark_3
+      uid,
+
+      // Initial request fields (C-P)
+      Project_Name_1,
+      Project_Engineer_1,
+      Work_Type_1,
+      Work_Description_1,
+      Labour_Category_1,
+      Number_Of_Labour_1,
+      Labour_Category_2,
+      Number_Of_Labour_2,
+      Total_Labour_1,
+      Date_Of_Required_1,
+      Head_Of_Contractor_Company_1,
+      Name_Of_Contractor_1,
+      Contractor_Firm_Name_1,
+      Remark_1,
+
+      // Management fields (W-AL)
+      Status_3,
+      Time_Delay_3,
+      Labouar_Contractor_Name_3,
+      Labour_Category_1_3,
+      Number_Of_Labour_1_3,
+      Labour_Rate_1_3,
+      Labour_Category_2_3,
+      Number_Of_Labour_2_3,
+      Labour_Rate_2_3,
+      Total_Wages_3,
+      Conveyanance_3,
+      Contractor_Commission,
+      Total_Paid_Amount_3,
+      Company_Head_Amount_3,
+      Contractor_Head_Amount_3,
+      Remark_3
     } = req.body;
 
-    if (!uid) return res.status(400).json({ success: false, message: 'UID is required' });
+    console.log('=== UPDATE LABOUR REQUIREMENT PAYLOAD ===', req.body);
+
+    if (!uid) {
+      return res.status(400).json({ success: false, message: 'UID is required' });
+    }
 
     const response = await sheets.spreadsheets.values.get({
       spreadsheetId: SiteExpeseSheetId,
@@ -1113,58 +975,102 @@ router.post('/update-labour-req-management', async (req, res) => {
     });
 
     const rows = response.data.values || [];
-    const rowIndex = rows.findIndex(row => row[1] && String(row[1]).trim() === String(uid).trim());
+    const rowIndex = rows.findIndex(
+      row => row[1] && String(row[1]).trim().toUpperCase() === String(uid).trim().toUpperCase()
+    );
 
     if (rowIndex === -1) {
       return res.status(404).json({ success: false, message: `UID not found: ${uid}` });
     }
 
-    const sheetRowNumber = 4 + rowIndex; // Range starts at A4
+    const sheetRowNumber = 4 + rowIndex;
     const batchData = [];
 
-    const addIfValid = (colLetter, value) => {
-      if (value !== undefined && value !== null) {
-        batchData.push({ 
-          range: `Labour_Requirement!${colLetter}${sheetRowNumber}`, 
-          values: [[String(value).trim()]] 
+    const addField = (col, value) => {
+      if (value !== undefined && value !== null && String(value).trim() !== '') {
+        batchData.push({
+          range: `Labour_Requirement!${col}${sheetRowNumber}`,
+          values: [[String(value).trim()]],
         });
       }
     };
 
-    // W - AL columns update (Vinod)
-    addIfValid('W', Status_3 || 'Done');        // W
-    addIfValid('Y', Labouar_Contractor_Name_3); // Y
-    addIfValid('Z', Labour_Category_1_3);       // Z
-    addIfValid('AA', Number_Of_Labour_1_3);     // AA
-    addIfValid('AB', Labour_Rate_1_3);          // AB
-    addIfValid('AC', Labour_Category_2_3);      // AC
-    addIfValid('AD', Number_Of_Labour_2_3);     // AD
-    addIfValid('AE', Labour_Rate_2_3);          // AE
-    addIfValid('AF', Total_Wages_3);            // AF
-    addIfValid('AG', Conveyanance_3);           // AG
-    addIfValid('AH', Contractor_Commission);    // AH
-    addIfValid('AI', Total_Paid_Amount_3);      // AI
-    addIfValid('AJ', Company_Head_Amount_3);    // AJ
-    addIfValid('AK', Contractor_Head_Amount_3); // AK
-    addIfValid('AL', Remark_3);                 // AL
+    // Initial fields C-P
+    addField('C', Project_Name_1);
+    addField('D', Project_Engineer_1);
+    addField('E', Work_Type_1);
+    addField('F', Work_Description_1);
+    addField('G', Labour_Category_1);
+    addField('H', Number_Of_Labour_1);
+    addField('I', Labour_Category_2);
+    addField('J', Number_Of_Labour_2);
+    addField('K', Total_Labour_1);
+    addField('L', Date_Of_Required_1);
+    addField('M', Head_Of_Contractor_Company_1);
+    addField('N', Name_Of_Contractor_1);
+    addField('O', Contractor_Firm_Name_1);
+    addField('P', Remark_1);
 
-    if (batchData.length > 0) {
-      await sheets.spreadsheets.values.batchUpdate({
-        spreadsheetId: SiteExpeseSheetId,
-        resource: { valueInputOption: 'USER_ENTERED', data: batchData },
+    // Management fields W-AL
+    if (Status_3 !== undefined && Status_3 !== null && String(Status_3).trim() !== '') {
+      addField('W', Status_3);
+    }
+    addField('X', Time_Delay_3);
+    addField('Y', Labouar_Contractor_Name_3);
+    addField('Z', Labour_Category_1_3);
+    addField('AA', Number_Of_Labour_1_3);
+    addField('AB', Labour_Rate_1_3);
+    addField('AC', Labour_Category_2_3);
+    addField('AD', Number_Of_Labour_2_3);
+    addField('AE', Labour_Rate_2_3);
+    addField('AF', Total_Wages_3);
+    addField('AG', Conveyanance_3);
+    addField('AH', Contractor_Commission);
+    addField('AI', Total_Paid_Amount_3);
+    addField('AJ', Company_Head_Amount_3);
+    addField('AK', Contractor_Head_Amount_3);
+    addField('AL', Remark_3);
+
+    if (batchData.length === 0) {
+      return res.json({
+        success: true,
+        message: 'No non-empty fields to update',
+        receivedKeys: Object.keys(req.body || {}),
       });
     }
 
-    res.json({
-      success: true,
-      message: 'Management details saved correctly & Status marked as Done!',
-      rowNumber: sheetRowNumber
+    console.log('=== BATCH DATA WRITING TO GOOGLE SHEET ===');
+    batchData.forEach(b => console.log(`${b.range} => ${b.values[0][0]}`));
+
+    await sheets.spreadsheets.values.batchUpdate({
+      spreadsheetId: SiteExpeseSheetId,
+      resource: {
+        valueInputOption: 'USER_ENTERED',
+        data: batchData,
+      },
     });
 
+    return res.json({
+      success: true,
+      message: 'Labour requirement updated successfully!',
+      rowNumber: sheetRowNumber,
+      updatedCount: batchData.length,
+      updatedColumns: batchData.map(d => d.range.match(/!([A-Z]+)/)?.[1]),
+    });
   } catch (error) {
-    console.error('❌ Update Labour Req Management Error:', error);
-    res.status(500).json({ success: false, message: 'Update failed', error: error.message });
+    console.error('❌ Update Labour Requirement Error:', error);
+    return res.status(500).json({
+      success: false,
+      message: 'Update failed',
+      error: error.message,
+    });
   }
-});
+};
+
+// ============================================================
+// BOTH ROUTES (404 fix)
+// ============================================================
+router.post('/update-labour-requirement', handleLabourRequirementUpdate);
+router.post('/update-labour-req-management', handleLabourRequirementUpdate);
 
 module.exports = router;

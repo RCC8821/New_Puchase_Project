@@ -1,4 +1,3 @@
-
 const express = require('express');
 const { sheets, SiteExpeseSheetId, CompanyLabourSheetId } = require('../../config/googleSheet');
 
@@ -25,7 +24,6 @@ router.get('/get-project-dropdown', async (req, res) => {
     });
 
     const result = [];
-    const seenContractors = new Set();
 
     fullRows.forEach((row, index) => {
       const projectName        = (row[0]  || '').trim();
@@ -233,67 +231,8 @@ router.post('/Post-labour-Approvel-1', async (req, res) => {
 
 
 // ============================================================
-
-// GET /get-Labour-management
-// ============================================================
-// router.get('/get-Labour-management', async (req, res) => {
-//   try {
-//     const response = await sheets.spreadsheets.values.get({
-//       spreadsheetId: SiteExpeseSheetId,
-//       range: 'Labour_FMS!A7:AD',
-//     });
-
-//     const rows = response.data.values || [];
-
-//     const pendingLabour = rows
-//       .filter(row => {
-//         if (row.length < 18) return false;
-//         const planned3 = (row[28] || '').toString().trim();
-//         const actual3  = (row[29] || '').toString().trim();
-//         return planned3 !== '' && actual3 === '';
-//       })
-//       .map(row => ({
-//         timestamp:             row[0]  || '',
-//         uid:                   row[1]  || '',
-//         projectName:           row[2]  || '',
-//         projectEngineer:       row[3]  || '',
-//         workType:              row[4]  || '',
-//         workDescription:       row[5]  || '',
-//         labourCategory1:       row[6]  || '',
-//         numberOfLabour1:       row[7]  || '',
-//         labourCategory2:       row[8]  || '',
-//         numberOfLabour2:       row[9]  || '',
-//         totalLabour:           row[10] || '',
-//         dateRequired:          row[11] || '',
-//         headOfContractor:      row[12] || '',
-//         nameOfContractor:      row[13] || '',
-//         contractorFirmName:    row[14] || '',
-//         Approved_Head_2:       row[24] || '',
-//         Name_Of_Contractor_2:  row[25] || '',
-//         Contractor_Firm_Name_2:row[26] || '',
-//         remark:                row[27] || '',
-//         planned3:              row[28] || '',
-//         actual3:               row[29] || '',
-//       }));
-
-//     res.json({
-//       success: true,
-//       count: pendingLabour.length,
-//       data: pendingLabour
-//     });
-//   } catch (error) {
-//     console.error('Error fetching pending labour approvals:', error);
-//     res.status(500).json({ success: false, error: 'Failed to fetch pending labour approvals' });
-//   }
-// });
-
-
-
-
-
-// ============================================================
-// ✅ GET /get-Labour-management
-// Smart Clean UID Matching + Merges Labour_FMS with Labour_Requirement (W-AL)
+// ✅ GET /get-Labour-management (Clean & Single Unified Version)
+// Merges Labour_FMS with Labour_Requirement (W-AL)
 // ============================================================
 router.get('/get-Labour-management', async (req, res) => {
   try {
@@ -311,7 +250,6 @@ router.get('/get-Labour-management', async (req, res) => {
     const fmsRows = fmsResponse.data.values || [];
     const reqRows = reqResponse.data.values || [];
 
-    // ✅ Smart UID Cleaner: Handles "LAB0916", "LAB916", "lab0916 " seamlessly
     const cleanUid = (str) => {
       if (!str) return '';
       const s = String(str).trim().toUpperCase();
@@ -319,14 +257,12 @@ router.get('/get-Labour-management', async (req, res) => {
       return match ? `${match[1]}${match[2]}` : s;
     };
 
-    // 1️⃣ Map Labour_Requirement by Cleaned UID
     const reqMap = {};
     reqRows.forEach(row => {
       const rawUid = (row[1] || '').toString().trim();
       if (!rawUid) return;
 
       const key = cleanUid(rawUid);
-
       const paddedRow = [...row];
       while (paddedRow.length < 38) paddedRow.push('');
 
@@ -352,7 +288,6 @@ router.get('/get-Labour-management', async (req, res) => {
 
     console.log(`[LABOUR MGMT] Mapped ${Object.keys(reqMap).length} UIDs from Labour_Requirement`);
 
-    // 2️⃣ Merge with Labour_FMS Pending list
     const pendingLabour = fmsRows
       .filter(row => {
         if (row.length < 18) return false;
@@ -387,7 +322,6 @@ router.get('/get-Labour-management', async (req, res) => {
           remark:                row[27] || '',
           planned3:              row[28] || '',
           actual3:               row[29] || '',
-
           reqAutofill: reqData,
         };
       });
@@ -405,114 +339,6 @@ router.get('/get-Labour-management', async (req, res) => {
 
 
 // ============================================================
-// ✅ GET /get-Labour-management
-// Labour_FMS + Labour_Requirement (W-AL) merged by UID
-// ============================================================
-router.get('/get-Labour-management', async (req, res) => {
-  try {
-    // 1️⃣ Fetch Labour_FMS + Labour_Requirement parallel
-    const [fmsResponse, reqResponse] = await Promise.all([
-      sheets.spreadsheets.values.get({
-        spreadsheetId: SiteExpeseSheetId,
-        range: 'Labour_FMS!A7:AD',
-      }),
-      sheets.spreadsheets.values.get({
-        spreadsheetId: SiteExpeseSheetId,
-        range: 'Labour_Requirement!A2:AL10000',
-      })
-    ]);
-
-    const fmsRows = fmsResponse.data.values || [];
-    const reqRows = reqResponse.data.values || [];
-
-    // 2️⃣ Labour_Requirement ka UID → W-AL data ka map banao
-    const reqMap = {};
-    reqRows.forEach(row => {
-      const uid = (row[1] || '').toString().trim();
-      if (!uid) return;
-
-      // Pad row to length 38 taaki AL (Index 37) tak safe access ho
-      const paddedRow = [...row];
-      while (paddedRow.length < 38) paddedRow.push('');
-
-      reqMap[uid] = {
-        Status_3:                  paddedRow[22] || '',  // W
-        Time_Delay_3:              paddedRow[23] || '',  // X
-        Labouar_Contractor_Name_3: paddedRow[24] || '',  // Y
-        Labour_Category_1_3:       paddedRow[25] || '',  // Z
-        Number_Of_Labour_1_3:      paddedRow[26] || '',  // AA
-        Labour_Rate_1_3:           paddedRow[27] || '',  // AB
-        Labour_Category_2_3:       paddedRow[28] || '',  // AC
-        Number_Of_Labour_2_3:      paddedRow[29] || '',  // AD
-        Labour_Rate_2_3:           paddedRow[30] || '',  // AE
-        Total_Wages_3:             paddedRow[31] || '',  // AF
-        Conveyanance_3:            paddedRow[32] || '',  // AG
-        Contractor_Commission:     paddedRow[33] || '',  // AH
-        Total_Paid_Amount_3:       paddedRow[34] || '',  // AI
-        Company_Head_Amount_3:     paddedRow[35] || '',  // AJ
-        Contractor_Head_Amount_3:  paddedRow[36] || '',  // AK
-        Remark_3:                  paddedRow[37] || '',  // AL
-      };
-    });
-
-    console.log(`[LABOUR MGMT] Requirement Map created for ${Object.keys(reqMap).length} UIDs`);
-
-    // 3️⃣ Labour_FMS ka pending data + merge with Requirement data
-    const pendingLabour = fmsRows
-      .filter(row => {
-        if (row.length < 18) return false;
-        const planned3 = (row[28] || '').toString().trim();
-        const actual3  = (row[29] || '').toString().trim();
-        return planned3 !== '' && actual3 === '';
-      })
-      .map(row => {
-        const uid = row[1] || '';
-        const reqData = reqMap[uid] || {}; // Match by UID
-
-        return {
-          // Labour_FMS ka original data
-          timestamp:             row[0]  || '',
-          uid:                   uid,
-          projectName:           row[2]  || '',
-          projectEngineer:       row[3]  || '',
-          workType:              row[4]  || '',
-          workDescription:       row[5]  || '',
-          labourCategory1:       row[6]  || '',
-          numberOfLabour1:       row[7]  || '',
-          labourCategory2:       row[8]  || '',
-          numberOfLabour2:       row[9]  || '',
-          totalLabour:           row[10] || '',
-          dateRequired:          row[11] || '',
-          headOfContractor:      row[12] || '',
-          nameOfContractor:      row[13] || '',
-          contractorFirmName:    row[14] || '',
-          Approved_Head_2:       row[24] || '',
-          Name_Of_Contractor_2:  row[25] || '',
-          Contractor_Firm_Name_2:row[26] || '',
-          remark:                row[27] || '',
-          planned3:              row[28] || '',
-          actual3:               row[29] || '',
-
-          // ✅ Labour_Requirement ka W-AL data (auto-fill ke liye)
-          reqAutofill: reqData,
-        };
-      });
-
-    console.log(`[LABOUR MGMT] Total Pending: ${pendingLabour.length}`);
-
-    res.json({
-      success: true,
-      count: pendingLabour.length,
-      data: pendingLabour
-    });
-  } catch (error) {
-    console.error('❌ Error fetching pending labour management:', error);
-    res.status(500).json({ success: false, error: 'Failed to fetch pending labour management' });
-  }
-});
-
-
-// ============================================================
 // POST /Post-labour-management
 // ============================================================
 router.post('/Post-labour-management', async (req, res) => {
@@ -524,11 +350,6 @@ router.post('/Post-labour-management', async (req, res) => {
       Contractor_Commission, Total_Paid_Amount_3, Company_Head_Amount_3,
       Contractor_Head_Amount_3, Remark_3
     } = req.body;
-
-    console.log('=== INCOMING PAYLOAD ===');
-    console.log('Contractor_Commission:', Contractor_Commission);
-    console.log('Total_Paid_Amount_3:', Total_Paid_Amount_3);
-    console.log('========================');
 
     if (!uid) {
       return res.status(400).json({ success: false, message: 'UID is required' });
@@ -601,10 +422,6 @@ router.post('/Post-labour-management', async (req, res) => {
       });
     }
 
-    console.log('=== BATCH DATA TO WRITE ===');
-    batchData.forEach(item => console.log(`${item.range} → ${item.values[0][0]}`));
-    console.log('===========================');
-
     await sheets.spreadsheets.values.batchUpdate({
       spreadsheetId: SiteExpeseSheetId,
       resource: { valueInputOption: 'USER_ENTERED', data: batchData },
@@ -627,9 +444,98 @@ router.post('/Post-labour-management', async (req, res) => {
     console.error('=== BACKEND ERROR ===', error);
     return res.status(500).json({
       success: false,
-      message: 'Update failed - see server logs for details',
+      message: 'Update failed',
       error: error.message || 'Unknown error'
     });
+  }
+});
+
+
+// ============================================================
+// ✅ NEW - POST /update-labour-requirement (Jiski Wajah Se 404 Aa Raha Tha)
+// Updates the "Labour_Requirement" sheet based on UID
+// ============================================================
+router.post('/update-labour-requirement', async (req, res) => {
+  const {
+    uid, Status_3, Time_Delay_3, Labouar_Contractor_Name_3, Labour_Category_1_3,
+    Number_Of_Labour_1_3, Labour_Rate_1_3, Labour_Category_2_3,
+    Number_Of_Labour_2_3, Labour_Rate_2_3, Total_Wages_3, Conveyanance_3,
+    Contractor_Commission, Total_Paid_Amount_3, Company_Head_Amount_3,
+    Contractor_Head_Amount_3, Remark_3
+  } = req.body;
+
+  if (!uid) {
+    return res.status(400).json({ success: false, message: 'UID is required' });
+  }
+
+  try {
+    const response = await sheets.spreadsheets.values.get({
+      spreadsheetId: SiteExpeseSheetId,
+      range: 'Labour_Requirement!A2:AL10000',
+    });
+
+    const rows = response.data.values || [];
+    if (rows.length === 0) {
+      return res.status(404).json({ success: false, message: 'No data found in Labour_Requirement sheet' });
+    }
+
+    const rowIndex = rows.findIndex(row =>
+      row[1] && String(row[1]).trim().toUpperCase() === String(uid).trim().toUpperCase()
+    );
+
+    if (rowIndex === -1) {
+      return res.status(404).json({ success: false, message: `UID not found in Labour_Requirement: ${uid}` });
+    }
+
+    const sheetRowNumber = 2 + rowIndex; // Starting range A2 so index 0 is row 2
+    const batchData = [];
+
+    const addIfValid = (colLetter, value) => {
+      if (value !== undefined && value !== null && String(value).trim() !== '') {
+        batchData.push({
+          range: `Labour_Requirement!${colLetter}${sheetRowNumber}`,
+          values: [[value]]
+        });
+      }
+    };
+
+    // Columns mapping from W to AL
+    addIfValid('W', Status_3);
+    addIfValid('X', Time_Delay_3);
+    addIfValid('Y', Labouar_Contractor_Name_3);
+    addIfValid('Z', Labour_Category_1_3);
+    addIfValid('AA', Number_Of_Labour_1_3);
+    addIfValid('AB', Labour_Rate_1_3);
+    addIfValid('AC', Labour_Category_2_3);
+    addIfValid('AD', Number_Of_Labour_2_3);
+    addIfValid('AE', Labour_Rate_2_3);
+    addIfValid('AF', Total_Wages_3);
+    addIfValid('AG', Conveyanance_3);
+    addIfValid('AH', Contractor_Commission);
+    addIfValid('AI', Total_Paid_Amount_3);
+    addIfValid('AJ', Company_Head_Amount_3);
+    addIfValid('AK', Contractor_Head_Amount_3);
+    addIfValid('AL', Remark_3);
+
+    if (batchData.length === 0) {
+      return res.json({ success: true, message: 'No non-empty fields to update' });
+    }
+
+    await sheets.spreadsheets.values.batchUpdate({
+      spreadsheetId: SiteExpeseSheetId,
+      resource: { valueInputOption: 'USER_ENTERED', data: batchData },
+    });
+
+    return res.json({
+      success: true,
+      message: 'Labour_Requirement updated successfully',
+      rowNumber: sheetRowNumber,
+      updatedCount: batchData.length
+    });
+
+  } catch (error) {
+    console.error('Error updating Labour_Requirement:', error);
+    return res.status(500).json({ success: false, message: 'Update failed', error: error.message });
   }
 });
 
@@ -742,8 +648,6 @@ router.post('/Post-labour-Approvel-AshokSir', async (req, res) => {
     }
 
     const sheetRowNumber = 7 + rowIndex;
-    console.log(`Found UID ${uid} at array index ${rowIndex} → sheet row ${sheetRowNumber}`);
-
     const batchData = [];
 
     if (status !== undefined && String(status).trim() !== '')
@@ -879,8 +783,6 @@ router.post('/Post-labour-Paid', async (req, res) => {
     }
 
     const sheetRowNumber = 7 + rowIndex;
-    console.log(`Found UID ${uid} at sheet row ${sheetRowNumber} | isLastUID: ${isLastUID}`);
-
     const batchData = [];
 
     if (isLastUID) {
@@ -921,11 +823,7 @@ router.post('/Post-labour-Paid', async (req, res) => {
 
     return res.json({
       success: true,
-      message: isLastUID
-        ? (Status_5 === 'Reject'
-          ? 'Last UID rejected - BN=Reject, BP-BV="-", BW=Remark'
-          : 'Last UID - All payment details saved (BN,BP-BW)')
-        : 'Non-last UID - BN=Done, BP-BW="-"',
+      message: isLastUID ? 'Last UID saved' : 'Non-last UID saved',
       rowNumber: sheetRowNumber,
       isLastUID,
       Status_5,
@@ -940,14 +838,8 @@ router.post('/Post-labour-Paid', async (req, res) => {
 });
 
 
-// ═══════════════════════════════════════════════════════════════════
-// ✅ LABOUR ATTENDANCE APIs (Company Labour Sheet)
-// ═══════════════════════════════════════════════════════════════════
-
 // ============================================================
 // GET /get-Labour-Attendance
-// CompanyLabourSheetId → Labour_Attedace_FMS!A7 se saara data
-// ✅ UPDATED - Ab T to W columns bhi fetch karta hai (approval fields)
 // ============================================================
 router.get('/get-Labour-Attendance', async (req, res) => {
   try {
@@ -958,79 +850,49 @@ router.get('/get-Labour-Attendance', async (req, res) => {
     });
 
     const rows = response.data.values || [];
-    console.log(`[LABOUR ATTENDANCE] Total rows fetched: ${rows.length}`);
 
     const attendanceData = rows
       .filter(row => {
-        // UID (col B) mandatory
         if (!row || !row[1] || String(row[1]).trim() === '') return false;
-
-        // ✅ FILTER LOGIC:
-        // Planned_2 (P - row[15]) me data hona chahiye
-        // Actual_2  (Q - row[16]) me data NAHI hona chahiye
         const planned2 = (row[19] || '').toString().trim();
         const actual2  = (row[20] || '').toString().trim();
-
         return planned2 !== '' && actual2 === '';
       })
       .map((row, index) => ({
-        rowNumber:               7 + index,       // Actual sheet row (approximate)
-        timestamp:               row[0]  || '',   // A - Timestamp
-        uid:                     row[1]  || '',   // B - UID
-        workDate:                row[2]  || '',   // C - Work_Date_1
-        projectName:             row[3]  || '',   // D - Project_Name_1
-        projectEngineer:         row[4]  || '',   // E - Project_Engineer_1
-        // F (row[5]) - Blank (skip)
-        labourName:              row[6]  || '',   // G - Labour_Name_1
-        dayNight:                row[7]  || '',   // H - Day_Night_1
-        dayAttendance:           row[8]  || '',   // I - Day Attendance
-        workType:                row[9]  || '',   // J - Work_Type_1
-        workDescription:         row[10] || '',   // K - Work_Description_1
-        headOfContractorCompany: row[11] || '',   // L - Head Of Contractor/Company_1
-        nameOfContractor:        row[12] || '',   // M - Name_Of_Contractor_1
-        contractorFirmName:      row[13] || '',   // N - Contractor_Firm_Name_1
-        remark:                  row[14] || '',   // O - Remark_1
-
-        // Approval Fields (P to W)
-        planned2:                row[15] || '',   // P - Planned_2
-        actual2:                 row[16] || '',   // Q - Actual_2
-        status2:                 row[17] || '',   // R - Status_2
-        timeDelay2:              row[18] || '',   // S - Time_Delay_2
-        approvedHead2:           row[19] || '',   // T - Approved_Head_2
-        nameOfContractor2:       row[20] || '',   // U - Name_Of_Contractor_2
-        contractorFirmName2:     row[21] || '',   // V - Contractor_Firm_Name_2
-        remark2:                 row[22] || '',   // W - Remark_2
+        rowNumber:               7 + index,
+        timestamp:               row[0]  || '',
+        uid:                     row[1]  || '',
+        workDate:                row[2]  || '',
+        projectName:             row[3]  || '',
+        projectEngineer:         row[4]  || '',
+        labourName:              row[6]  || '',
+        dayNight:                row[7]  || '',
+        dayAttendance:           row[8]  || '',
+        workType:                row[9]  || '',
+        workDescription:         row[10] || '',
+        headOfContractorCompany: row[11] || '',
+        nameOfContractor:        row[12] || '',
+        contractorFirmName:      row[13] || '',
+        remark:                  row[14] || '',
+        planned2:                row[15] || '',
+        actual2:                 row[16] || '',
+        status2:                 row[17] || '',
+        timeDelay2:              row[18] || '',
+        approvedHead2:           row[19] || '',
+        nameOfContractor2:       row[20] || '',
+        contractorFirmName2:     row[21] || '',
+        remark2:                 row[22] || '',
       }));
 
-    // Latest entries pehle dikhao
     attendanceData.reverse();
-
-    // Stats
-    const stats = {
-      totalEntries:   attendanceData.length,
-      uniqueLabours:  [...new Set(attendanceData.map(d => d.labourName).filter(Boolean))].length,
-      uniqueProjects: [...new Set(attendanceData.map(d => d.projectName).filter(Boolean))].length,
-      dayCount:       attendanceData.filter(d => d.dayNight === 'Day').length,
-      nightCount:     attendanceData.filter(d => d.dayNight === 'Night').length,
-      fullDayCount:   attendanceData.filter(d => d.dayAttendance === 'Full Day').length,
-      halfDayCount:   attendanceData.filter(d => d.dayAttendance === 'Half Day').length,
-      absentCount:    attendanceData.filter(d => d.dayAttendance === 'Absent').length,
-      pendingCount:   attendanceData.filter(d => !d.status2).length,
-      approvedCount:  attendanceData.filter(d => d.status2 === 'Approved').length,
-      rejectedCount:  attendanceData.filter(d => d.status2 === 'Reject').length,
-    };
-
-    console.log(`[LABOUR ATTENDANCE] Filtered (Planned_2 ✅ + Actual_2 ❌): ${attendanceData.length} rows`);
-    console.log('[LABOUR ATTENDANCE] Stats:', stats);
 
     res.json({
       success: true,
       count:   attendanceData.length,
-      stats,
       data:    attendanceData,
     });
   } catch (error) {
-    console.error('❌ Error fetching Labour Attendance:', error);
+    console.error('Error fetching Labour Attendance:', error);
     res.status(500).json({
       success: false,
       message: 'Failed to fetch labour attendance',
@@ -1039,32 +901,19 @@ router.get('/get-Labour-Attendance', async (req, res) => {
   }
 });
 
+
 // ============================================================
 // POST /Update-Labour-Attendance
-// UID se existing attendance entry update karo (form re-edit)
 // ============================================================
 router.post('/Update-Labour-Attendance', async (req, res) => {
   const {
-    uid,
-    Work_Date_1,
-    Project_Name_1,
-    Project_Engineer_1,
-    Labour_Name_1,
-    Day_Night_1,
-    Day_Attendance_1,
-    Work_Type_1,
-    Work_Description_1,
-    Head_Of_Contractor_Company_1,
-    Name_Of_Contractor_1,
-    Contractor_Firm_Name_1,
-    Remark_1,
+    uid, Work_Date_1, Project_Name_1, Project_Engineer_1, Labour_Name_1,
+    Day_Night_1, Day_Attendance_1, Work_Type_1, Work_Description_1,
+    Head_Of_Contractor_Company_1, Name_Of_Contractor_1, Contractor_Firm_Name_1, Remark_1
   } = req.body;
 
   if (!uid) {
-    return res.status(400).json({
-      success: false,
-      message: 'UID is required',
-    });
+    return res.status(400).json({ success: false, message: 'UID is required' });
   }
 
   try {
@@ -1075,10 +924,7 @@ router.post('/Update-Labour-Attendance', async (req, res) => {
 
     const rows = response.data.values || [];
     if (rows.length === 0) {
-      return res.status(404).json({
-        success: false,
-        message: 'No data found in Labour_Attedace_FMS sheet',
-      });
+      return res.status(404).json({ success: false, message: 'No data found' });
     }
 
     const rowIndex = rows.findIndex(row =>
@@ -1086,15 +932,10 @@ router.post('/Update-Labour-Attendance', async (req, res) => {
     );
 
     if (rowIndex === -1) {
-      return res.status(404).json({
-        success: false,
-        message: `UID not found: ${uid}`,
-      });
+      return res.status(404).json({ success: false, message: `UID not found: ${uid}` });
     }
 
     const sheetRowNumber = 7 + rowIndex;
-    console.log(`[UPDATE] Found UID ${uid} at row ${sheetRowNumber}`);
-
     const batchData = [];
 
     const addIfValid = (colLetter, value) => {
@@ -1106,11 +947,9 @@ router.post('/Update-Labour-Attendance', async (req, res) => {
       }
     };
 
-    // Column mapping (F blank column skip)
     addIfValid('C', Work_Date_1);
     addIfValid('D', Project_Name_1);
     addIfValid('E', Project_Engineer_1);
-    // F - BLANK (skip)
     addIfValid('G', Labour_Name_1);
     addIfValid('H', Day_Night_1);
     addIfValid('I', Day_Attendance_1);
@@ -1122,76 +961,40 @@ router.post('/Update-Labour-Attendance', async (req, res) => {
     addIfValid('O', Remark_1);
 
     if (batchData.length === 0) {
-      return res.json({
-        success: true,
-        message: 'No valid fields to update',
-      });
+      return res.json({ success: true, message: 'No valid fields to update' });
     }
 
     await sheets.spreadsheets.values.batchUpdate({
       spreadsheetId: CompanyLabourSheetId,
-      resource: {
-        valueInputOption: 'USER_ENTERED',
-        data:             batchData,
-      },
+      resource: { valueInputOption: 'USER_ENTERED', data: batchData },
     });
-
-    const updatedColumns = batchData.map(d => d.range.match(/!([A-Z]+)/)?.[1]);
-
-    console.log(`[UPDATE SUCCESS] Row ${sheetRowNumber} | Columns: ${updatedColumns.join(', ')}`);
 
     return res.json({
       success:        true,
       message:        'Labour Attendance updated successfully',
       rowNumber:      sheetRowNumber,
-      updatedColumns,
       updatedCount:   batchData.length,
     });
   } catch (error) {
-    console.error('❌ Update error:', error);
-    return res.status(500).json({
-      success: false,
-      message: 'Update failed',
-      error:   error.message,
-    });
+    console.error('Update error:', error);
+    return res.status(500).json({ success: false, message: 'Update failed', error: error.message });
   }
 });
 
 
 // ============================================================
-// ✅ NEW - POST /Update-Labour-Attendance-Approval
-// Attendance approval (R to W columns): Status, Approved Head, 
-// Contractor Name, Firm Name, Remark
-// 
-// COLUMN MAPPING:
-//   P - Planned_2         → SKIP (auto)
-//   Q - Actual_2          → SKIP (auto)
-//   R - Status_2          ✅ Update
-//   S - Time_Delay_2      → SKIP (auto)
-//   T - Approved_Head_2   ✅ Update
-//   U - Name_Of_Contractor_2   ✅ Update
-//   V - Contractor_Firm_Name_2 ✅ Update
-//   W - Remark_2          ✅ Update
+// POST /Update-Labour-Attendance-Approval
 // ============================================================
 router.post('/Update-Labour-Attendance-Approval', async (req, res) => {
   const {
-    uid,
-    Status_2,
-    Approved_Head_2,
-    Name_Of_Contractor_2,
-    Contractor_Firm_Name_2,
-    Remark_2,
+    uid, Status_2, Approved_Head_2, Name_Of_Contractor_2, Contractor_Firm_Name_2, Remark_2
   } = req.body;
 
   if (!uid) {
-    return res.status(400).json({
-      success: false,
-      message: 'UID is required',
-    });
+    return res.status(400).json({ success: false, message: 'UID is required' });
   }
 
   try {
-    // Fetch all UIDs from column B
     const response = await sheets.spreadsheets.values.get({
       spreadsheetId: CompanyLabourSheetId,
       range: 'Labour_Attedace_FMS!A7:AA10000',
@@ -1199,30 +1002,20 @@ router.post('/Update-Labour-Attendance-Approval', async (req, res) => {
 
     const rows = response.data.values || [];
     if (rows.length === 0) {
-      return res.status(404).json({
-        success: false,
-        message: 'No data found in Labour_Attedace_FMS sheet',
-      });
+      return res.status(404).json({ success: false, message: 'No data found' });
     }
 
-    // Find row by UID
     const rowIndex = rows.findIndex(row =>
       row[1] && String(row[1]).trim() === String(uid).trim()
     );
 
     if (rowIndex === -1) {
-      return res.status(404).json({
-        success: false,
-        message: `UID not found: ${uid}`,
-      });
+      return res.status(404).json({ success: false, message: `UID not found: ${uid}` });
     }
 
     const sheetRowNumber = 7 + rowIndex;
-    console.log(`[APPROVAL UPDATE] UID ${uid} → row ${sheetRowNumber}`);
-
     const batchData = [];
 
-    // R - Status_2 (Approved / Reject)
     if (Status_2 !== undefined && String(Status_2).trim() !== '') {
       batchData.push({
         range: `Labour_Attedace_FMS!V${sheetRowNumber}`,
@@ -1230,7 +1023,6 @@ router.post('/Update-Labour-Attendance-Approval', async (req, res) => {
       });
     }
 
-    // T - Approved_Head_2 (Company Head / Contractor Head)
     if (Approved_Head_2 !== undefined) {
       batchData.push({
         range: `Labour_Attedace_FMS!X${sheetRowNumber}`,
@@ -1238,7 +1030,6 @@ router.post('/Update-Labour-Attendance-Approval', async (req, res) => {
       });
     }
 
-    // U - Name_Of_Contractor_2
     if (Name_Of_Contractor_2 !== undefined) {
       batchData.push({
         range: `Labour_Attedace_FMS!Y${sheetRowNumber}`,
@@ -1246,7 +1037,6 @@ router.post('/Update-Labour-Attendance-Approval', async (req, res) => {
       });
     }
 
-    // V - Contractor_Firm_Name_2
     if (Contractor_Firm_Name_2 !== undefined) {
       batchData.push({
         range: `Labour_Attedace_FMS!Z${sheetRowNumber}`,
@@ -1254,7 +1044,6 @@ router.post('/Update-Labour-Attendance-Approval', async (req, res) => {
       });
     }
 
-    // W - Remark_2
     if (Remark_2 !== undefined) {
       batchData.push({
         range: `Labour_Attedace_FMS!AA${sheetRowNumber}`,
@@ -1263,41 +1052,23 @@ router.post('/Update-Labour-Attendance-Approval', async (req, res) => {
     }
 
     if (batchData.length === 0) {
-      return res.json({
-        success: true,
-        message: 'No fields to update',
-      });
+      return res.json({ success: true, message: 'No fields to update' });
     }
-
-    console.log('[APPROVAL BATCH DATA]');
-    batchData.forEach(item => console.log(`  ${item.range} → ${item.values[0][0]}`));
 
     await sheets.spreadsheets.values.batchUpdate({
       spreadsheetId: CompanyLabourSheetId,
-      resource: {
-        valueInputOption: 'USER_ENTERED',
-        data: batchData,
-      },
+      resource: { valueInputOption: 'USER_ENTERED', data: batchData },
     });
-
-    const updatedColumns = batchData.map(d => d.range.match(/!([A-Z]+)/)?.[1]);
-
-    console.log(`[APPROVAL SUCCESS] Row ${sheetRowNumber} | Columns: ${updatedColumns.join(', ')}`);
 
     return res.json({
       success:        true,
       message:        'Attendance approval updated successfully',
       rowNumber:      sheetRowNumber,
-      updatedColumns,
       updatedCount:   batchData.length,
     });
   } catch (error) {
-    console.error('❌ Approval update error:', error);
-    return res.status(500).json({
-      success: false,
-      message: 'Update failed',
-      error:   error.message,
-    });
+    console.error('Approval update error:', error);
+    return res.status(500).json({ success: false, message: 'Update failed', error: error.message });
   }
 });
 

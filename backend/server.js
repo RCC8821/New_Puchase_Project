@@ -105,6 +105,7 @@ app.use('/api/outStading', OutStanding);
 app.use('/api', Form);
 app.use('/api/DebitExpenses', DebitApprovel1);
 app.use('/api/SiteExpenses', SiteApprovels);
+app.use('/api', LabourApprovel); // Takki /api/update-labour-requirement seedha load ho jaye
 app.use('/api/labour', LabourApprovel);
 app.use('/api/labour/pdf', LabourPDF);
 
