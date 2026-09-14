@@ -1,9 +1,10 @@
 
+
 // import React, { useState, useEffect, useMemo, useCallback } from "react";
 // import {
 //   Loader2, AlertCircle, CheckCircle, X, ChevronDown, RotateCcw,
 //   Package, FileText, ArrowLeft, ArrowRight, Check, ExternalLink,
-//   Edit3, Search, Lock, Building2,
+//   Edit3, Search, Lock, Building2, MessageSquare
 // } from "lucide-react";
 
 // const T = {
@@ -129,6 +130,7 @@
 //   const [selectedVendor, setSelectedVendor] = useState("");
 //   const [selectedUIDs, setSelectedUIDs] = useState(new Set());
 
+//   // 🆕 Added 'Take Quotation Remark' column at the end
 //   const tableCols = [
 //     { label: "Planned 5", w: 100 }, { label: "UID", w: 60 },
 //     { label: "Req No", w: 90 }, { label: "Project", w: 150 },
@@ -139,6 +141,7 @@
 //     { label: "Decided Brand", w: 140 }, { label: "Indent No", w: 110 },
 //     { label: "PDF", w: 80 }, { label: "No. of Quotations", w: 130 },
 //     { label: "Final Brand", w: 120 },
+//     { label: "Take Quotation Remark", w: 200 }, // 🆕 Step 5 User Remark
 //   ];
 
 //   const fetchRequests = useCallback(async () => {
@@ -171,6 +174,7 @@
 //           PLANNED_5: item.PLANNED_5 || "",
 //           No_Of_Quotation_4: item.No_Of_Quotation_4 || item["No._Of_Quotation_4"] || "",
 //           REMARK_4: item.REMARK_4 || "",
+//           Final_Remark: item.Final_Remark || "", // 🆕 Step 5 Remark
 //         })));
 //       } else {
 //         throw new Error("Invalid data format");
@@ -357,7 +361,6 @@
 //     setSuccessMsg("");
 //   };
 
-//   // ✅ UPDATED - Added projectName
 //   const vendorGroups = useMemo(() => {
 //     const map = new Map();
 //     (selectedUIDData || []).forEach((item) => {
@@ -369,7 +372,7 @@
 //           vendorAddress: item.Vendor_Address || "",
 //           vendorContact: item.Contact_Number || "",
 //           vendorGST: item.Vendor_GST_No || "",
-//           projectName: item.site_name || "",  // ✅ NEW - Project Name
+//           projectName: item.site_name || "",
 //           transportRequired: item.IS_TRANSPORT_REQUIRED || "",
 //           transportCharges: toNum(item.EXPECTED_TRANSPORT_CHARGES),
 //           freightCharges: toNum(item.EXPECTED_FRIGHET_CHARGES),
@@ -576,6 +579,18 @@
 //                               }}>{req.No_Of_Quotation_4}</span>
 //                             </Td>
 //                             <Td maxW={110}>{req.REMARK_4}</Td>
+//                             {/* 🆕 Take Quotation User Remark Column */}
+//                             <Td maxW={180}>
+//                               {req.Final_Remark ? (
+//                                 <span style={{
+//                                   display: "inline-flex", alignItems: "center", gap: 4,
+//                                   background: `${T.gold}10`, color: T.goldDark,
+//                                   padding: "3px 8px", borderRadius: 6, fontSize: 12, fontWeight: 500
+//                                 }}>
+//                                   <MessageSquare size={12} /> {req.Final_Remark}
+//                                 </span>
+//                               ) : <span style={{ color: T.textMuted }}>—</span>}
+//                             </Td>
 //                           </tr>
 //                         ))}
 //                       </tbody>
@@ -730,7 +745,6 @@
 //                 <ArrowLeft size={16} />
 //               </button>
 
-//               {/* ✅ UPDATED - Header with Project Name */}
 //               <div>
 //                 <h3 style={{
 //                   fontSize: 15, fontWeight: 700, color: "white",
@@ -992,7 +1006,6 @@
 //                           </button>
 //                         </div>
 
-//                         {/* ✅ NEW - Project Name Badge */}
 //                         {vendor.projectName && (
 //                           <div style={{
 //                             display: "flex",
@@ -1024,7 +1037,6 @@
 //                             return sum + (itemTotal > 0 ? itemTotal : toNum(item.Total_Value));
 //                           }, 0);
 
-//                           // ✅ Calculate total discount
 //                           const totalDiscount = vendor.items.reduce((sum, item) => {
 //                             return sum + toNum(item.Discount);
 //                           }, 0);
@@ -1068,7 +1080,6 @@
 //                                     📦 {vendor.totalItems} Material{vendor.totalItems !== 1 ? 's' : ''}
 //                                   </div>
 
-//                                   {/* ✅ NEW - Total Discount Display */}
 //                                   {totalDiscount > 0 && (
 //                                     <div style={{
 //                                       opacity: 0.9,
@@ -1186,8 +1197,8 @@
 //                                 key={item.UID + iIdx}
 //                                 onClick={() => canInteract && handleMaterialToggle(item.UID, vendor.vendorName)}
 //                                 style={{
-//                                   display: "flex", alignItems: "center",
-//                                   gap: 8, padding: "10px 12px", borderRadius: 6,
+//                                   display: "flex", flexDirection: "column", gap: 4,
+//                                   padding: "10px 12px", borderRadius: 6,
 //                                   background: isItemSelected && isThisVendorSelected
 //                                     ? `${T.gold}15`
 //                                     : isLowest && !isDisabled
@@ -1204,141 +1215,155 @@
 //                                   transition: "all 0.15s ease",
 //                                 }}
 //                               >
-//                                 <div style={{
-//                                   width: 18, height: 18, borderRadius: 4,
-//                                   flexShrink: 0,
-//                                   border: `2px solid ${isItemSelected && isThisVendorSelected ? T.gold : "#d1d5db"}`,
-//                                   background: isItemSelected && isThisVendorSelected ? T.gold : "white",
-//                                   display: "flex", alignItems: "center", justifyContent: "center",
-//                                 }}>
-//                                   {isItemSelected && isThisVendorSelected && (
-//                                     <Check size={11} color={T.navyDark} strokeWidth={3} />
-//                                   )}
-//                                 </div>
-
-//                                 <span style={{
-//                                   background: T.navy, color: T.gold,
-//                                   padding: "2px 6px", borderRadius: 4,
-//                                   fontSize: 10, fontWeight: 700, flexShrink: 0,
-//                                 }}>
-//                                   {item.UID}
-//                                 </span>
-
-//                                 <div style={{ flex: 1, minWidth: 0, overflow: "hidden" }}>
+//                                 <div style={{ display: "flex", alignItems: "center", gap: 8, width: "100%" }}>
 //                                   <div style={{
-//                                     fontSize: 12, fontWeight: 700, color: T.navy,
-//                                     whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis",
+//                                     width: 18, height: 18, borderRadius: 4,
+//                                     flexShrink: 0,
+//                                     border: `2px solid ${isItemSelected && isThisVendorSelected ? T.gold : "#d1d5db"}`,
+//                                     background: isItemSelected && isThisVendorSelected ? T.gold : "white",
+//                                     display: "flex", alignItems: "center", justifyContent: "center",
 //                                   }}>
-//                                     {item.Material_name}
-//                                   </div>
-//                                   <div style={{
-//                                     fontSize: 10, color: T.textMuted, display: "flex",
-//                                     gap: 6, marginTop: 2, flexWrap: "wrap",
-//                                   }}>
-//                                     {item.Material_Size && (
-//                                       <span>📏 {item.Material_Size}</span>
-//                                     )}
-//                                     {item.Total_Quantity && (
-//                                       <span>📦 Qty: {item.Total_Quantity}</span>
+//                                     {isItemSelected && isThisVendorSelected && (
+//                                       <Check size={11} color={T.navyDark} strokeWidth={3} />
 //                                     )}
 //                                   </div>
+
+//                                   <span style={{
+//                                     background: T.navy, color: T.gold,
+//                                     padding: "2px 6px", borderRadius: 4,
+//                                     fontSize: 10, fontWeight: 700, flexShrink: 0,
+//                                   }}>
+//                                     {item.UID}
+//                                   </span>
+
+//                                   <div style={{ flex: 1, minWidth: 0, overflow: "hidden" }}>
+//                                     <div style={{
+//                                       fontSize: 12, fontWeight: 700, color: T.navy,
+//                                       whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis",
+//                                     }}>
+//                                       {item.Material_name}
+//                                     </div>
+//                                     <div style={{
+//                                       fontSize: 10, color: T.textMuted, display: "flex",
+//                                       gap: 6, marginTop: 2, flexWrap: "wrap",
+//                                     }}>
+//                                       {item.Material_Size && (
+//                                         <span>📏 {item.Material_Size}</span>
+//                                       )}
+//                                       {item.Total_Quantity && (
+//                                         <span>📦 Qty: {item.Total_Quantity}</span>
+//                                       )}
+//                                     </div>
+//                                   </div>
+
+//                                   <div style={{
+//                                     textAlign: "right", flexShrink: 0,
+//                                     display: "flex", flexDirection: "column",
+//                                     gap: 3, minWidth: 220,
+//                                   }}>
+//                                     <div style={{
+//                                       fontSize: 14, fontWeight: 800,
+//                                       color: isLowest ? T.success : T.navy,
+//                                       lineHeight: 1.2, whiteSpace: "nowrap",
+//                                     }}>
+//                                       ₹{fmtINR(baseRate)}
+//                                       <span style={{
+//                                         fontSize: 9, fontWeight: 500,
+//                                         color: T.textMuted, marginLeft: 2,
+//                                       }}>/unit</span>
+//                                     </div>
+
+//                                     {discount > 0 && (
+//                                       <div style={{
+//                                         fontSize: 10,
+//                                         color: T.danger,
+//                                         background: `${T.danger}10`,
+//                                         padding: '2px 8px',
+//                                         borderRadius: 4,
+//                                         whiteSpace: "nowrap",
+//                                         fontWeight: 600,
+//                                         border: `1px solid ${T.danger}30`,
+//                                       }}>
+//                                         💰 Discount: -₹{fmtINR(discount)}
+//                                       </div>
+//                                     )}
+
+//                                     {(toNum(item.CGST) > 0 || toNum(item.SGST) > 0 || toNum(item.IGST) > 0) && (
+//                                       <div style={{
+//                                         fontSize: 9,
+//                                         color: T.textLight,
+//                                         whiteSpace: "nowrap",
+//                                         background: T.borderLight,
+//                                         padding: '2px 6px',
+//                                         borderRadius: 4,
+//                                       }}>
+//                                         {toNum(item.CGST) > 0 && <span>CGST: {item.CGST}% </span>}
+//                                         {toNum(item.SGST) > 0 && <span>SGST: {item.SGST}% </span>}
+//                                         {toNum(item.IGST) > 0 && <span>IGST: {item.IGST}%</span>}
+//                                       </div>
+//                                     )}
+
+//                                     {baseRate !== finalRate && (
+//                                       <div style={{
+//                                         fontSize: 11,
+//                                         color: T.textLight,
+//                                         whiteSpace: "nowrap",
+//                                         borderTop: `1px dashed ${T.border}`,
+//                                         paddingTop: 3,
+//                                         marginTop: 2,
+//                                       }}>
+//                                         Final: <strong style={{ color: T.navy }}>₹{fmtINR(finalRate)}</strong>
+//                                       </div>
+//                                     )}
+
+//                                     <div style={{
+//                                       fontSize: 10, color: T.textLight,
+//                                       whiteSpace: "nowrap",
+//                                     }}>
+//                                       {qty || '—'} × ₹{fmtINR(finalRate)}
+//                                     </div>
+
+//                                     <div style={{
+//                                       fontSize: 13, fontWeight: 800, color: T.navy,
+//                                       background: isLowest ? `${T.success}15` : T.borderLight,
+//                                       padding: '4px 10px', borderRadius: 5,
+//                                       border: isLowest ? `1px solid ${T.success}40` : 'none',
+//                                       whiteSpace: "nowrap", textAlign: "right",
+//                                     }}>
+//                                       = ₹{fmtINR(displayTotal)}
+//                                     </div>
+
+//                                     {isLowest && (
+//                                       <div style={{
+//                                         background: T.success, color: "white",
+//                                         fontSize: 8, fontWeight: 700,
+//                                         padding: "2px 6px", borderRadius: 8,
+//                                         textAlign: "center", whiteSpace: "nowrap",
+//                                       }}>
+//                                         ★ BEST PRICE
+//                                       </div>
+//                                     )}
+//                                   </div>
 //                                 </div>
 
-//                                 {/* ✅ UPDATED - Price section with Discount & Tax */}
-//                                 <div style={{
-//                                   textAlign: "right", flexShrink: 0,
-//                                   display: "flex", flexDirection: "column",
-//                                   gap: 3, minWidth: 220,
-//                                 }}>
-//                                   {/* Base Rate */}
+//                                 {/* 🆕 Final Remark Display inside Step 2 card item row */}
+//                                 {item.Final_Remark && (
 //                                   <div style={{
-//                                     fontSize: 14, fontWeight: 800,
-//                                     color: isLowest ? T.success : T.navy,
-//                                     lineHeight: 1.2, whiteSpace: "nowrap",
+//                                     width: "100%",
+//                                     marginTop: 6,
+//                                     padding: "6px 12px",
+//                                     background: "rgba(245, 158, 11, 0.08)",
+//                                     borderLeft: `3.5px solid ${T.gold}`,
+//                                     borderRadius: "0 6px 6px 0",
+//                                     fontSize: "11.5px",
+//                                     color: T.navy,
+//                                     lineHeight: 1.4,
+//                                     whiteSpace: "normal",
+//                                     wordBreak: "break-word"
 //                                   }}>
-//                                     ₹{fmtINR(baseRate)}
-//                                     <span style={{
-//                                       fontSize: 9, fontWeight: 500,
-//                                       color: T.textMuted, marginLeft: 2,
-//                                     }}>/unit</span>
+//                                     💬 <strong>Quotation Remark:</strong> {item.Final_Remark}
 //                                   </div>
-
-//                                   {/* ✅ NEW - Discount Display */}
-//                                   {discount > 0 && (
-//                                     <div style={{
-//                                       fontSize: 10,
-//                                       color: T.danger,
-//                                       background: `${T.danger}10`,
-//                                       padding: '2px 8px',
-//                                       borderRadius: 4,
-//                                       whiteSpace: "nowrap",
-//                                       fontWeight: 600,
-//                                       border: `1px solid ${T.danger}30`,
-//                                     }}>
-//                                       💰 Discount: -₹{fmtINR(discount)}
-//                                     </div>
-//                                   )}
-
-//                                   {/* ✅ NEW - Tax Details */}
-//                                   {(toNum(item.CGST) > 0 || toNum(item.SGST) > 0 || toNum(item.IGST) > 0) && (
-//                                     <div style={{
-//                                       fontSize: 9,
-//                                       color: T.textLight,
-//                                       whiteSpace: "nowrap",
-//                                       background: T.borderLight,
-//                                       padding: '2px 6px',
-//                                       borderRadius: 4,
-//                                     }}>
-//                                       {toNum(item.CGST) > 0 && <span>CGST: {item.CGST}% </span>}
-//                                       {toNum(item.SGST) > 0 && <span>SGST: {item.SGST}% </span>}
-//                                       {toNum(item.IGST) > 0 && <span>IGST: {item.IGST}%</span>}
-//                                     </div>
-//                                   )}
-
-//                                   {/* ✅ NEW - Final Rate (after tax) */}
-//                                   {baseRate !== finalRate && (
-//                                     <div style={{
-//                                       fontSize: 11,
-//                                       color: T.textLight,
-//                                       whiteSpace: "nowrap",
-//                                       borderTop: `1px dashed ${T.border}`,
-//                                       paddingTop: 3,
-//                                       marginTop: 2,
-//                                     }}>
-//                                       Final: <strong style={{ color: T.navy }}>₹{fmtINR(finalRate)}</strong>
-//                                     </div>
-//                                   )}
-
-//                                   {/* Calculation */}
-//                                   <div style={{
-//                                     fontSize: 10, color: T.textLight,
-//                                     whiteSpace: "nowrap",
-//                                   }}>
-//                                     {qty || '—'} × ₹{fmtINR(finalRate)}
-//                                   </div>
-
-//                                   {/* Total */}
-//                                   <div style={{
-//                                     fontSize: 13, fontWeight: 800, color: T.navy,
-//                                     background: isLowest ? `${T.success}15` : T.borderLight,
-//                                     padding: '4px 10px', borderRadius: 5,
-//                                     border: isLowest ? `1px solid ${T.success}40` : 'none',
-//                                     whiteSpace: "nowrap", textAlign: "right",
-//                                   }}>
-//                                     = ₹{fmtINR(displayTotal)}
-//                                   </div>
-
-//                                   {isLowest && (
-//                                     <div style={{
-//                                       background: T.success, color: "white",
-//                                       fontSize: 8, fontWeight: 700,
-//                                       padding: "2px 6px", borderRadius: 8,
-//                                       textAlign: "center", whiteSpace: "nowrap",
-//                                     }}>
-//                                       ★ BEST PRICE
-//                                     </div>
-//                                   )}
-//                                 </div>
+//                                 )}
 //                               </div>
 //                             );
 //                           })}
@@ -1579,8 +1604,8 @@ const Approval_Quotation = () => {
   const [compareText, setCompareText] = useState("");
   const [selectedVendor, setSelectedVendor] = useState("");
   const [selectedUIDs, setSelectedUIDs] = useState(new Set());
+  const [approvalRemark, setApprovalRemark] = useState(""); // 🆕 NEW STATE FOR BX COLUMN
 
-  // 🆕 Added 'Take Quotation Remark' column at the end
   const tableCols = [
     { label: "Planned 5", w: 100 }, { label: "UID", w: 60 },
     { label: "Req No", w: 90 }, { label: "Project", w: 150 },
@@ -1591,7 +1616,7 @@ const Approval_Quotation = () => {
     { label: "Decided Brand", w: 140 }, { label: "Indent No", w: 110 },
     { label: "PDF", w: 80 }, { label: "No. of Quotations", w: 130 },
     { label: "Final Brand", w: 120 },
-    { label: "Take Quotation Remark", w: 200 }, // 🆕 Step 5 User Remark
+    { label: "Take Quotation Remark", w: 200 },
   ];
 
   const fetchRequests = useCallback(async () => {
@@ -1624,7 +1649,7 @@ const Approval_Quotation = () => {
           PLANNED_5: item.PLANNED_5 || "",
           No_Of_Quotation_4: item.No_Of_Quotation_4 || item["No._Of_Quotation_4"] || "",
           REMARK_4: item.REMARK_4 || "",
-          Final_Remark: item.Final_Remark || "", // 🆕 Step 5 Remark
+          Final_Remark: item.Final_Remark || "",
         })));
       } else {
         throw new Error("Invalid data format");
@@ -1705,6 +1730,7 @@ const Approval_Quotation = () => {
     setSelectedVendor("");
     setSelectedUIDs(new Set());
     setCompareText("");
+    setApprovalRemark(""); // Reset remark
     setCurrentStep(2);
   };
 
@@ -1773,19 +1799,22 @@ const Approval_Quotation = () => {
         uid, vendor_firm_name: selectedVendor,
       }));
 
+      // 🆕 Passing approvalRemark in payload
       await callUpdateAPI({
         approvals: approvedItems,
         status: "Approved",
         autoRejectOthers: true,
         selectedVendor,
+        approvalRemark, 
       });
 
-      setSuccessMsg(`✅ Approved ${selectedUIDs.size} material(s) from ${selectedVendor}. Same materials from other vendors auto-rejected.`);
+      setSuccessMsg(`✅ Approved ${selectedUIDs.size} material(s) from ${selectedVendor}.`);
 
       const freshRows = await fetchIndentDetails(selectedIndent, true);
       setSelectedUIDData(freshRows);
       setSelectedVendor("");
       setSelectedUIDs(new Set());
+      setApprovalRemark("");
       fetchRequests();
       fetchIndentNumbers();
 
@@ -1807,6 +1836,7 @@ const Approval_Quotation = () => {
     setSelectedVendor("");
     setSelectedUIDs(new Set());
     setCompareText("");
+    setApprovalRemark("");
     setErrorMsg("");
     setSuccessMsg("");
   };
@@ -1827,6 +1857,7 @@ const Approval_Quotation = () => {
           transportCharges: toNum(item.EXPECTED_TRANSPORT_CHARGES),
           freightCharges: toNum(item.EXPECTED_FRIGHET_CHARGES),
           paymentTerms: item.Payment_Terms_Condition_Advance_Credit || "",
+          vendorRemark: item.Vendor_Remark || "", // 🆕 ADDED VENDOR REMARK MAPPING
           items: [],
         });
       }
@@ -2029,7 +2060,6 @@ const Approval_Quotation = () => {
                               }}>{req.No_Of_Quotation_4}</span>
                             </Td>
                             <Td maxW={110}>{req.REMARK_4}</Td>
-                            {/* 🆕 Take Quotation User Remark Column */}
                             <Td maxW={180}>
                               {req.Final_Remark ? (
                                 <span style={{
@@ -2456,6 +2486,21 @@ const Approval_Quotation = () => {
                           </button>
                         </div>
 
+                        {/* 🆕 SHOW VENDOR REMARK HERE */}
+                        {vendor.vendorRemark && (
+                          <div style={{
+                            background: isThisVendorSelected ? "rgba(0,0,0,0.1)" : "rgba(255,255,255,0.1)",
+                            padding: "6px 12px",
+                            borderRadius: 6,
+                            marginBottom: 10,
+                            fontSize: 11.5,
+                            borderLeft: `3px solid ${isThisVendorSelected ? T.navyDark : T.gold}`,
+                            fontStyle: "italic",
+                          }}>
+                            💬 <strong>Vendor Remark:</strong> {vendor.vendorRemark}
+                          </div>
+                        )}
+
                         {vendor.projectName && (
                           <div style={{
                             display: "flex",
@@ -2695,13 +2740,23 @@ const Approval_Quotation = () => {
                                     </div>
                                     <div style={{
                                       fontSize: 10, color: T.textMuted, display: "flex",
-                                      gap: 6, marginTop: 2, flexWrap: "wrap",
+                                      gap: 6, marginTop: 4, flexWrap: "wrap", alignItems: "center"
                                     }}>
                                       {item.Material_Size && (
                                         <span>📏 {item.Material_Size}</span>
                                       )}
                                       {item.Total_Quantity && (
                                         <span>📦 Qty: {item.Total_Quantity}</span>
+                                      )}
+                                      
+                                      {/* 🆕 SHOW BRAND FOR MATERIAL */}
+                                      {item.Remark_4 && (
+                                        <span style={{
+                                          background: `${T.purple}15`, color: T.purple,
+                                          padding: "1px 6px", borderRadius: 4, fontWeight: 600
+                                        }}>
+                                          🏷️ Brand: {item.Remark_4}
+                                        </span>
                                       )}
                                     </div>
                                   </div>
@@ -2796,7 +2851,6 @@ const Approval_Quotation = () => {
                                   </div>
                                 </div>
 
-                                {/* 🆕 Final Remark Display inside Step 2 card item row */}
                                 {item.Final_Remark && (
                                   <div style={{
                                     width: "100%",
@@ -2842,7 +2896,7 @@ const Approval_Quotation = () => {
             display: "flex", alignItems: "center",
             justifyContent: "space-between", gap: 12, flexWrap: "wrap",
           }}>
-            <div style={{ fontSize: 12 }}>
+            <div style={{ fontSize: 12, display: "flex", alignItems: "center" }}>
               {selectedVendor && selectedUIDs.size > 0 ? (
                 <div style={{ color: T.navy }}>
                   <strong style={{ color: T.success, fontSize: 14 }}>
@@ -2865,12 +2919,26 @@ const Approval_Quotation = () => {
               )}
             </div>
 
+            {/* 🆕 ADDED APPROVAL REMARK INPUT HERE */}
+            <div style={{ flex: 1, minWidth: '250px', maxWidth: '400px', margin: '0 15px' }}>
+               <input 
+                 type="text"
+                 value={approvalRemark}
+                 onChange={(e) => setApprovalRemark(e.target.value)}
+                 placeholder="Enter approval remark (saves in BX)..."
+                 style={{ ...inputBase, padding: '8px 12px', fontSize: 12, opacity: selectedVendor ? 1 : 0.6 }}
+                 disabled={!selectedVendor}
+                 onFocus={focusGold} onBlur={blurNormal}
+               />
+            </div>
+
             <div style={{ display: "flex", gap: 10 }}>
               <button onClick={() => {
                 setCurrentStep(1);
                 setSelectedUIDData([]);
                 setSelectedVendor("");
                 setSelectedUIDs(new Set());
+                setApprovalRemark("");
               }} style={{
                 padding: "9px 18px", borderRadius: 8,
                 border: "1.5px solid #e5e7eb", background: "white",

@@ -1,3 +1,5 @@
+
+
 // const express = require('express');
 // const { sheets, spreadsheetId, drive } = require('../config/googleSheet');
 // require('dotenv').config();
@@ -72,7 +74,7 @@
 //   }
 //   const response = await sheets.spreadsheets.values.get({
 //     spreadsheetId,
-//     range: 'Quotation_Master!A1:AK',  // ✅ AJ (max column), not AO
+//     range: 'Quotation_Master!A1:AK',  // ✅ AK (Column 37) is correctly fetched
 //   });
 //   const allRows = response.data.values || [];
 //   quotationCache = {
@@ -90,6 +92,12 @@
 //   if (['approved', 'rejected'].includes(approvalStatus.toLowerCase())) {
 //     return null;
 //   }
+
+//   // 🆕 Safe lookup for Final_Remark (Column AK / Index 36)
+//   const finalRemarkIdx = getHeaderIndex(colMap, ['finalremark', 'final_remark', 'remark']);
+//   const finalRemarkVal = finalRemarkIdx !== -1 
+//     ? (row[finalRemarkIdx] || '').toString().trim() 
+//     : (row[36] || '').toString().trim(); // Fallback to Index 36 (AK) if header map fails
 
 //   return {
 //     Time_Stamp: getValue(row, colMap, ['timestamp']),
@@ -129,6 +137,7 @@
 //     Total_Quantity: getValue(row, colMap, ['totalquantity']),
 //     Total_Value: getValue(row, colMap, ['totalvalue']),
 //     Approval_Status: approvalStatus,
+//     Final_Remark: finalRemarkVal, // ✅ Added to exposure payload
 //   };
 // };
 
@@ -282,7 +291,6 @@
 //   try {
 //     const qmColMap = buildColMap(qmHeaders);
 
-//     // ═══ UNIT MAP from Purchase_FMS ═══
 //     const unitMap = new Map();
 //     const fmsRes = await sheets.spreadsheets.values.get({
 //       spreadsheetId,
@@ -295,13 +303,6 @@
 //       const unit = (row[12] || '').trim();
 //       if (uid) unitMap.set(uid, unit);
 //     });
-
-//     console.log('=== UNIT MAP DEBUG ===');
-//     console.log('Total UIDs mapped:', unitMap.size);
-//     let dbgCount = 0;
-//     for (const [uid, unit] of unitMap.entries()) {
-//       if (dbgCount++ < 5) console.log(`  UID "${uid}" → Unit "${unit}"`);
-//     }
 
 //     const doc = new jsPDF();
 //     if (typeof doc.autoTable !== 'function') {
@@ -317,7 +318,6 @@
 //         .trim()
 //         .replace(/[^a-zA-Z0-9\s\-\/.,:%()&]/g, '');
 
-//     // Header
 //     doc.setTextColor(0, 0, 0);
 //     doc.setFontSize(18);
 //     doc.setFont('helvetica', 'bold');
@@ -342,7 +342,6 @@
 //       .toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' })
 //       .replace(/ /g, '-');
 
-//     // ═══ VENDOR INFO ═══
 //     const firstItem = approvedItems[0];
 //     const firstRow = firstItem?.rowData || [];
 
@@ -363,12 +362,6 @@
 //       ''
 //     );
 
-//     console.log('=== PDF VENDOR INFO ===');
-//     console.log(`  Vendor: "${vendorFirm}"`);
-//     console.log(`  Address: "${vendorAddress}"`);
-//     console.log(`  GST: "${vendorGST}"`);
-
-//     // Info Section
 //     doc.setFontSize(10);
 //     doc.setFont('helvetica', 'bold');
 //     doc.text('Quotation No:', 15, 80);
@@ -406,7 +399,6 @@
 //     doc.setTextColor(220, 53, 69);
 //     doc.text('Order Details', 15, 110);
 
-//     // ═══ TABLE - Header-based lookup ═══
 //     const tableBody = approvedItems.map((item, index) => {
 //       const row = item.rowData;
 //       const uid = getValue(row, qmColMap, ['uid']);
@@ -421,8 +413,6 @@
 //       const finalRate = getValue(row, qmColMap, ['finalrate', 'final_rate']);
 //       const totalValue = getValue(row, qmColMap, ['totalvalue', 'total_value']);
 //       const unit = unitMap.get(uid) || '';
-
-//       console.log(`Row ${index + 1}: UID=${uid}, Material=${materialName}, Unit=${unit}, TotalValue=${totalValue}`);
 
 //       return [
 //         index + 1,
@@ -520,7 +510,6 @@
 
 //     const pdfBuffer = doc.output('arraybuffer');
 //     const base64Data = Buffer.from(pdfBuffer).toString('base64');
-//     console.log(`✅ PDF generated, size: ${base64Data.length}`);
 //     return `data:application/pdf;base64,${base64Data}`;
 //   } catch (pdfError) {
 //     console.error('❌ PDF error:', pdfError.message);
@@ -528,16 +517,9 @@
 //   }
 // };
 
-// // ═════════════════════════════════════════════════════════
-// // ── UPDATE APPROVAL ─────────────────────────────────────
-// // ═════════════════════════════════════════════════════════
+// // ─── UPDATE APPROVAL ─────────────────────────────────────
 // router.post('/update-approval', async (req, res) => {
 //   console.log('\n========== UPDATE APPROVAL START ==========');
-//   console.log('Approvals:', JSON.stringify(req.body.approvals, null, 2));
-//   console.log('Status:', req.body.status);
-//   console.log('Auto-Reject Others:', req.body.autoRejectOthers);
-//   console.log('Selected Vendor:', req.body.selectedVendor);
-
 //   const { approvals, status, autoRejectOthers, selectedVendor } = req.body;
 
 //   if (!approvals || !Array.isArray(approvals) || approvals.length === 0) {
@@ -561,10 +543,9 @@
 //       if (!process.env.GOOGLE_DRIVE_FOLDER_ID) throw new Error('GOOGLE_DRIVE_FOLDER_ID not set');
 //     }
 
-//     // ✅ Fetch sheet within safe range (A:AJ)
 //     const qmRes = await sheets.spreadsheets.values.get({
 //       spreadsheetId,
-//       range: 'Quotation_Master!A1:AJ',
+//       range: 'Quotation_Master!A1:AK',
 //     });
 
 //     const allRows = qmRes.data.values || [];
@@ -576,7 +557,6 @@
 //     const qmRows = allRows.slice(1);
 //     const colMap = buildColMap(headers);
 
-//     // Find columns
 //     const UID_COL = getHeaderIndex(colMap, ['uid']);
 //     const INDENT_COL = getHeaderIndex(colMap, ['indentno', 'indent_no']);
 //     const VENDOR_COL = getHeaderIndex(colMap, ['vendorfirmname', 'vendorfermname']);
@@ -585,10 +565,6 @@
 //     const PDF_COL_FROM_HEADER = getHeaderIndex(colMap, ['pdf5', 'pdfurl', 'pdfurl5']);
 //     const FINAL_PDF_COL = PDF_COL_FROM_HEADER !== -1 ? PDF_COL_FROM_HEADER : 35;
 
-//     console.log('\n=== COLUMN INDICES ===');
-//     console.log(`UID: ${UID_COL} | INDENT: ${INDENT_COL} | VENDOR: ${VENDOR_COL}`);
-//     console.log(`APPROVAL: ${APPROVAL_COL} | APPROVED_QUO: ${APPROVED_QUO_COL} | PDF: ${FINAL_PDF_COL} (${getColLetter(FINAL_PDF_COL)})`);
-
 //     if (UID_COL === -1 || INDENT_COL === -1 || VENDOR_COL === -1 || APPROVAL_COL === -1) {
 //       return res.status(500).json({
 //         error: 'Required columns not found',
@@ -596,11 +572,7 @@
 //       });
 //     }
 
-//     // ═══════════════════════════════════════════════
-//     // Counter - Auto-calculate from existing FQUOT numbers
-//     // ═══════════════════════════════════════════════
 //     let approvalCounter = 0;
-
 //     try {
 //       let maxNum = 0;
 //       qmRows.forEach((row) => {
@@ -613,18 +585,13 @@
 //         });
 //       });
 //       approvalCounter = maxNum;
-//       console.log(`✅ Counter loaded: ${approvalCounter}`);
 //     } catch (err) {
-//       console.log('⚠️ Counter init failed, starting from 0');
 //       approvalCounter = 0;
 //     }
 
 //     const padNum = (n, size) => n.toString().padStart(size, '0');
 //     const genApprovalNo = (counter) => `FQUOT_${padNum(counter, 2)}`;
 
-//     // ═══════════════════════════════════════════════
-//     // STEP 1: Find MATCHED rows (approved)
-//     // ═══════════════════════════════════════════════
 //     const indentNoMap = new Map();
 //     const matchedRows = [];
 
@@ -661,8 +628,6 @@
 //         rowData: row,
 //         rowIndex: index + 2,
 //       });
-
-//       console.log(`✅ MATCH: UID=${uid}, Vendor=${vendorFirm}, Row=${index + 2}, QuotNo=${quotationNo}`);
 //     });
 
 //     if (!matchedRows.length) {
@@ -672,13 +637,7 @@
 //       });
 //     }
 
-//     console.log(`\n📊 Total matched: ${matchedRows.length}`);
-
-//     // ═══════════════════════════════════════════════
-//     // STEP 2: Find AUTO-REJECT rows (same UIDs, OTHER vendors)
-//     // ═══════════════════════════════════════════════
 //     const autoRejectRows = [];
-
 //     if (isApproved && autoRejectOthers && selectedVendor) {
 //       const approvedUIDs = new Set(matchedRows.map((m) => m.uid));
 //       const matchedIndent = matchedRows[0]?.indentNo;
@@ -699,16 +658,10 @@
 //             indentNo,
 //             rowIndex: index + 2,
 //           });
-//           console.log(`🚫 AUTO-REJECT: UID=${uid}, Vendor=${vendorFirm}, Row=${index + 2}`);
 //         }
 //       });
-
-//       console.log(`Total auto-reject: ${autoRejectRows.length}`);
 //     }
 
-//     // ═══════════════════════════════════════════════
-//     // STEP 3: Generate PDFs
-//     // ═══════════════════════════════════════════════
 //     const pdfUrlsByIndent = {};
 //     const pdfErrors = [];
 
@@ -718,8 +671,6 @@
 //         if (!indentGroups[item.indentNo]) indentGroups[item.indentNo] = [];
 //         indentGroups[item.indentNo].push(item);
 //       });
-
-//       console.log(`\n📄 Generating ${Object.keys(indentGroups).length} PDF(s)`);
 
 //       for (const [indentNo, group] of Object.entries(indentGroups)) {
 //         try {
@@ -731,7 +682,6 @@
 //           const { Readable } = require('stream');
 
 //           const fileName = `quotation_${quotationNo}_${indentNo}_${Date.now()}.pdf`;
-//           console.log(`📤 Uploading: ${fileName}`);
 
 //           const file = await drive.files.create({
 //             resource: {
@@ -754,7 +704,6 @@
 //           });
 
 //           pdfUrlsByIndent[indentNo] = file.data.webViewLink;
-//           console.log(`✅ PDF URL: ${file.data.webViewLink}`);
 //         } catch (err) {
 //           console.error(`❌ PDF error for ${indentNo}:`, err.message);
 //           pdfErrors.push({ indentNo, error: err.message });
@@ -762,19 +711,12 @@
 //       }
 //     }
 
-//     // ═══════════════════════════════════════════════
-//     // STEP 4: Column Letters
-//     // ═══════════════════════════════════════════════
 //     const approvalColLetter = getColLetter(APPROVAL_COL);
 //     const approvedQuoColLetter = APPROVED_QUO_COL >= 0 ? getColLetter(APPROVED_QUO_COL) : null;
 //     const pdfColLetter = getColLetter(FINAL_PDF_COL);
 
-//     // ═══════════════════════════════════════════════
-//     // STEP 5: Build qmUpdates
-//     // ═══════════════════════════════════════════════
 //     const qmUpdates = [];
 
-//     // 5a) APPROVED rows
 //     for (const item of matchedRows) {
 //       const sheetRow = item.rowIndex;
 //       const pdfUrl = isApproved ? (pdfUrlsByIndent[item.indentNo] || '') : '';
@@ -799,7 +741,6 @@
 //       }
 //     }
 
-//     // 5b) AUTO-REJECT rows
 //     for (const item of autoRejectRows) {
 //       qmUpdates.push({
 //         range: `Quotation_Master!${approvalColLetter}${item.rowIndex}`,
@@ -807,26 +748,16 @@
 //       });
 //     }
 
-//     // ✅ Counter is auto-calculated, no need to write to AO1
-//     if (isApproved && indentNoMap.size > 0) {
-//       console.log(`✅ New approval counter: ${approvalCounter} (auto-calculated, no write needed)`);
-//     }
-
-//     // Batch update
 //     if (qmUpdates.length > 0) {
-//       const qmResult = await sheets.spreadsheets.values.batchUpdate({
+//       await sheets.spreadsheets.values.batchUpdate({
 //         spreadsheetId,
 //         requestBody: {
 //           data: qmUpdates,
 //           valueInputOption: 'USER_ENTERED',
 //         },
 //       });
-//       console.log(`✅ Quotation_Master: ${qmResult.data.totalUpdatedCells} cells / ${qmUpdates.length} ranges`);
 //     }
 
-//     // ═══════════════════════════════════════════════
-//     // STEP 6: Update Purchase_FMS (only approved)
-//     // ═══════════════════════════════════════════════
 //     let purchaseUpdatedCount = 0;
 
 //     if (isApproved) {
@@ -846,10 +777,7 @@
 
 //       for (const item of matchedRows) {
 //         const sheetRow = uidToRowMap.get(item.uid);
-//         if (!sheetRow) {
-//           console.warn(`⚠️ UID "${item.uid}" not in Purchase_FMS`);
-//           continue;
-//         }
+//         if (!sheetRow) continue;
 
 //         const r = item.rowData;
 
@@ -910,14 +838,10 @@
 //           spreadsheetId,
 //           requestBody: { data: pfUpdates, valueInputOption: 'USER_ENTERED' },
 //         });
-//         console.log(`✅ Purchase_FMS: ${purchaseUpdatedCount} rows updated`);
 //       }
 //     }
 
 //     invalidateQuotationCache();
-
-//     console.log('\n========== COMPLETE ==========');
-//     console.log(`Approved: ${matchedRows.length} | Auto-Rejected: ${autoRejectRows.length} | PDFs: ${Object.keys(pdfUrlsByIndent).length}`);
 
 //     return res.json({
 //       success: true,
@@ -946,12 +870,12 @@
 //     });
 //   } catch (error) {
 //     console.error('\n❌ ERROR:', error.message);
-//     console.error('Stack:', error.stack);
 //     return res.status(500).json({ error: 'Failed: ' + error.message });
 //   }
 // });
 
 // module.exports = router;
+
 
 
 
@@ -1030,7 +954,7 @@ const getQuotationMasterSheet = async (force = false) => {
   }
   const response = await sheets.spreadsheets.values.get({
     spreadsheetId,
-    range: 'Quotation_Master!A1:AK',  // ✅ AK (Column 37) is correctly fetched
+    range: 'Quotation_Master!A1:AL',  // 🆕 Updated range to AL to include Vendor_Remark
   });
   const allRows = response.data.values || [];
   quotationCache = {
@@ -1049,11 +973,10 @@ const mapQuotationRow = (row, colMap) => {
     return null;
   }
 
-  // 🆕 Safe lookup for Final_Remark (Column AK / Index 36)
   const finalRemarkIdx = getHeaderIndex(colMap, ['finalremark', 'final_remark', 'remark']);
   const finalRemarkVal = finalRemarkIdx !== -1 
     ? (row[finalRemarkIdx] || '').toString().trim() 
-    : (row[36] || '').toString().trim(); // Fallback to Index 36 (AK) if header map fails
+    : (row[36] || '').toString().trim(); // Fallback to Index 36 (AK)
 
   return {
     Time_Stamp: getValue(row, colMap, ['timestamp']),
@@ -1093,7 +1016,8 @@ const mapQuotationRow = (row, colMap) => {
     Total_Quantity: getValue(row, colMap, ['totalquantity']),
     Total_Value: getValue(row, colMap, ['totalvalue']),
     Approval_Status: approvalStatus,
-    Final_Remark: finalRemarkVal, // ✅ Added to exposure payload
+    Final_Remark: finalRemarkVal, 
+    Vendor_Remark: getValue(row, colMap, ['vendorremark']) || (row[37] || '').toString().trim(), // 🆕 Extracting Vendor Remark from AL (index 37)
   };
 };
 
@@ -1226,17 +1150,6 @@ router.get('/get-quotation-by-indent', async (req, res) => {
   } catch (error) {
     console.error('Indent detail error:', error.message);
     return res.status(500).json({ error: 'Failed to fetch quotation data', details: error.message });
-  }
-});
-
-// ─── OLD ROUTE (COMPATIBILITY) ───────────────────────────
-router.get('/get-Quotation-create', async (req, res) => {
-  try {
-    const data = await getMappedQuotationRows();
-    return res.json({ data });
-  } catch (error) {
-    console.error('Error:', error.message);
-    return res.status(500).json({ error: 'Failed to fetch data', details: error.message });
   }
 });
 
@@ -1476,7 +1389,8 @@ const generateQuotationPDF = async (approvedItems, quotationNo, indentNo, qmHead
 // ─── UPDATE APPROVAL ─────────────────────────────────────
 router.post('/update-approval', async (req, res) => {
   console.log('\n========== UPDATE APPROVAL START ==========');
-  const { approvals, status, autoRejectOthers, selectedVendor } = req.body;
+  // 🆕 ADDED approvalRemark in destructuring
+  const { approvals, status, autoRejectOthers, selectedVendor, approvalRemark } = req.body; 
 
   if (!approvals || !Array.isArray(approvals) || approvals.length === 0) {
     return res.status(400).json({ error: 'No approvals provided' });
@@ -1501,7 +1415,7 @@ router.post('/update-approval', async (req, res) => {
 
     const qmRes = await sheets.spreadsheets.values.get({
       spreadsheetId,
-      range: 'Quotation_Master!A1:AK',
+      range: 'Quotation_Master!A1:AL', // Fetch up to AL
     });
 
     const allRows = qmRes.data.values || [];
@@ -1779,10 +1693,11 @@ router.post('/update-approval', async (req, res) => {
           expFreight,         // BU
           pdfUrl,             // BV
           brandName,          // BW
+          approvalRemark || '', // 🆕 BX COLUMN (Approval Remark)
         ];
 
         pfUpdates.push({
-          range: `Purchase_FMS!BB${sheetRow}:BW${sheetRow}`,
+          range: `Purchase_FMS!BB${sheetRow}:BX${sheetRow}`, // 🆕 RANGE EXPANDED TO BX
           values: [step5Values],
         });
 
@@ -1809,17 +1724,6 @@ router.post('/update-approval', async (req, res) => {
         pdfsGenerated: Object.keys(pdfUrlsByIndent).length,
         purchaseFmsUpdated: purchaseUpdatedCount,
         indents: Array.from(indentNoMap.keys()),
-        approvedItems: matchedRows.map((item) => ({
-          uid: item.uid,
-          vendor: item.vendor_firm_name,
-          indent: item.indentNo,
-          quotationNo: item.quotationNo,
-          pdfUrl: pdfUrlsByIndent[item.indentNo] || '',
-        })),
-        rejectedItems: autoRejectRows.map((item) => ({
-          uid: item.uid,
-          vendor: item.vendor_firm_name,
-        })),
       },
       pdfUrls: pdfUrlsByIndent,
       errors: pdfErrors.length ? pdfErrors : undefined,

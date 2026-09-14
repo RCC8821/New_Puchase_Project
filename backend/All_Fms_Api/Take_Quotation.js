@@ -157,7 +157,6 @@
 //     });
 //     let nextQMRow = 2 + (existingQMRows.data.values?.length || 0);
 
-//     // 🆕 Range extends to AW to ensure write boundaries are clear
 //     const purchaseRes = await sheets.spreadsheets.values.get({
 //       spreadsheetId,
 //       range: 'Purchase_FMS!A2:AW',
@@ -203,11 +202,10 @@
 //       const revisedQty = num(entry.REVISED_QUANTITY_2);
 //       const totalValue = num(entry.Total_Value) || (revisedQty * finalRate);
 //       const transportCharges = num(entry.EXPECTED_TRANSPORT_CHARGES);
-//       const freightCharges = num(entry.EXPECTED_FRIGHET_CHARGES || entry.EXPECTED_FRIGHET_CHARGES);
 //       const expectedFreight = num(entry.EXPECTED_FREIGHT_CHARGES || entry.EXPECTED_FRIGHET_CHARGES);
 //       const creditDays = parseInt(String(entry.Credit_in_Days).replace(/[^0-9]/g, '')) || 0;
 
-//       console.log(`UID ${entry.UID}: Rate=${rate}, Disc=${discount}, CGST=${cgst}, SGST=${sgst}, IGST=${igst}, Final=${finalRate}, Total=${totalValue}, Transport=${transportCharges}, Freight=${freightCharges}`);
+//       console.log(`UID ${entry.UID}: Rate=${rate}, Disc=${discount}, CGST=${cgst}, SGST=${sgst}, IGST=${igst}, Final=${finalRate}, Total=${totalValue}, Transport=${transportCharges}, FreightAmount=${expectedFreight}`);
 
 //       const rowData = [
 //         getTimestamp(),                              // A
@@ -234,19 +232,23 @@
 //         creditDays,                                  // V
 //         entry.Bill_Type || '',                       // W
 //         entry.IS_TRANSPORT_REQUIRED || '',           // X
-//         transportCharges,                            // Y
-//         expectedFreight,                              // Z
-//         expectedFreight,                             // AA
+//         transportCharges,                            // Y (pure number)
+//         expectedFreight,                             // Z ✅ SWAPPED - Freight Charges Amount now goes to Column Z
+//         entry.FREIGHT_CHARGES || entry.FRIGHET_CHARGES || '', // AA ✅ SWAPPED - Freight Status (Yes/No) now goes to Column AA
 //         entry.PLANNED_4 || '',                       // AB
 //         entry.NO_OF_QUOTATION_4 || '',               // AC
 //         entry.REMARK_4 || '',                        // AD (Brand Name)
 //         newQuoNumber,                                // AE
 //         revisedQty,                                  // AF
 //         totalValue,                                  // AG
+//         '',                                          // AH
+//         '',                                          // AI
+//         '',                                          // AJ
+//         entry.Final_Remark || '',                    // AK
 //       ];
 
 //       quotationUpdates.push({
-//         range: `Quotation_Master!A${nextQMRow}:AG${nextQMRow}`,
+//         range: `Quotation_Master!A${nextQMRow}:AK${nextQMRow}`,
 //         values: [rowData],
 //       });
 //       nextQMRow++;
@@ -261,8 +263,6 @@
 //     }
 
 //     // ─── Update Purchase_FMS ───
-//     // 📝 AV is restored to original REMARK_4 (Brand Name)
-//     // 🆕 AW gets the brand new Step 5 Final Remark
 //     const purchaseUpdates = [];
 //     for (const entry of entries) {
 //       const sheetRow = uidToRowMap.get(String(entry.UID));
@@ -270,8 +270,8 @@
 //       purchaseUpdates.push(
 //         { range: `Purchase_FMS!AS${sheetRow}`, values: [['Done']] },
 //         { range: `Purchase_FMS!AU${sheetRow}`, values: [[entry.NO_OF_QUOTATION_4 || '']] },
-//         { range: `Purchase_FMS!AV${sheetRow}`, values: [[entry.REMARK_4 || '']] },       // ✅ original restored
-//         { range: `Purchase_FMS!AW${sheetRow}`, values: [[entry.Final_Remark || '']] }    // 🆕 New AW column
+//         { range: `Purchase_FMS!AV${sheetRow}`, values: [[entry.REMARK_4 || '']] },       // AV: Brand Name
+//         { range: `Purchase_FMS!AW${sheetRow}`, values: [[entry.Final_Remark || '']] }    // AW: Step 5 Remark
 //       );
 //     }
 
@@ -295,8 +295,8 @@
 //   }
 // });
 
-
 // module.exports = router;
+
 
 
 
@@ -412,7 +412,6 @@ router.get('/get-take-Quotation', async (req, res) => {
     return res.status(500).json({ error: 'Failed to fetch data', details: error.message });
   }
 });
-
 
 router.post('/save-take-Quotation', async (req, res) => {
   const { entries } = req.body;
@@ -534,9 +533,9 @@ router.post('/save-take-Quotation', async (req, res) => {
         creditDays,                                  // V
         entry.Bill_Type || '',                       // W
         entry.IS_TRANSPORT_REQUIRED || '',           // X
-        transportCharges,                            // Y (pure number)
-        expectedFreight,                             // Z ✅ SWAPPED - Freight Charges Amount now goes to Column Z
-        entry.FREIGHT_CHARGES || entry.FRIGHET_CHARGES || '', // AA ✅ SWAPPED - Freight Status (Yes/No) now goes to Column AA
+        transportCharges,                            // Y
+        expectedFreight,                             // Z
+        entry.FREIGHT_CHARGES || entry.FRIGHET_CHARGES || '', // AA
         entry.PLANNED_4 || '',                       // AB
         entry.NO_OF_QUOTATION_4 || '',               // AC
         entry.REMARK_4 || '',                        // AD (Brand Name)
@@ -547,10 +546,11 @@ router.post('/save-take-Quotation', async (req, res) => {
         '',                                          // AI
         '',                                          // AJ
         entry.Final_Remark || '',                    // AK
+        entry.Vendor_Remark || '',                   // AL 👈 NEW VENDOR REMARK COLUMN ADDED
       ];
 
       quotationUpdates.push({
-        range: `Quotation_Master!A${nextQMRow}:AK${nextQMRow}`,
+        range: `Quotation_Master!A${nextQMRow}:AL${nextQMRow}`, // 👈 UPDATED RANGE TO AL
         values: [rowData],
       });
       nextQMRow++;
@@ -572,8 +572,8 @@ router.post('/save-take-Quotation', async (req, res) => {
       purchaseUpdates.push(
         { range: `Purchase_FMS!AS${sheetRow}`, values: [['Done']] },
         { range: `Purchase_FMS!AU${sheetRow}`, values: [[entry.NO_OF_QUOTATION_4 || '']] },
-        { range: `Purchase_FMS!AV${sheetRow}`, values: [[entry.REMARK_4 || '']] },       // AV: Brand Name
-        { range: `Purchase_FMS!AW${sheetRow}`, values: [[entry.Final_Remark || '']] }    // AW: Step 5 Remark
+        { range: `Purchase_FMS!AV${sheetRow}`, values: [[entry.REMARK_4 || '']] },       
+        { range: `Purchase_FMS!AW${sheetRow}`, values: [[entry.Final_Remark || '']] }    
       );
     }
 
@@ -598,5 +598,3 @@ router.post('/save-take-Quotation', async (req, res) => {
 });
 
 module.exports = router;
-
-

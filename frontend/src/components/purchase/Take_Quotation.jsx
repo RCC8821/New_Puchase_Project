@@ -119,7 +119,7 @@
 //   const [selectedIndent, setSelectedIndent] = useState(null);
 //   const [status4, setStatus4] = useState('Done');
 //   const [noOfQuotation4, setNoOfQuotation4] = useState('');
-//   const [finalRemark, setFinalRemark] = useState(''); // 🆕 New final remark state
+//   const [finalRemark, setFinalRemark] = useState('');
 //   const [isSaving, setIsSaving] = useState(false);
 //   const [saveSuccess, setSaveSuccess] = useState(false);
 //   const [saveError, setSaveError] = useState('');
@@ -166,14 +166,14 @@
 //     setIsModalOpen(true); setCurrentStep(1); setSelectedIndent(null);
 //     setSelectedVendors([]); setAddedMaterials([]);
 //     setStatus4('Done'); setNoOfQuotation4('');
-//     setFinalRemark(''); // 🆕 clear
+//     setFinalRemark('');
 //     setSaveSuccess(false); setSaveError('');
 //   };
 
 //   const closeModal = () => {
 //     setIsModalOpen(false); setCurrentStep(1); setSelectedIndent(null);
 //     setSelectedVendors([]); setAddedMaterials([]);
-//     setFinalRemark(''); // 🆕 clear
+//     setFinalRemark('');
 //     setIsSaving(false); setSaveSuccess(false); setSaveError('');
 //   };
 
@@ -361,8 +361,8 @@
 //           EXPECTED_FRIGHET_CHARGES: num(vendor.expectedFreightCharges),
 //           PLANNED_4: status4,
 //           NO_OF_QUOTATION_4: noOfQuotation4,
-//           REMARK_4: vr.brandName || '',            // Brand Name -> AV column
-//           Final_Remark: finalRemark || '',         // 🆕 Step 5 Remark -> AW column
+//           REMARK_4: vr.brandName || '',
+//           Final_Remark: finalRemark || '',
 //           REVISED_QUANTITY_2: num(mat.Revised_Quantity),
 //           Total_Value: num(totalValue),
 //         });
@@ -1424,14 +1424,14 @@
 //                   </Field>
 //                 </div>
 
-//                 {/* 🆕 Final Remark Textarea (aw column support) */}
+//                 {/* Final Remark Textarea */}
 //                 <div style={{ marginTop: 14 }}>
 //                   <Field label="Remark">
 //                     <textarea
 //                       value={finalRemark}
 //                       onChange={(e) => setFinalRemark(e.target.value)}
 //                       rows={5}
-//                       placeholder="Yahan apna detailed remark likhein... (jo Purchase_FMS ke AW column me save hoga)"
+//                       placeholder="Yahan apna detailed remark likhein... (jo Purchase_FMS ke AW column aur Quotation_Master ke AK column me save hoga)"
 //                       style={{
 //                         ...inputBase,
 //                         resize: 'vertical',
@@ -1447,7 +1447,7 @@
 //                     marginTop: 4, fontSize: 11, color: T.textMuted,
 //                     display: 'flex', justifyContent: 'space-between'
 //                   }}>
-//                     <span>💾 Ye remark Purchase_FMS ke AW column me save hoga</span>
+//                     <span>💾 Ye remark AW (Purchase_FMS) aur AK (Quotation_Master) me save hoga</span>
 //                     <span>{finalRemark.length} characters</span>
 //                   </div>
 //                 </div>
@@ -1594,7 +1594,6 @@
 // };
 
 // export default Take_Quotation;
-
 
 
 
@@ -1783,6 +1782,7 @@ const Take_Quotation = () => {
       deliveryDate: '', billType: '', paymentTerms: '', creditInDays: '',
       transportRequired: '', expectedTransportCharges: '',
       freightCharges: '', expectedFreightCharges: '',
+      vendorRemark: '', // NEW FIELD ADDED
     }]);
     setAddedMaterials(prev => prev.map(mat => ({
       ...mat,
@@ -1965,6 +1965,7 @@ const Take_Quotation = () => {
           Final_Remark: finalRemark || '',
           REVISED_QUANTITY_2: num(mat.Revised_Quantity),
           Total_Value: num(totalValue),
+          Vendor_Remark: vendor.vendorRemark || '', // NEW FIELD ADDED IN PAYLOAD
         });
       }
     }
@@ -2583,12 +2584,22 @@ const Take_Quotation = () => {
                           </Field>
                         )}
                       </div>
-                      <div style={{ marginTop: 10 }}>
+                      <div style={{ marginTop: 10, display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10 }}>
                         <Field label="Address">
                           <textarea
                             value={vendor.address}
                             onChange={(e) => handleVendorChange(vIdx, 'address', e.target.value)}
                             rows={2} style={{ ...inputBase, resize: 'vertical' }}
+                            onFocus={focusGold} onBlur={blurNormal}
+                          />
+                        </Field>
+                        {/* ── NEW VENDOR REMARK FIELD ADDED ── */}
+                        <Field label="Vendor Remark">
+                          <textarea
+                            value={vendor.vendorRemark || ''}
+                            onChange={(e) => handleVendorChange(vIdx, 'vendorRemark', e.target.value)}
+                            rows={2} style={{ ...inputBase, resize: 'vertical' }}
+                            placeholder="Any specific remark for this vendor..."
                             onFocus={focusGold} onBlur={blurNormal}
                           />
                         </Field>
@@ -2951,6 +2962,10 @@ const Take_Quotation = () => {
                                 <strong>{val || '—'}</strong>
                               </div>
                             ))}
+                            <div style={{ gridColumn: 'span 2', marginTop: 4 }}>
+                              <span style={{ color: T.textMuted }}>Remark: </span>
+                              <strong>{v.vendorRemark || '—'}</strong>
+                            </div>
                           </div>
                         </div>
                       ))}
