@@ -1,6 +1,3 @@
-
-
-
 // Dashboard.jsx
 import React, { useState, useEffect, useRef, useCallback } from 'react';
 import {
@@ -36,11 +33,7 @@ import LabourManagment from '../components/Labour/LabourManagment';
 import Approvel2 from '../components/Labour/Approvel2';
 import PaidAmount from '../components/Labour/PaidAmount';
 import LabourPDF from '../components/Labour/LabourPDF';
-
-// ✅ Company Labour Attendance Page
 import CompanyApprovel from '../components/Labour/CompanyApprovel';
-
-// ✅ NEW - Office Labour Form (Purchase Folder)
 import OfficeLabourForm from '../components/purchase/OfficeLabourForm';
 
 import SiteApprovel from '../components/SiteExpenses/SiteApprovel';
@@ -50,6 +43,13 @@ import SignatureRequirement from '../components/purchase/SignatureRequirement';
 import HeritageDashboard from '../components/Heritage/HeritageDashboard';
 import HeritageRequirementForm from '../components/Heritage/HeritageRequirementForm';
 import LabourRequirementManagement from '../components/Labour/LabourRequirementManagement';
+
+// ✅ PARADISE COMPONENTS IMPORT
+import ParadiseDashboard from '../components/Paradise/ParadiseDashboard';
+import ParadiseOutForm from '../components/Paradise/ParadiseOutForm';
+import ParadiseStoreInventory from '../components/Paradise/ParadiseStoreInventory';
+import ParadiseSiteEngineer from '../components/Paradise/ParadiseSiteEngineer';
+import ParadiseBOQQty from '../components/Paradise/ParadiseBOQQty';
 
 const T = {
   navy: '#1e293b', navyLight: '#334155', navyDark: '#0f172a',
@@ -74,7 +74,6 @@ const Dashboard = () => {
   const dropdownRef = useRef(null);
 
   const isSiteEngineer = userType?.startsWith('SE_');
-
   const isProjectLockedUser =
     userType && /^signature\s+.+\s+prj\d+/i.test(userType);
 
@@ -99,40 +98,17 @@ const Dashboard = () => {
     { id: 'contractor-purchase-form', name: 'Contractor Purchase Form', icon: FileText, component: ContractorPurchseForm, path: '/dashboard/contractor-purchase-form', allowedUserTypes: ['admin', 'Site Engineer', 'Material Received'] },
     { id: 'outstanding', name: 'Without System Bill Entry', icon: DollarSign, component: OutStanding, path: '/dashboard/outstanding', allowedUserTypes: ['admin', 'Govind Ram Nagar'] },
     { id: 'Advance_payment', name: 'Advance Payment', icon: DollarSign, component: Advance_payment, path: '/dashboard/Advance_payment', allowedUserTypes: ['admin', 'Govind Ram Nagar'] },
-
-    // ✅ NEW - Office Labour Form (Purchase menu me)
-    {
-      id: 'OfficeLabourForm',
-      name: 'Office Labour Form',
-      icon: HardHat,
-      component: OfficeLabourForm,
-      path: '/dashboard/OfficeLabourForm',
-      allowedUserTypes: ['admin', 'Labour Form'],  // 👈 Sirf admin + Office Labour login access karega
-    },
+    { id: 'OfficeLabourForm', name: 'Office Labour Form', icon: HardHat, component: OfficeLabourForm, path: '/dashboard/OfficeLabourForm', allowedUserTypes: ['admin', 'Labour Form'] },
   ];
 
   const allLabourPages = [
     { id: 'Approvel1', name: 'Labour Approval', icon: FileText, component: Approvel1, path: '/dashboard/Approvel1', allowedUserTypes: ['admin', 'Ravindra Singh'] },
-    { id: 'Labourmanagement', name: 'Labour Management', icon: FileText, component: LabourManagment, path: '/dashboard/Labourmanagement', allowedUserTypes: ['admin', 'Labour Managment','Labour Form'] },
+    { id: 'Labourmanagement', name: 'Labour Management', icon: FileText, component: LabourManagment, path: '/dashboard/Labourmanagement', allowedUserTypes: ['admin', 'Labour Managment', 'Labour Form'] },
     { id: 'Deployed', name: 'Labour Deployed', icon: FileText, component: Approvel2, path: '/dashboard/Approvel2', allowedUserTypes: ['admin', 'Ashok Pandey'] },
     { id: 'PaidAmount', name: 'Labour Payment', icon: FileText, component: PaidAmount, path: '/dashboard/PaidAmount', allowedUserTypes: ['admin', 'Govind Ram Nagar', 'Varsha Kahar'] },
     { id: 'LabourPDF', name: 'Labour PDF', icon: FileText, component: LabourPDF, path: '/dashboard/LabourPDF', allowedUserTypes: ['admin', 'Varsha Kahar'] },
-    {
-      id: 'CompanyApprovel',
-      name: 'Company Labour Approvel',
-      icon: ClipboardList,
-      component: CompanyApprovel,
-      path: '/dashboard/CompanyApprovel',
-      allowedUserTypes: ['admin', 'Ravindra Singh',],
-    },
-    {
-  id: 'LabourRequirementManagement',
-  name: 'Labour Req Management',
-  icon: HardHat,
-  component: LabourRequirementManagement,
-  path: '/dashboard/LabourRequirementManagement',
-  allowedUserTypes: ['admin', 'Labour Managment'], // ✅ Vinod & Admin
-},
+    { id: 'CompanyApprovel', name: 'Company Labour Approvel', icon: ClipboardList, component: CompanyApprovel, path: '/dashboard/CompanyApprovel', allowedUserTypes: ['admin', 'Ravindra Singh'] },
+    { id: 'LabourRequirementManagement', name: 'Labour Req Management', icon: HardHat, component: LabourRequirementManagement, path: '/dashboard/LabourRequirementManagement', allowedUserTypes: ['admin', 'Labour Managment'] },
   ];
 
   const allSiteExpensesPages = [
@@ -140,9 +116,12 @@ const Dashboard = () => {
     { id: 'SitePaidAmount', name: 'Site Paid Amount', icon: DollarSign, component: SitePaidAmount, path: '/dashboard/SitePaidAmount', allowedUserTypes: ['admin', 'Govind Ram Nagar', 'Varsha Kahar', 'Final Material Received'] },
   ];
 
+  // ✅ MERGED - Heritage AND Paradise both inside single "JV Project" Dropdown
   const allJvProjectPages = [
-    { id: 'heritage', name: 'Heritage', icon: Briefcase, component: HeritageDashboard, path: '/dashboard/heritage', allowedUserTypes: ['admin', 'Signature Requirement'], allowSiteEngineer: true },
-    { id: 'heritage-requirement', name: 'Requirement Form', icon: ClipboardList, component: HeritageRequirementForm, path: '/dashboard/heritage/requirement-form', allowedUserTypes: ['admin', 'Signature Requirement'], allowSiteEngineer: true, allowProjectLocked: true },
+    { id: 'heritage', name: 'Heritage', icon: Briefcase, component: HeritageDashboard, path: '/dashboard/heritage', allowedUserTypes: ['admin', 'Signature Requirement', 'Store Inventory'], allowSiteEngineer: true },
+    { id: 'heritage-requirement', name: ' Requirement Form', icon: ClipboardList, component: HeritageRequirementForm, path: '/dashboard/heritage/requirement-form', allowedUserTypes: ['admin', 'Signature Requirement'], allowSiteEngineer: true, allowProjectLocked: true },
+    // ✅ PARADISE ENTRY POINT
+    { id: 'paradise', name: 'Paradise', icon: Briefcase, component: ParadiseDashboard, path: '/dashboard/paradise', allowedUserTypes: ['admin', 'Signature Requirement', 'Store Inventory'], allowSiteEngineer: true },
   ];
 
   const getPurchasePages = () => {
@@ -209,7 +188,7 @@ const Dashboard = () => {
     'contractor-purchase-form': 'Contractor Purchase Form',
     outstanding: 'Without System Bill Entry',
     Advance_payment: 'Advance Payment',
-    OfficeLabourForm: 'Office Labour Form',  // ✅ NEW
+    OfficeLabourForm: 'Office Labour Form',
     'LabourRequirementManagement': 'Labour Requirement Management',
     Approvel1: 'Labour Approval',
     Labourmanagement: 'Labour Management',
@@ -220,12 +199,21 @@ const Dashboard = () => {
     SiteApprovel: 'Site Approval',
     SitePaidAmount: 'Site Paid Amount',
     'no-access': 'No Access',
+
+    // Heritage
     'heritage': 'JV Project — Heritage',
-    'heritage-signature': 'Heritage Out Material ',
+    'heritage-signature': 'Heritage Out Material',
     'heritage-store': 'Heritage — Store Inventory',
     'heritage-site': 'Heritage — Site Engineer',
     'heritage-requirement': 'Signature — Requirement Form',
     'heritage-boq': 'Heritage — BOQ Quantity',
+
+    // ✅ Paradise
+    'paradise': 'JV Project — Paradise',
+    'paradise-out-form': 'Paradise — Store Item Out Form',
+    'paradise-store': 'Paradise — Store Inventory',
+    'paradise-site': 'Paradise — Site Engineer',
+    'paradise-boq': 'Paradise — BOQ Quantity',
   };
 
   const handleScroll = useCallback(() => {
@@ -272,10 +260,17 @@ const Dashboard = () => {
       return;
     }
 
+    // Heritage sub-routes
     if (location.pathname === '/dashboard/heritage/signature-form') { setSelectedPage('heritage-signature'); return; }
     if (location.pathname === '/dashboard/heritage/store-inventory') { setSelectedPage('heritage-store'); return; }
     if (location.pathname === '/dashboard/heritage/site-engineer') { setSelectedPage('heritage-site'); return; }
     if (location.pathname === '/dashboard/heritage/boq-qty') { setSelectedPage('heritage-boq'); return; }
+
+    // ✅ Paradise sub-routes
+    if (location.pathname === '/dashboard/paradise/out-form') { setSelectedPage('paradise-out-form'); return; }
+    if (location.pathname === '/dashboard/paradise/store-inventory') { setSelectedPage('paradise-store'); return; }
+    if (location.pathname === '/dashboard/paradise/site-engineer') { setSelectedPage('paradise-site'); return; }
+    if (location.pathname === '/dashboard/paradise/boq-qty') { setSelectedPage('paradise-boq'); return; }
 
     setSelectedPage(allowed[0].id);
     navigate(allowed[0].path);
@@ -293,7 +288,14 @@ const Dashboard = () => {
     navigate('/');
   };
 
+  // ✅ Component Mapping (including Paradise sub-routes)
   const getCurrentComponent = () => {
+    // Paradise Sub-route Components:
+    if (selectedPage === 'paradise-out-form') return ParadiseOutForm;
+    if (selectedPage === 'paradise-store') return ParadiseStoreInventory;
+    if (selectedPage === 'paradise-site') return ParadiseSiteEngineer;
+    if (selectedPage === 'paradise-boq') return ParadiseBOQQty;
+
     const all = getAllowedPages();
     const found = all.find((p) => p.id === selectedPage);
     return found?.component || null;
@@ -306,6 +308,14 @@ const Dashboard = () => {
     'heritage-store',
     'heritage-site',
     'heritage-boq',
+  ].includes(selectedPage);
+
+  // ✅ Paradise Sub-route Check
+  const isParadiseSubRoute = [
+    'paradise-out-form',
+    'paradise-store',
+    'paradise-site',
+    'paradise-boq',
   ].includes(selectedPage);
 
   const displayName = isSiteEngineer
@@ -380,7 +390,7 @@ const Dashboard = () => {
               if (menu.pages.length === 0) return null;
 
               const isActive = menu.pages.some((p) => p.id === selectedPage) ||
-                (menu.id === 'jvProject' && isHeritageSubRoute);
+                (menu.id === 'jvProject' && (isHeritageSubRoute || isParadiseSubRoute));
               const isOpen = openDropdown === menu.id;
 
               return (
@@ -539,14 +549,10 @@ const Dashboard = () => {
                   {displayName || 'Guest'}
                 </span>
                 {isSiteEngineer && (
-                  <span style={{ fontSize: 10, color: T.gold, fontWeight: 600 }}>
-                    SITE ENGINEER
-                  </span>
+                  <span style={{ fontSize: 10, color: T.gold, fontWeight: 600 }}>SITE ENGINEER</span>
                 )}
                 {isProjectLockedUser && (
-                  <span style={{ fontSize: 10, color: T.gold, fontWeight: 600 }}>
-                    PROJECT USER
-                  </span>
+                  <span style={{ fontSize: 10, color: T.gold, fontWeight: 600 }}>PROJECT USER</span>
                 )}
               </div>
             </div>
@@ -570,7 +576,7 @@ const Dashboard = () => {
               if (menu.pages.length === 0) return null;
               const isOpen = openDropdown === menu.id;
               const isActive = menu.pages.some((p) => p.id === selectedPage) ||
-                (menu.id === 'jvProject' && isHeritageSubRoute);
+                (menu.id === 'jvProject' && (isHeritageSubRoute || isParadiseSubRoute));
 
               return (
                 <div key={menu.id} style={{ marginBottom: 4 }}>
@@ -654,7 +660,8 @@ const Dashboard = () => {
           </div>
 
           <div style={{ width: '100%', minHeight: 'calc(100vh - 120px)' }}>
-            {isHeritageSubRoute ? (
+            {/* ✅ Outlet render for Heritage OR Paradise sub-routes */}
+            {isHeritageSubRoute || isParadiseSubRoute ? (
               <Outlet />
             ) : CurrentComponent ? (
               <CurrentComponent selectedPage={selectedPage} />

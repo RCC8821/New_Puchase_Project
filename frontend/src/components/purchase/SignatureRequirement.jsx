@@ -1,6 +1,5 @@
 
-
-import React, { useMemo, useState } from "react";
+import React, { useMemo, useState, useEffect } from "react";
 import {
   Plus, Trash2, Send, RotateCcw, Loader2, AlertCircle,
   CheckCircle, Search,
@@ -209,12 +208,14 @@ const SignatureRequirement = () => {
   const [submitRequirement, { isLoading: isSubmitting }] =
     useSubmitSignatureRequirementMutation();
 
+  // ✅ contractorName added to formData state
   const [formData, setFormData] = useState({
     projectName: isAdmin ? "" : FIXED_PROJECT,
     engineerName: "",
     cluster: "",
     activity: "",
-    remark: "",
+    remark: "",            // Slip No
+    contractorName: "",    // ✅ NEW - Contractor Dropdown
   });
 
   const emptyItem = {
@@ -236,32 +237,30 @@ const SignatureRequirement = () => {
   const projectKey = (formData.projectName || "").toLowerCase();
   const engineerOptions = maps?.projectToEngineers?.[projectKey] || [];
 
-const clusterOptions = uv?.clusters || [];
-const activityOptions = uv?.activities || [];
+  const clusterOptions = uv?.clusters || [];
+  const activityOptions = uv?.activities || [];
+  const contractorOptions = uv?.contractors || []; // ✅ Contractor options from Column O
 
-// ✅ Locations filtered by selected Cluster
-const locationOptions = formData.cluster
-  ? (maps?.clusterToLocations?.[formData.cluster.toLowerCase()] || [])
-  : (uv?.locations || []);
+  // Locations filtered by selected Cluster
+  const locationOptions = formData.cluster
+    ? (maps?.clusterToLocations?.[formData.cluster.toLowerCase()] || [])
+    : (uv?.locations || []);
 
-const setField = (field, value) => {
-  setFormData((prev) => ({ ...prev, [field]: value }));
+  const setField = (field, value) => {
+    setFormData((prev) => ({ ...prev, [field]: value }));
 
-  // ✅ Cluster change → Clear all items' location
-  if (field === "cluster") {
-    setItems((prev) => prev.map(item => ({ ...item, location: "" })));
-  }
-};
+    // Cluster change → Clear all items' location
+    if (field === "cluster") {
+      setItems((prev) => prev.map(item => ({ ...item, location: "" })));
+    }
+  };
 
-  // ═══════════════════════════════════════════════
-  // ✅ UPDATED - handleItemChange with Auto-Fill Unit
-  // ═══════════════════════════════════════════════
   const handleItemChange = (index, field, value) => {
     const updated = [...items];
     updated[index] = { ...updated[index] };
     updated[index][field] = value;
 
-    // ✅ Material Type change → Reset everything below
+    // Material Type change → Reset everything below
     if (field === "materialType") {
       updated[index] = {
         ...updated[index],
@@ -270,11 +269,11 @@ const setField = (field, value) => {
         materialSize: "",
         specification: "",
         skuCode: "",
-        unit: "",  // ✅ Clear unit too
+        unit: "",  
       };
     }
 
-    // ✅ Material Name change → Reset size, spec, sku, unit
+    // Material Name change → Reset size, spec, sku, unit
     if (field === "materialName") {
       updated[index] = {
         ...updated[index],
@@ -282,11 +281,11 @@ const setField = (field, value) => {
         materialSize: "",
         specification: "",
         skuCode: "",
-        unit: "",  // ✅ Clear unit too
+        unit: "",  
       };
     }
 
-    // ✅ Material Size change → Auto-fill SKU + Unit
+    // Material Size change → Auto-fill SKU + Unit
     if (field === "materialSize") {
       const nameKey = (updated[index].materialName || "").toLowerCase();
       const sizeKey = String(value || "").toLowerCase();
@@ -294,7 +293,7 @@ const setField = (field, value) => {
       const foundSKU = maps?.nameAndSizeToSKU?.[comboKey] || "";
       updated[index].skuCode = foundSKU;
 
-      // ✅ Auto-fill Unit from SKU Code
+      // Auto-fill Unit from SKU Code
       if (foundSKU) {
         const foundUnit = maps?.skuCodeToUnit?.[foundSKU.toLowerCase()] || "";
         updated[index].unit = foundUnit;
@@ -303,7 +302,7 @@ const setField = (field, value) => {
       }
     }
 
-    // ✅ SKU Code manually change → Auto-update Unit
+    // SKU Code manually change → Auto-update Unit
     if (field === "skuCode") {
       const foundUnit = maps?.skuCodeToUnit?.[String(value || "").toLowerCase()] || "";
       if (foundUnit) {
@@ -324,12 +323,14 @@ const setField = (field, value) => {
     if (items.length > 1) setItems((prev) => prev.filter((_, idx) => idx !== i));
   };
 
+  // ✅ Validation updated with contractorName
   const isFormValid = useMemo(() => {
     if (!formData.projectName?.trim()) return false;
     if (!formData.engineerName?.trim()) return false;
     if (!formData.cluster?.trim()) return false;
     if (!formData.activity?.trim()) return false;
     if (!formData.remark?.trim()) return false;
+    if (!formData.contractorName?.trim()) return false; // ✅ Contractor Required
 
     for (const it of items) {
       if (!it.location?.trim()) return false;
@@ -391,7 +392,7 @@ const setField = (field, value) => {
 
       setFormData({
         projectName: isAdmin ? "" : FIXED_PROJECT,
-        engineerName: "", cluster: "", activity: "", remark: "",
+        engineerName: "", cluster: "", activity: "", remark: "", contractorName: "",
       });
       setItems([{ ...emptyItem }]);
     } catch (err) {
@@ -414,8 +415,8 @@ const setField = (field, value) => {
     />
   );
 
-  // Progress: 5 formData + 9 per item
-  const totalRequired = 5 + items.length * 9;
+  // ✅ Progress updated: 6 formData (with contractorName) + 9 per item
+  const totalRequired = 6 + items.length * 9;
   const filledCount = (() => {
     let c = 0;
     if (formData.projectName?.trim()) c++;
@@ -423,6 +424,7 @@ const setField = (field, value) => {
     if (formData.cluster?.trim()) c++;
     if (formData.activity?.trim()) c++;
     if (formData.remark?.trim()) c++;
+    if (formData.contractorName?.trim()) c++; // ✅
     items.forEach((it) => {
       if (it.location?.trim()) c++;
       if (it.materialType?.trim()) c++;
@@ -591,20 +593,20 @@ const setField = (field, value) => {
                 gap: 12, marginBottom: 12,
               }}>
                <SearchableSelect
-  label="Location" required
-  value={item.location}
-  onChange={(val) => handleItemChange(idx, "location", val)}
-  options={locationOptions}
-  placeholder={
-    formData.cluster
-      ? locationOptions.length > 0
-        ? `Select from ${locationOptions.length} location(s)`
-        : "No locations for this cluster"
-      : "Select cluster first"
-  }
-  disabled={!formData.cluster}
-  allowCustom
-/>
+                  label="Location" required
+                  value={item.location}
+                  onChange={(val) => handleItemChange(idx, "location", val)}
+                  options={locationOptions}
+                  placeholder={
+                    formData.cluster
+                      ? locationOptions.length > 0
+                        ? `Select from ${locationOptions.length} location(s)`
+                        : "No locations for this cluster"
+                      : "Select cluster first"
+                  }
+                  disabled={!formData.cluster}
+                  allowCustom
+                />
                 <SearchableSelect
                   label="Material Type" required
                   value={item.materialType}
@@ -685,7 +687,6 @@ const setField = (field, value) => {
                   />
                 </div>
 
-                {/* ✅ UPDATED - Unit as Read-Only Auto-filled Field */}
                 <div>
                   <label style={S.label}>
                     Unit Name <span style={S.req}>*</span>
@@ -739,21 +740,37 @@ const setField = (field, value) => {
         })}
       </div>
 
-      {/* SECTION 3 */}
+      {/* ✅ SECTION 3 - Updated with Contractor Name dropdown side-by-side with Slip No */}
       <div style={S.card}>
         <div style={S.sectionTitle}>
           <div style={S.goldBar} />
           <span>Additional Information</span>
         </div>
-        <div>
-          <label style={S.label}>Slip No <span style={S.req}>*</span></label>
-          <input
-            value={formData.remark}
-            onChange={(e) => setField("remark", e.target.value)}
-            style={S.input}
-            placeholder="Enter Slip No"
-            onFocus={focusStyle}
-            onBlur={blurStyle}
+        <div style={{
+          display: "grid",
+          gridTemplateColumns: "repeat(auto-fit, minmax(220px, 1fr))",
+          gap: 14,
+        }}>
+          <div>
+            <label style={S.label}>Slip No <span style={S.req}>*</span></label>
+            <input
+              value={formData.remark}
+              onChange={(e) => setField("remark", e.target.value)}
+              style={S.input}
+              placeholder="Enter Slip No"
+              onFocus={focusStyle}
+              onBlur={blurStyle}
+            />
+          </div>
+
+          {/* ✅ Contractor Name drop-down (fetched from unique values Column O) */}
+          <SearchableSelect
+            label="Contractor Name" required
+            value={formData.contractorName}
+            onChange={(v) => setField("contractorName", v)}
+            options={contractorOptions}
+            placeholder="Search or type contractor..."
+            allowCustom
           />
         </div>
       </div>
@@ -778,7 +795,7 @@ const setField = (field, value) => {
             onClick={() => {
               setFormData({
                 projectName: isAdmin ? "" : FIXED_PROJECT,
-                engineerName: "", cluster: "", activity: "", remark: "",
+                engineerName: "", cluster: "", activity: "", remark: "", contractorName: "",
               });
               setItems([{ ...emptyItem }]);
             }}
@@ -832,6 +849,3 @@ const setField = (field, value) => {
 };
 
 export default SignatureRequirement;
-
-
-

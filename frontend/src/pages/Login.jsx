@@ -42,6 +42,7 @@ const STATIC_USER_TYPE_MAP = {
   'Labour Managment': 'Labour Managment',
   'Signature Requirement': 'Signature Requirement',
   'Labour Form': 'Labour Form',
+  'Store Inventory': 'Store Inventory',
 };
 
 // ─── THEME COLORS ────────────────────────────────────────

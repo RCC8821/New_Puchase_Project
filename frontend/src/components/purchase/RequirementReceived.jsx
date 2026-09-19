@@ -1,5 +1,7 @@
 
 
+
+
 import React, { useEffect, useState, useMemo } from "react";
 import {
   Plus, Trash2, Send, RotateCcw, Loader2, AlertCircle,
@@ -192,7 +194,6 @@ const RequirementReceived = () => {
     projectName: '', engineerName: '', contractor: '', remark: '',
   });
 
-  // ✅ brand field added in initial item state
   const [items, setItems] = useState([{
     materialType: '', materialName: '', materialSize: '',
     specification: '', brand: '', skuCode: '',
@@ -228,6 +229,8 @@ const RequirementReceived = () => {
     }));
   };
 
+ // RequirementReceived.jsx के अंदर केवल handleItemChange को इस कोड से बदलें:
+
   const handleItemChange = (index, field, value) => {
     const updated = [...items];
     updated[index][field] = value;
@@ -237,7 +240,7 @@ const RequirementReceived = () => {
         ...updated[index],
         materialType: value,
         materialName: '', materialSize: '',
-        specification: '', brand: '', skuCode: '',  // ✅ brand reset
+        specification: '', brand: '', skuCode: '', unit: '',
       };
     }
 
@@ -247,16 +250,20 @@ const RequirementReceived = () => {
         materialName: value,
         materialSize: '',
         specification: '',
-        brand: '',    // ✅ brand reset
+        brand: '',   
         skuCode: '',
+        unit: '', // साइज सिलेक्ट होने पर ही यूनिट भरी जाएगी
       };
     }
 
+    // ✅ जब "Material Size" सिलेक्ट होगा, तभी SKU और Unit दोनों एक साथ भरेंगे
     if (field === 'materialSize') {
       const nameKey = updated[index].materialName.toLowerCase();
       const sizeKey = value.toLowerCase();
       const comboKey = `${nameKey}|||${sizeKey}`;
+      
       updated[index].skuCode = maps.nameAndSizeToSKU?.[comboKey] || '';
+      updated[index].unit = maps.nameAndSizeToUnit?.[comboKey] || ''; // ✅ Name + Size से आई हुई सही Unit
     }
 
     setItems(updated);
@@ -272,7 +279,6 @@ const RequirementReceived = () => {
     return maps.nameToSpecs?.[materialName.toLowerCase()] || [];
   };
 
-  // ✅ Add item with brand field
   const addItem = () => {
     setItems([...items, {
       materialType: '', materialName: '', materialSize: '',
@@ -285,7 +291,6 @@ const RequirementReceived = () => {
     if (items.length > 1) setItems(items.filter((_, idx) => idx !== i));
   };
 
-  // ✅ brand is NOT required (optional field - empty column)
   const isFormValid = useMemo(() => {
     if (!formData.projectName.trim()) return false;
     if (!formData.engineerName.trim()) return false;
@@ -297,17 +302,15 @@ const RequirementReceived = () => {
       if (!item.materialName.trim()) return false;
       if (!item.materialSize.trim()) return false;
       if (!item.specification.trim()) return false;
-      // ✅ brand optional - no validation
       if (!item.skuCode.trim()) return false;
       if (!item.quantity.toString().trim()) return false;
-      if (!item.unit.trim()) return false;
+      if (!item.unit.trim()) return false; // Validation of Unit persists
       if (!item.description.trim()) return false;
       if (item.reqDays === '' || item.reqDays === undefined || item.reqDays === null) return false;
     }
     return true;
   }, [formData, items]);
 
-  // ─── SUBMIT ────────────────────────────────────────────
   const handleSubmit = async (e) => {
     e.preventDefault();
 
@@ -373,7 +376,6 @@ const RequirementReceived = () => {
     }
   };
 
-  // ✅ brand field reset in resetForm
   const resetForm = () => {
     setFormData({ projectName: '', engineerName: '', contractor: '', remark: '' });
     setItems([{
@@ -386,7 +388,6 @@ const RequirementReceived = () => {
   if (loading) return <LoadingScreen />;
   if (error) return <ErrorScreen error={error} onRetry={fetchData} />;
 
-  // ── Progress count (brand optional - not counted) ──
   const totalRequired = 4 + (items.length * 9);
   const filledCount = (() => {
     let count = 0;
@@ -399,7 +400,6 @@ const RequirementReceived = () => {
       if (item.materialName.trim()) count++;
       if (item.materialSize.trim()) count++;
       if (item.specification.trim()) count++;
-      // ✅ brand not counted (optional)
       if (item.skuCode.trim()) count++;
       if (item.quantity.toString().trim()) count++;
       if (item.unit.trim()) count++;
@@ -549,7 +549,7 @@ const RequirementReceived = () => {
                 />
               </div>
 
-              {/* ✅ Row 2: Spec + Brand + SKU */}
+              {/* Row 2: Spec + Brand + SKU */}
               <div style={{
                 display: 'grid',
                 gridTemplateColumns: 'repeat(auto-fit, minmax(180px, 1fr))',
@@ -570,17 +570,14 @@ const RequirementReceived = () => {
                   disabled={!item.materialName || specs.length === 0}
                 />
 
-                {/* ✅ NEW: Brand Input Field (Optional) - Column J */}
+                {/* Brand Input Field (Optional) */}
                 <div>
                   <label style={S.label}>
                     Brand
-                    {/* Optional badge */}
                     <span style={{
                       marginLeft: 8, fontSize: 10,
-                      color: T.textMuted,
-                      background: T.borderLight,
-                      padding: '2px 8px',
-                      borderRadius: 10, fontWeight: 500,
+                      color: T.textMuted, background: T.borderLight,
+                      padding: '2px 8px', borderRadius: 10, fontWeight: 500,
                       border: `1px solid ${T.border}`,
                     }}>Optional</span>
                   </label>
@@ -641,13 +638,31 @@ const RequirementReceived = () => {
                   />
                 </div>
 
-                <SearchableSelect
-                  label="Unit Name" required
-                  value={item.unit}
-                  onChange={(val) => handleItemChange(idx, 'unit', val)}
-                  options={uv.unitNames || []}
-                  placeholder="Select Unit"
-                />
+                {/* ✅ UPDATED: Unit Name (Dropdown removed, turned into Auto-filled Readonly Field) */}
+                <div>
+                  <label style={S.label}>
+                    Unit Name <span style={S.req}>*</span>
+                    {item.unit && (
+                      <span style={{
+                        marginLeft: 8, fontSize: 10, color: T.success,
+                        background: T.successBg, padding: '2px 8px',
+                        borderRadius: 10, fontWeight: 500,
+                      }}>Auto-filled</span>
+                    )}
+                  </label>
+                  <input
+                    type="text"
+                    readOnly
+                    value={item.unit}
+                    style={{
+                      ...S.inputReadonly,
+                      borderLeft: item.unit
+                        ? `3px solid ${T.success}`
+                        : `3px solid ${T.danger}`,
+                    }}
+                    placeholder="Auto-filled from Material selection"
+                  />
+                </div>
 
                 <div>
                   <label style={S.label}>

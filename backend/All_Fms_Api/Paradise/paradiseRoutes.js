@@ -1,8 +1,6 @@
-
-// signatureRoutes.js  
-
+// backend/All_Fms_Api/Paradise/paradiseRoutes.js  
 const express = require('express');
-const { sheets, SignatureSheetId } = require('../config/googleSheet');
+const { sheets, SignatureParadiseSheetId } = require('../../config/googleSheet');
 
 const router = express.Router();
 
@@ -10,8 +8,8 @@ const router = express.Router();
 router.get('/project-data', async (req, res) => {
   try {
     const response = await sheets.spreadsheets.values.get({
-      spreadsheetId: SignatureSheetId,
-      range: 'Project_Data!A2:O', // ✅ Range extended to O column to fetch Contractor names
+      spreadsheetId: SignatureParadiseSheetId,
+      range: 'Project_Data!A2:O', 
     });
 
     const rows = response.data.values || [];
@@ -31,7 +29,7 @@ router.get('/project-data', async (req, res) => {
         specification: (row[8] || '').trim(),
         skuCode:       (row[9] || '').trim(),
         unitName:      (row[10] || '').trim(),
-        contractorName:(row[14] || '').trim(), // ✅ Col O (Index 14) parsed as contractorName
+        contractorName:(row[14] || '').trim(), 
       }));
 
     const uniqueValues = {
@@ -42,7 +40,7 @@ router.get('/project-data', async (req, res) => {
       activities:    [...new Set(projectData.map(d => d.activity).filter(Boolean))].sort(),
       materialTypes: [...new Set(projectData.map(d => d.materialType).filter(Boolean))].sort(),
       unitNames:     [...new Set(projectData.map(d => d.unitName).filter(Boolean))].sort(),
-      contractors:   [...new Set(projectData.map(d => d.contractorName).filter(Boolean))].sort(), // ✅ Unique contractors array sent to frontend
+      contractors:   [...new Set(projectData.map(d => d.contractorName).filter(Boolean))].sort(), 
     };
 
     // Project → Engineers
@@ -101,7 +99,7 @@ router.get('/project-data', async (req, res) => {
       if (!nameAndSizeToSKU[key] && d.skuCode) nameAndSizeToSKU[key] = d.skuCode;
     });
 
-    // ✅ Cluster → Locations
+    // Cluster → Locations
     const clusterToLocations = {};
     projectData.forEach(d => {
       if (!d.cluster || !d.location) return;
@@ -113,7 +111,7 @@ router.get('/project-data', async (req, res) => {
       clusterToLocations[k] = [...clusterToLocations[k]].sort();
     });
 
-    // ✅ SKU Code → Unit Name
+    // SKU Code → Unit Name
     const skuCodeToUnit = {};
     projectData.forEach(d => {
       if (!d.skuCode || !d.unitName) return;
@@ -138,7 +136,7 @@ router.get('/project-data', async (req, res) => {
       },
     });
   } catch (error) {
-    console.error('Signature project data error:', error);
+    console.error('Paradise project data error:', error);
     res.status(500).json({ error: 'Failed to load project data' });
   }
 });
@@ -147,7 +145,7 @@ router.get('/project-data', async (req, res) => {
 async function getNextUID() {
   try {
     const response = await sheets.spreadsheets.values.get({
-      spreadsheetId: SignatureSheetId,
+      spreadsheetId: SignatureParadiseSheetId,
       range: 'Out_Data!B:B',
     });
 
@@ -164,7 +162,7 @@ async function getNextUID() {
     const next = numbers.length > 0 ? Math.max(...numbers) + 1 : 1;
     return `S${String(next).padStart(4, '0')}`;
   } catch (err) {
-    console.error("UID error:", err);
+    console.error("Paradise UID error:", err);
     throw new Error('Failed to generate UID');
   }
 }
@@ -173,7 +171,7 @@ async function getNextUID() {
 async function getNextReqNo() {
   try {
     const response = await sheets.spreadsheets.values.get({
-      spreadsheetId: SignatureSheetId,
+      spreadsheetId: SignatureParadiseSheetId,
       range: 'Out_Data!C:C',
     });
 
@@ -190,12 +188,12 @@ async function getNextReqNo() {
     const next = numbers.length > 0 ? Math.max(...numbers) + 1 : 1;
     return `sig${String(next).padStart(4, '0')}`;
   } catch (err) {
-    console.error("ReqNo error:", err);
+    console.error("Paradise ReqNo error:", err);
     throw new Error('Failed to generate req_no');
   }
 }
 
-// ─── SUBMIT REQUIREMENT (Signature Form) ─────────────────
+// ─── SUBMIT REQUIREMENT (Paradise Form) ─────────────────
 router.post('/submit-requirement', async (req, res) => {
   try {
     const {
@@ -205,7 +203,7 @@ router.post('/submit-requirement', async (req, res) => {
       activity,
       remark,
       items,
-      contractorName, // ✅ Contractor Name received from frontend
+      contractorName, 
     } = req.body;
 
     if (!projectName) throw new Error('Project Name is required');
@@ -213,7 +211,7 @@ router.post('/submit-requirement', async (req, res) => {
     if (!cluster) throw new Error('Cluster is required');
     if (!activity) throw new Error('Activity is required');
     if (!remark) throw new Error('Remark (Slip No) is required');
-    if (!contractorName) throw new Error('Contractor Name is required'); // ✅ Mandatory Field
+    if (!contractorName) throw new Error('Contractor Name is required');
 
     if (!Array.isArray(items) || items.length === 0) {
       throw new Error('At least one item is required');
@@ -241,40 +239,37 @@ router.post('/submit-requirement', async (req, res) => {
 
       const uid = `S${String(startUIDNumber + i).padStart(4, '0')}`;
 
-      // ✅ 18 items returned. Writes data safely from A to R column.
       return [
         now, uid, reqNo, projectName, engineerName, cluster,
         item.location, activity, item.materialType, item.materialName,
         item.materialSize, item.specification, item.skuCode,
         item.quantity, item.unit, item.description, remark,
-        contractorName, // ✅ Column R (Index 17) in Out_Data Sheet
+        contractorName, 
       ];
     });
 
-    // ✅ Step 1: Empty Row ढूंढना और सही जगह Data Save करना (Overwrite Fix)
     const outDataResponse = await sheets.spreadsheets.values.get({
-      spreadsheetId: SignatureSheetId,
-      range: 'Out_Data!A:A', // Column A को चेक करेंगे
+      spreadsheetId: SignatureParadiseSheetId,
+      range: 'Out_Data!A:A', 
     });
 
     const filledRows = outDataResponse.data.values ? outDataResponse.data.values.length : 0;
-    const nextRow = filledRows + 1; // अगली खाली Row का नंबर
+    const nextRow = filledRows + 1; 
 
-    // ✅ Range updated to R to store Contractor Name in Out_Data Column R (18th Column)
     await sheets.spreadsheets.values.update({
-      spreadsheetId: SignatureSheetId,
+      spreadsheetId: SignatureParadiseSheetId,
       range: `Out_Data!A${nextRow}:R${nextRow + values.length - 1}`,
       valueInputOption: 'USER_ENTERED',
       resource: { values },
     });
 
-    // ✅ Step 2: Update BOQ_Qty Balance
+    // Update BOQ_Qty
     let boqUpdatedCount = 0;
     let notFoundItems = [];
 
     try {
       const boqResponse = await sheets.spreadsheets.values.get({
-        spreadsheetId: SignatureSheetId,
+        spreadsheetId: SignatureParadiseSheetId,
         range: 'BOQ_Qty!A2:K',
       });
 
@@ -301,38 +296,27 @@ router.post('/submit-requirement', async (req, res) => {
             norm(row[7]) === norm(item.skuCode);
 
           if (matches) {
-            const outQty = parseFloat(row[8]) || 0;         // I
-            const reviseBOQ = parseFloat(row[9]) || 0;      // J
-            const currentBalance = row[10];                 // K
+            const outQty = parseFloat(row[8]) || 0;         
+            const reviseBOQ = parseFloat(row[9]) || 0;      
+            const currentBalance = row[10];                 
 
             let availableQty;
-            let source;
-
             if (currentBalance !== undefined && currentBalance !== '' && !isNaN(parseFloat(currentBalance))) {
               availableQty = parseFloat(currentBalance);
-              source = 'K (Previous Balance)';
             } else if (reviseBOQ > 0) {
               availableQty = reviseBOQ;
-              source = 'J (Revise BOQ)';
             } else {
               availableQty = outQty;
-              source = 'I (Out Qty)';
             }
 
             const userOutQty = parseFloat(item.quantity) || 0;
             const newBalance = availableQty - userOutQty;
-
             const rowNumber = i + 2;
 
             boqUpdates.push({
               range: `BOQ_Qty!K${rowNumber}`,
               values: [[newBalance]],
             });
-
-            console.log(
-              `✅ BOQ Match: Row ${rowNumber} | ${item.materialName} | ` +
-              `Available: ${availableQty} (from ${source}) - ${userOutQty} = ${newBalance}`
-            );
 
             matchFound = true;
             break;
@@ -345,27 +329,25 @@ router.post('/submit-requirement', async (req, res) => {
             skuCode: item.skuCode,
             location: item.location,
           });
-          console.log(`⚠️ BOQ No Match: ${item.materialName} (${item.skuCode})`);
         }
       }
 
       if (boqUpdates.length > 0) {
         await sheets.spreadsheets.values.batchUpdate({
-          spreadsheetId: SignatureSheetId,
+          spreadsheetId: SignatureParadiseSheetId,
           resource: {
             valueInputOption: 'USER_ENTERED',
             data: boqUpdates,
           },
         });
         boqUpdatedCount = boqUpdates.length;
-        console.log(`✅ BOQ updated: ${boqUpdatedCount} rows`);
       }
     } catch (boqError) {
-      console.error('⚠️ BOQ update error (data still saved):', boqError);
+      console.error('⚠️ Paradise BOQ update error:', boqError);
     }
 
     res.json({
-      message: 'Requirement submitted successfully!',
+      message: 'Paradise Requirement submitted successfully!',
       reqNo,
       itemCount: items.length,
       boqUpdated: boqUpdatedCount,
@@ -374,7 +356,7 @@ router.post('/submit-requirement', async (req, res) => {
     });
 
   } catch (error) {
-    console.error('Signature submit error:', error);
+    console.error('Paradise submit error:', error);
     res.status(400).json({ error: error.message });
   }
 });
@@ -389,12 +371,11 @@ router.get('/site-engineer-data/:engineerName', async (req, res) => {
     }
 
     const response = await sheets.spreadsheets.values.get({
-      spreadsheetId: SignatureSheetId,
+      spreadsheetId: SignatureParadiseSheetId,
       range: 'Out_Data!A2:W',
     });
 
     const rows = response.data.values || [];
-
     const isAdmin = engineerName.toLowerCase() === 'admin';
 
     const filteredData = rows
@@ -447,21 +428,13 @@ router.post('/site-engineer-update', async (req, res) => {
   try {
     const { rowNumber, status, quantity, remarks } = req.body;
 
-    if (!rowNumber) {
-      throw new Error('Row number is required');
-    }
-    if (!status) {
-      throw new Error('Status is required');
-    }
-    if (!quantity && quantity !== 0) {
-      throw new Error('Quantity is required');
-    }
-    if (!remarks) {
-      throw new Error('Remarks is required');
-    }
+    if (!rowNumber) throw new Error('Row number is required');
+    if (!status) throw new Error('Status is required');
+    if (!quantity && quantity !== 0) throw new Error('Quantity is required');
+    if (!remarks) throw new Error('Remarks is required');
 
     await sheets.spreadsheets.values.update({
-      spreadsheetId: SignatureSheetId,
+      spreadsheetId: SignatureParadiseSheetId,
       range: `Out_Data!U${rowNumber}:W${rowNumber}`,
       valueInputOption: 'USER_ENTERED',
       resource: {
@@ -481,11 +454,11 @@ router.post('/site-engineer-update', async (req, res) => {
   }
 });
 
-// ─── GET STORE INVENTORY (Store_Balance sheet) ────────────
+// ─── GET STORE INVENTORY ───────────────────────────────────
 router.get('/store-inventory', async (req, res) => {
   try {
     const response = await sheets.spreadsheets.values.get({
-      spreadsheetId: SignatureSheetId,
+      spreadsheetId: SignatureParadiseSheetId,
       range: 'Store_Balance!A3:J',
     });
 
@@ -540,11 +513,11 @@ router.get('/store-inventory', async (req, res) => {
   }
 });
 
-// ─── GET BOQ_Qty DATA (BOQ Quantity) ─────────────────────
+// ─── GET BOQ_Qty DATA ────────────────────────────────────
 router.get('/boq-qty', async (req, res) => {
   try {
     const response = await sheets.spreadsheets.values.get({
-      spreadsheetId: SignatureSheetId,
+      spreadsheetId: SignatureParadiseSheetId,
       range: 'BOQ_Qty!A2:K',
     });
 

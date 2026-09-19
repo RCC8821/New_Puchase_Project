@@ -48,7 +48,8 @@ router.post('/login', async (req, res) => {
       'Final Material Received',
       'Labour Managment',
       'Signature Requirement',
-      'Labour Form'
+      'Labour Form',
+      'Store Inventory'
     ];
 
     // ✅ Dynamic Site Engineer Types (start with "SE_" prefix)

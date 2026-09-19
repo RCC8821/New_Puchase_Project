@@ -1,15 +1,18 @@
 
+
 const express = require('express');
-const { sheets, spreadsheetId,OldPurchaseFormSheetId } = require('../config/googleSheet');
+const { sheets, spreadsheetId, OldPurchaseFormSheetId } = require('../config/googleSheet');
 
 const router = express.Router();
 
 // ─── GET PROJECT DATA from Form_Material (A to L) ────────
+
+
 router.get('/project-data', async (req, res) => {
   try {
     const response = await sheets.spreadsheets.values.get({
       spreadsheetId,
-      range: 'Form_Material!A2:L',  // ✅ A to L (contractor now in L)
+      range: 'Form_Material!A2:L',
     });
 
     const rows = response.data.values || [];
@@ -20,44 +23,30 @@ router.get('/project-data', async (req, res) => {
         id: index + 1,
         engineerName:  (row[0] || '').trim(),    // A
         projectName:   (row[1] || '').trim(),    // B
-        // C column skipped (old contractor)
         materialType:  (row[3] || '').trim(),    // D
         materialName:  (row[4] || '').trim(),    // E
         materialSize:  (row[5] || '').trim(),    // F
         specification: (row[6] || '').trim(),    // G
         skuCode:       (row[7] || '').trim(),    // H
         unitName:      (row[8] || '').trim(),    // I
-        // J skipped (old brand)
-        // K skipped
-        contractor:    (row[11] || '').trim(),   // ✅ L column - NEW contractor
+        contractor:    (row[11] || '').trim(),   // L
       }));
 
-    // ══════════════════════════════════════════════
-    //  UNIQUE VALUES
-    // ══════════════════════════════════════════════
     const uniqueValues = {
       projectNames:  [...new Set(projectData.map(d => d.projectName).filter(Boolean))].sort(),
-      contractors:   [...new Set(projectData.map(d => d.contractor).filter(Boolean))].sort(), // ✅ from L
+      contractors:   [...new Set(projectData.map(d => d.contractor).filter(Boolean))].sort(),
       unitNames:     [...new Set(projectData.map(d => d.unitName).filter(Boolean))].sort(),
       materialTypes: [...new Set(projectData.map(d => d.materialType).filter(Boolean))].sort(),
     };
 
-    // ══════════════════════════════════════════════
-    //  MAPS
-    // ══════════════════════════════════════════════
-
-    // 1. Project → Engineer
+    // Maps
     const projectToEngineer = {};
     projectData.forEach(d => {
       if (d.projectName && d.engineerName) {
-        const key = d.projectName.toLowerCase();
-        if (!projectToEngineer[key]) {
-          projectToEngineer[key] = d.engineerName;
-        }
+        projectToEngineer[d.projectName.toLowerCase()] = d.engineerName;
       }
     });
 
-    // 2. MaterialType → MaterialNames
     const typeToNames = {};
     projectData.forEach(d => {
       if (!d.materialType || !d.materialName) return;
@@ -65,11 +54,8 @@ router.get('/project-data', async (req, res) => {
       if (!typeToNames[key]) typeToNames[key] = new Set();
       typeToNames[key].add(d.materialName);
     });
-    Object.keys(typeToNames).forEach(k => {
-      typeToNames[k] = [...typeToNames[k]].sort();
-    });
+    Object.keys(typeToNames).forEach(k => { typeToNames[k] = [...typeToNames[k]].sort(); });
 
-    // 3. MaterialName → Sizes
     const nameToSizes = {};
     projectData.forEach(d => {
       if (!d.materialName || !d.materialSize) return;
@@ -77,11 +63,8 @@ router.get('/project-data', async (req, res) => {
       if (!nameToSizes[key]) nameToSizes[key] = new Set();
       nameToSizes[key].add(d.materialSize);
     });
-    Object.keys(nameToSizes).forEach(k => {
-      nameToSizes[k] = [...nameToSizes[k]].sort();
-    });
+    Object.keys(nameToSizes).forEach(k => { nameToSizes[k] = [...nameToSizes[k]].sort(); });
 
-    // 4. MaterialName → ALL Specifications
     const nameToSpecs = {};
     projectData.forEach(d => {
       if (!d.materialName || !d.specification) return;
@@ -89,17 +72,25 @@ router.get('/project-data', async (req, res) => {
       if (!nameToSpecs[key]) nameToSpecs[key] = new Set();
       nameToSpecs[key].add(d.specification);
     });
-    Object.keys(nameToSpecs).forEach(k => {
-      nameToSpecs[k] = [...nameToSpecs[k]].sort();
-    });
+    Object.keys(nameToSpecs).forEach(k => { nameToSpecs[k] = [...nameToSpecs[k]].sort(); });
 
-    // 5. MaterialName + Size → SKU Code
+    // SKU Mapping (Name + Size)
     const nameAndSizeToSKU = {};
     projectData.forEach(d => {
       if (!d.materialName || !d.materialSize) return;
       const key = `${d.materialName.toLowerCase()}|||${d.materialSize.toLowerCase()}`;
       if (!nameAndSizeToSKU[key] && d.skuCode) {
         nameAndSizeToSKU[key] = d.skuCode;
+      }
+    });
+
+    // ✅ NEW & CORRECT: Unit Mapping (Name + Size)
+    const nameAndSizeToUnit = {};
+    projectData.forEach(d => {
+      if (!d.materialName || !d.materialSize || !d.unitName) return;
+      const key = `${d.materialName.toLowerCase()}|||${d.materialSize.toLowerCase()}`;
+      if (!nameAndSizeToUnit[key]) {
+        nameAndSizeToUnit[key] = d.unitName;
       }
     });
 
@@ -113,14 +104,16 @@ router.get('/project-data', async (req, res) => {
         nameToSizes,
         nameToSpecs,
         nameAndSizeToSKU,
+        nameAndSizeToUnit, // ✅ नाम और साइज के कॉम्बिनेशन से यूनिट मैप
       },
     });
 
   } catch (error) {
-    console.error('Error fetching project data:', error);
+    console.error('Error:', error);
     res.status(500).json({ error: 'Failed to load project data' });
   }
 });
+
 
 // ─── GET NEXT UID ────────────────────────────────────────
 async function getNextUID() {
@@ -155,12 +148,12 @@ async function getNextReqNo() {
   }
 }
 
+
 // ─── SUBMIT → Purchase_FMS (A to Q = 17 columns) ────────
 router.post('/submit-requirement', async (req, res) => {
   try {
     const { projectName, engineerName, contractor, remark, items } = req.body;
 
-    // ✅ All project fields required
     if (!projectName || !engineerName || !contractor || !remark) {
       throw new Error('All project fields are required (Project, Engineer, Contractor, Remark)');
     }
@@ -179,7 +172,6 @@ router.post('/submit-requirement', async (req, res) => {
     }).replace(',', '');
 
     const values = items.map((item, i) => {
-      // ✅ All item fields required
       if (!item.materialType || !item.materialName || !item.materialSize ||
           !item.specification || !item.skuCode || !item.quantity ||
           !item.unit || !item.description ||
