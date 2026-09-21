@@ -61,8 +61,8 @@ export const advanceApi = createApi({
   reducerPath: 'advanceApi',
 
   baseQuery: fetchBaseQuery({
-    // baseUrl: 'https://new-puchase-project-silk.vercel.app',
-    baseUrl: 'http://localhost:5000',
+    baseUrl: 'https://new-puchase-project-silk.vercel.app',
+    // baseUrl: 'http://localhost:5000',
     prepareHeaders: (headers) => {
       return headers;
     },
