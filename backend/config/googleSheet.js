@@ -42,6 +42,8 @@ const CompanyLabourSheetId = process.env.COMPANY_LABOUR_SHEET; // ✅ NEW - Comp
 
 const SignatureParadiseSheetId = process.env.SIGNATURE_PAPADISE; // ✅ NEW - Signature Paradise Sheet ID
 
+const AdvanceSalarySheetId = process.env.Advance_Salary; // ✅ NEW - Advance Salary Sheet ID
+
 module.exports = {
   sheets,
   drive,
@@ -52,5 +54,6 @@ module.exports = {
   OldPurchaseFormSheetId,
   AdvanceSheetContractorId  ,
   CompanyLabourSheetId, // ✅ NEW export
-  SignatureParadiseSheetId // ✅ NEW export
+  SignatureParadiseSheetId ,// ✅ NEW export
+  AdvanceSalarySheetId // ✅ NEW export
 };
