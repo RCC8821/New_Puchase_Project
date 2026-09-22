@@ -163,7 +163,7 @@ const Dashboard = () => {
       id: 'sheet',
       name: 'Sheet Link',
       icon: FileText,
-      url: 'https://docs.google.com/spreadsheets/d/18bmeQLqAOqleKS9628izEnirrRwOqkC0G_pEYGOsO-Y/edit?gid=0#gid=0',
+      url: 'https://docs.google.com/spreadsheets/d/1svBFfbW-8p2ZJErndJE1ACKFnmYlozCqeeBBBcGlHQ4/edit?gid=0#gid=0',
       pages: [],
     }] : []),
   ];
