@@ -608,6 +608,79 @@ router.get('/Company-labour-dropdowns', async (req, res) => {
 // ============================================================
 // POST /api/Company-labour — Labour Attendance save
 // ============================================================
+// router.post('/Company-labour', async (req, res) => {
+//   try {
+//     const {
+//       Work_Date_1,
+//       Project_Name_1,
+//       Project_Engineer_1,
+//       Labour_Name_1,
+//       Day_Night_1,
+//       Day_Attendance_1,
+//       Work_Type_1,
+//       Work_Description_1,
+//       Head_Of_Contractor_Company_1,
+//       Name_Of_Contractor_1,
+//       Contractor_Firm_Name_1,
+//       Remark_1,
+//     } = req.body;
+
+//     if (!Project_Name_1 || !Labour_Name_1 || !Work_Date_1) {
+//       return res.status(400).json({
+//         success: false,
+//         message: 'Project Name, Labour Name aur Work Date required hain',
+//       });
+//     }
+
+//     const [nextRow, UID] = await Promise.all([
+//       getNextEmptyRowCompany('Labour_Attedace_FMS'),
+//       generateUIDCompany('Labour_Attedace_FMS', 'LATT'),
+//     ]);
+
+//     const values = [[
+//       getTimestamp(),
+//       UID,
+//       Work_Date_1 || '',
+//       Project_Name_1 || '',
+//       Project_Engineer_1 || '',
+//       '',
+//       Labour_Name_1 || '',
+//       Day_Night_1 || '',
+//       Day_Attendance_1 || '',
+//       Work_Type_1 || '',
+//       Work_Description_1 || '',
+//       Head_Of_Contractor_Company_1 || '',
+//       Name_Of_Contractor_1 || '',
+//       Contractor_Firm_Name_1 || '',
+//       Remark_1 || '',
+//     ]];
+
+//     await sheets.spreadsheets.values.update({
+//       spreadsheetId: CompanyLabourSheetId,
+//       range: `Labour_Attedace_FMS!A${nextRow}`,
+//       valueInputOption: 'USER_ENTERED',
+//       requestBody: { values },
+//     });
+
+//     console.log(`[LABOUR ATT SAVED] Row ${nextRow} | UID: ${UID}`);
+
+//     return res.status(200).json({
+//       success: true,
+//       message: 'Labour Attendance successfully save ho gayi!',
+//       uid: UID,
+//       row: nextRow,
+//     });
+//   } catch (error) {
+//     console.error('❌ Labour Attendance Error:', error);
+//     return res.status(500).json({ success: false, message: 'Server error: ' + error.message });
+//   }
+// });
+
+
+
+// ============================================================
+// POST /api/Company-labour — Labour Attendance save
+// ============================================================
 router.post('/Company-labour', async (req, res) => {
   try {
     const {
@@ -623,6 +696,7 @@ router.post('/Company-labour', async (req, res) => {
       Name_Of_Contractor_1,
       Contractor_Firm_Name_1,
       Remark_1,
+      Attendance_Photo_1,   // ← NEW: base64 photo from frontend
     } = req.body;
 
     if (!Project_Name_1 || !Labour_Name_1 || !Work_Date_1) {
@@ -637,22 +711,34 @@ router.post('/Company-labour', async (req, res) => {
       generateUIDCompany('Labour_Attedace_FMS', 'LATT'),
     ]);
 
+    // ── Upload photo to Google Drive (if provided) ──────────
+    let attendancePhotoUrl = '';
+    if (Attendance_Photo_1) {
+      console.log(`[COMPANY LABOUR PHOTO] Uploading for UID: ${UID}`);
+      attendancePhotoUrl = await uploadToGoogleDrive(
+        Attendance_Photo_1,
+        `Attendance_${UID}_${Date.now()}.jpg`
+      );
+      console.log(`[COMPANY LABOUR PHOTO] URL: ${attendancePhotoUrl || 'FAILED'}`);
+    }
+
     const values = [[
-      getTimestamp(),
-      UID,
-      Work_Date_1 || '',
-      Project_Name_1 || '',
-      Project_Engineer_1 || '',
-      '',
-      Labour_Name_1 || '',
-      Day_Night_1 || '',
-      Day_Attendance_1 || '',
-      Work_Type_1 || '',
-      Work_Description_1 || '',
-      Head_Of_Contractor_Company_1 || '',
-      Name_Of_Contractor_1 || '',
-      Contractor_Firm_Name_1 || '',
-      Remark_1 || '',
+      getTimestamp(),                    // A
+      UID,                               // B
+      Work_Date_1 || '',                 // C
+      Project_Name_1 || '',              // D
+      Project_Engineer_1 || '',          // E
+      '',                                // F
+      Labour_Name_1 || '',              // G
+      Day_Night_1 || '',                // H
+      Day_Attendance_1 || '',           // I
+      Work_Type_1 || '',                // J
+      Work_Description_1 || '',         // K
+      Head_Of_Contractor_Company_1 || '', // L
+      Name_Of_Contractor_1 || '',       // M
+      Contractor_Firm_Name_1 || '',     // N
+      Remark_1 || '',                   // O
+      attendancePhotoUrl,               // P  ← NEW: Drive URL
     ]];
 
     await sheets.spreadsheets.values.update({
@@ -662,13 +748,14 @@ router.post('/Company-labour', async (req, res) => {
       requestBody: { values },
     });
 
-    console.log(`[LABOUR ATT SAVED] Row ${nextRow} | UID: ${UID}`);
+    console.log(`[LABOUR ATT SAVED] Row ${nextRow} | UID: ${UID} | Photo: ${attendancePhotoUrl ? 'Yes' : 'No'}`);
 
     return res.status(200).json({
       success: true,
       message: 'Labour Attendance successfully save ho gayi!',
       uid: UID,
       row: nextRow,
+      photoUrl: attendancePhotoUrl,
     });
   } catch (error) {
     console.error('❌ Labour Attendance Error:', error);
