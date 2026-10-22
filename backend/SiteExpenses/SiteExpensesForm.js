@@ -835,101 +835,234 @@ router.post('/office-labour-request', async (req, res) => {
 // ============================================================
 // POST /api/submit-to-labour-fms
 // ============================================================
+// router.post('/submit-to-labour-fms', async (req, res) => {
+//   const { uid } = req.body;
+
+//   if (!uid) {
+//     return res.status(400).json({
+//       success: false,
+//       message: 'UID is required',
+//     });
+//   }
+
+//   try {
+//     const response = await sheets.spreadsheets.values.get({
+//       spreadsheetId: SiteExpeseSheetId,
+//       range: 'Labour_Requirement!A2:Q10000',
+//     });
+
+//     const rows = response.data.values || [];
+//     const rowIndex = rows.findIndex(row =>
+//       row[1] && String(row[1]).trim() === String(uid).trim()
+//     );
+
+//     if (rowIndex === -1) {
+//       return res.status(404).json({
+//         success: false,
+//         message: `UID not found: ${uid}`,
+//       });
+//     }
+
+//     const sourceRow = rows[rowIndex];
+//     const sheetRowNumber = 2 + rowIndex;
+
+//     const currentStatus = (sourceRow[16] || '').toString().trim();
+//     if (currentStatus === 'Done') {
+//       return res.status(400).json({
+//         success: false,
+//         message: `UID ${uid} already submitted (Status: Done)`,
+//       });
+//     }
+
+//     console.log(`[SUBMIT] UID ${uid} at row ${sheetRowNumber}`);
+
+//     const nextRow = await getNextEmptyRow('Labour_FMS');
+//     console.log(`[SUBMIT] Labour_FMS next row: ${nextRow}`);
+
+//     const values = [[
+//       sourceRow[0]  || '',
+//       sourceRow[1]  || '',
+//       sourceRow[2]  || '',
+//       sourceRow[3]  || '',
+//       sourceRow[4]  || '',
+//       sourceRow[5]  || '',
+//       sourceRow[6]  || '',
+//       sourceRow[7]  || '',
+//       sourceRow[8]  || '',
+//       sourceRow[9]  || '',
+//       sourceRow[10] || '',
+//       sourceRow[11] || '',
+//       sourceRow[12] || '',
+//       sourceRow[13] || '',
+//       sourceRow[14] || '',
+//       sourceRow[15] || '',
+//     ]];
+
+//     await sheets.spreadsheets.values.update({
+//       spreadsheetId: SiteExpeseSheetId,
+//       range: `Labour_FMS!A${nextRow}`,
+//       valueInputOption: 'USER_ENTERED',
+//       requestBody: { values },
+//     });
+
+//     await sheets.spreadsheets.values.update({
+//       spreadsheetId: SiteExpeseSheetId,
+//       range: `Labour_Requirement!Q${sheetRowNumber}`,
+//       valueInputOption: 'USER_ENTERED',
+//       requestBody: { values: [['Done']] },
+//     });
+
+//     console.log(`[SUBMIT SUCCESS] UID ${uid} → Labour_FMS row ${nextRow} + Status = Done`);
+
+//     return res.json({
+//       success: true,
+//       message: 'Successfully submitted to Labour_FMS!',
+//       uid: uid,
+//       labourFmsRow: nextRow,
+//       requirementRow: sheetRowNumber,
+//     });
+//   } catch (error) {
+//     console.error('❌ Submit to Labour_FMS Error:', error);
+//     return res.status(500).json({
+//       success: false,
+//       message: 'Submit failed',
+//       error: error.message,
+//     });
+//   }
+// });
+
+
+
+
+// ============================================================
+// POST /api/submit-to-labour-fms (FIXED FOR DONE / REJECT)
+// ============================================================
 router.post('/submit-to-labour-fms', async (req, res) => {
-  const { uid } = req.body;
-
-  if (!uid) {
-    return res.status(400).json({
-      success: false,
-      message: 'UID is required',
-    });
-  }
-
   try {
+    const { uid, status } = req.body;
+
+    console.log(`\n[ACTION TRIGGERED] UID: ${uid} | Status: ${status}`);
+
+    if (!uid || !status) {
+      return res.status(400).json({
+        success: false,
+        message: 'UID aur Status (Done/Reject) dono required hain',
+      });
+    }
+
+    const cleanStatus = String(status).trim();
+    const isReject = cleanStatus.toLowerCase() === 'reject';
+    const isDone = cleanStatus.toLowerCase() === 'done';
+
+    if (!isReject && !isDone) {
+      return res.status(400).json({
+        success: false,
+        message: 'Status sirf "Done" ya "Reject" ho sakta hai',
+      });
+    }
+
+    // Labour_Requirement sheet se Rows fetch karein (Row 4 se)
     const response = await sheets.spreadsheets.values.get({
       spreadsheetId: SiteExpeseSheetId,
-      range: 'Labour_Requirement!A2:Q10000',
+      range: 'Labour_Requirement!A4:Q10000',
     });
 
     const rows = response.data.values || [];
-    const rowIndex = rows.findIndex(row =>
-      row[1] && String(row[1]).trim() === String(uid).trim()
+    const rowIndex = rows.findIndex(
+      row => row[1] && String(row[1]).trim().toUpperCase() === String(uid).trim().toUpperCase()
     );
 
     if (rowIndex === -1) {
+      console.log(`❌ UID Not Found: ${uid}`);
       return res.status(404).json({
         success: false,
-        message: `UID not found: ${uid}`,
+        message: `UID not found in Labour_Requirement: ${uid}`,
       });
     }
 
     const sourceRow = rows[rowIndex];
-    const sheetRowNumber = 2 + rowIndex;
+    const sheetRowNumber = 4 + rowIndex; // Row 4 base offset
 
-    const currentStatus = (sourceRow[16] || '').toString().trim();
-    if (currentStatus === 'Done') {
-      return res.status(400).json({
-        success: false,
-        message: `UID ${uid} already submitted (Status: Done)`,
+    console.log(`[FOUND] UID ${uid} is at Row ${sheetRowNumber}`);
+
+    // ⛔ CASE 1: REJECT (Sirf Q Column me 'Reject' likho, Labour_FMS me COPY NAHI KARNA)
+    if (isReject) {
+      console.log(`⛔ [REJECT] Writing "Reject" to Column Q at Row ${sheetRowNumber}...`);
+
+      await sheets.spreadsheets.values.update({
+        spreadsheetId: SiteExpeseSheetId,
+        range: `Labour_Requirement!Q${sheetRowNumber}`,
+        valueInputOption: 'USER_ENTERED',
+        requestBody: { values: [['Reject']] },
+      });
+
+      console.log(`✅ [REJECT SUCCESS] Column Q updated to "Reject" at Row ${sheetRowNumber}`);
+
+      return res.json({
+        success: true,
+        message: 'Request Rejected successfully!',
+        uid: uid,
+        status: 'Reject',
+        requirementRow: sheetRowNumber,
       });
     }
 
-    console.log(`[SUBMIT] UID ${uid} at row ${sheetRowNumber}`);
+    // ✅ CASE 2: DONE (Labour_FMS me COPY KARO + Q Column me 'Done' likho)
+    if (isDone) {
+      console.log(`✅ [DONE] Copying data to Labour_FMS and writing "Done" to Column Q at Row ${sheetRowNumber}...`);
 
-    const nextRow = await getNextEmptyRow('Labour_FMS');
-    console.log(`[SUBMIT] Labour_FMS next row: ${nextRow}`);
+      const nextRow = await getNextEmptyRow('Labour_FMS');
 
-    const values = [[
-      sourceRow[0]  || '',
-      sourceRow[1]  || '',
-      sourceRow[2]  || '',
-      sourceRow[3]  || '',
-      sourceRow[4]  || '',
-      sourceRow[5]  || '',
-      sourceRow[6]  || '',
-      sourceRow[7]  || '',
-      sourceRow[8]  || '',
-      sourceRow[9]  || '',
-      sourceRow[10] || '',
-      sourceRow[11] || '',
-      sourceRow[12] || '',
-      sourceRow[13] || '',
-      sourceRow[14] || '',
-      sourceRow[15] || '',
-    ]];
+      const values = [[
+        sourceRow[0]  || '', sourceRow[1]  || '', sourceRow[2]  || '',
+        sourceRow[3]  || '', sourceRow[4]  || '', sourceRow[5]  || '',
+        sourceRow[6]  || '', sourceRow[7]  || '', sourceRow[8]  || '',
+        sourceRow[9]  || '', sourceRow[10] || '', sourceRow[11] || '',
+        sourceRow[12] || '', sourceRow[13] || '', sourceRow[14] || '',
+        sourceRow[15] || '',
+      ]];
 
-    await sheets.spreadsheets.values.update({
-      spreadsheetId: SiteExpeseSheetId,
-      range: `Labour_FMS!A${nextRow}`,
-      valueInputOption: 'USER_ENTERED',
-      requestBody: { values },
-    });
+      // 1. Copy to Labour_FMS
+      await sheets.spreadsheets.values.update({
+        spreadsheetId: SiteExpeseSheetId,
+        range: `Labour_FMS!A${nextRow}`,
+        valueInputOption: 'USER_ENTERED',
+        requestBody: { values },
+      });
 
-    await sheets.spreadsheets.values.update({
-      spreadsheetId: SiteExpeseSheetId,
-      range: `Labour_Requirement!Q${sheetRowNumber}`,
-      valueInputOption: 'USER_ENTERED',
-      requestBody: { values: [['Done']] },
-    });
+      // 2. Mark Q column as "Done" in Labour_Requirement
+      await sheets.spreadsheets.values.update({
+        spreadsheetId: SiteExpeseSheetId,
+        range: `Labour_Requirement!Q${sheetRowNumber}`,
+        valueInputOption: 'USER_ENTERED',
+        requestBody: { values: [['Done']] },
+      });
 
-    console.log(`[SUBMIT SUCCESS] UID ${uid} → Labour_FMS row ${nextRow} + Status = Done`);
+      console.log(`✅ [DONE SUCCESS] UID ${uid} -> Labour_FMS Row ${nextRow} | Q Column = Done`);
 
-    return res.json({
-      success: true,
-      message: 'Successfully submitted to Labour_FMS!',
-      uid: uid,
-      labourFmsRow: nextRow,
-      requirementRow: sheetRowNumber,
-    });
+      return res.json({
+        success: true,
+        message: 'Successfully submitted to Labour_FMS and marked as Done!',
+        uid: uid,
+        status: 'Done',
+        labourFmsRow: nextRow,
+        requirementRow: sheetRowNumber,
+      });
+    }
+
   } catch (error) {
-    console.error('❌ Submit to Labour_FMS Error:', error);
+    console.error('❌ Submit/Reject Error:', error);
     return res.status(500).json({
       success: false,
-      message: 'Submit failed',
-      error: error.message,
+      message: 'Action failed: ' + error.message,
     });
   }
 });
+
+
+
+
+
 
 // ============================================================
 // GET /api/get-labour-requirements
