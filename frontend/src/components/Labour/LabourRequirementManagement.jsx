@@ -1,5 +1,4 @@
 
-
 // import React, { useState, useEffect, useMemo } from 'react';
 // import { useGetProjectDropdownQuery } from '../../redux/Labour/LabourSlice';
 // import {
@@ -8,7 +7,7 @@
 //   useUpdateLabourReqManagementMutation,
 // } from '../../redux/formSlice';
 // import {
-//   Loader2, Lock, Table, Plus, Pencil, X, AlertCircle, Send
+//   Loader2, Lock, Table, Plus, Pencil, X, AlertCircle, Send, Camera
 // } from 'lucide-react';
 
 // // ── THEME (Navy + Gold) ──
@@ -34,10 +33,10 @@
 //   const [activeTab, setActiveTab] = useState('new');
 //   const [searchTerm, setSearchTerm] = useState('');
 
-//   const getYesterdayDate = () => {
-//     const d = new Date();
-//     d.setDate(d.getDate() - 1);
-//     return d.toISOString().split('T')[0];
+//   // ✅ CHANGE 1: Ab sirf Current Date ya Future date select ho sakti hai
+//   const getTodayDate = () => {
+//     const tzOffset = (new Date()).getTimezoneOffset() * 60000;
+//     return new Date(Date.now() - tzOffset).toISOString().split('T')[0];
 //   };
 
 //   // ── API Hooks ──
@@ -82,14 +81,15 @@
 //     Total_Paid_Amount_3: '',
 //     Company_Head_Amount_3: '',
 //     Contractor_Head_Amount_3: '',
-//     Remark_3: ''
+//     Remark_3: '',
+//     Photo_3: '' // ✅ CHANGE 2: Photo field add kiya
 //   });
 //   const [formError, setFormError] = useState('');
 
 //   const isContractorHead = labourData.Head_Of_Contractor_Company_1 === 'Contractor Head';
 //   const isRejected = modalForm.Status_3 === 'Reject';
 
-//   // Robust head detect (sirf Contractor field enable/disable ke liye)
+//   // Robust head detect
 //   const isCompanyHeadModal = useMemo(() => {
 //     if (!selectedItem) return false;
 //     const rawHead =
@@ -112,7 +112,6 @@
 //   }, [labourData.Number_Of_Labour_1, labourData.Number_Of_Labour_2]);
 
 //   // ── Auto Calculate (Modal Form) ──
-//   // ✅ FIX: Company Head me hamesha Total Paid aayega (head type se farak nahi padta)
 //   useEffect(() => {
 //     if (isRejected) return;
 
@@ -131,11 +130,7 @@
 //       ...prev,
 //       Total_Wages_3: totalWages > 0 ? totalWages.toString() : '',
 //       Total_Paid_Amount_3: totalPaidStr,
-
-//       // ✅ HAMESHA Company Head = Total Paid
 //       Company_Head_Amount_3: totalPaidStr,
-
-//       // Contractor Head: Company type par empty, warna auto-fill (editable)
 //       Contractor_Head_Amount_3: isCompanyHeadModal ? '' : totalPaidStr,
 //     }));
 //   }, [
@@ -260,7 +255,8 @@
 //       Total_Paid_Amount_3: '',
 //       Company_Head_Amount_3: '',
 //       Contractor_Head_Amount_3: '',
-//       Remark_3: ''
+//       Remark_3: '',
+//       Photo_3: '' // ✅ Reset photo on modal open
 //     });
 //     setShowModal(true);
 //   };
@@ -287,6 +283,27 @@
 //     if (formError) setFormError('');
 //   };
 
+//   // ✅ CHANGE 3: Photo Capture / Upload handler
+//   const handlePhotoChange = (e) => {
+//     const file = e.target.files[0];
+//     if (!file) return;
+
+//     if (file.size > 5 * 1024 * 1024) {
+//       alert("File size should be less than 5MB");
+//       return;
+//     }
+
+//     const reader = new FileReader();
+//     reader.readAsDataURL(file);
+//     reader.onload = () => {
+//       setModalForm((prev) => ({ ...prev, Photo_3: reader.result }));
+//     };
+//     reader.onerror = (error) => {
+//       console.error("Error reading file:", error);
+//       alert("Photo process karne me error aayi!");
+//     };
+//   };
+
 //   const validateModal = () => {
 //     if (!modalForm.Status_3) {
 //       setFormError('Status select karna zaroori hai');
@@ -300,8 +317,6 @@
 //       return false;
 //     }
 
-//     // Company Head amount hamesha auto hoti hai, isliye required nahi
-//     // Contractor Head sirf non-company case me required
 //     if (!isCompanyHeadModal && (!modalForm.Contractor_Head_Amount_3 || !String(modalForm.Contractor_Head_Amount_3).trim())) {
 //       setFormError('Contractor Head Amount is Required');
 //       return false;
@@ -317,7 +332,8 @@
 //       let payload = {
 //         uid: selectedItem.uid,
 //         Status_3: modalForm.Status_3,
-//         Remark_3: modalForm.Remark_3 || ''
+//         Remark_3: modalForm.Remark_3 || '',
+//         Photo_3: modalForm.Photo_3 || '' // ✅ Sending photo to backend
 //       };
 
 //       if (modalForm.Status_3 !== 'Reject') {
@@ -393,7 +409,7 @@
 //                 labourCategoryOptions={labourCategoryOptions}
 //                 isContractorHead={isContractorHead}
 //                 isDropdownLoading={isDropdownLoading}
-//                 getYesterdayDate={getYesterdayDate}
+//                 getTodayDate={getTodayDate} // ✅ Passed updated function
 //               />
 //               <div style={{ display: 'flex', gap: 12, paddingTop: 20, borderTop: `1px solid ${T.border}`, marginTop: 20 }}>
 //                 <button
@@ -598,31 +614,24 @@
 //                       </div>
 //                     </div>
 
-//                     {/* ✅ Amount Distribution */}
 //                     <div style={{ padding: 14, background: `${T.purple}08`, borderRadius: 10, border: `1px dashed ${T.purple}40` }}>
 //                       <div style={{ fontSize: 12, fontWeight: 700, color: T.purple, marginBottom: 10 }}>Amount Distribution</div>
 //                       <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10 }}>
 //                         <div>
 //                           <label style={{ display: 'block', fontSize: 11, color: T.navyLight, marginBottom: 4 }}>
-//                             🏢 Company Head <span style={{ color: T.success }}>(Auto = Total Paid)</span>
+//                             🏢 Company Head <span style={{ color: T.success }}>(Auto)</span>
 //                           </label>
 //                           <input
 //                             type="number"
 //                             value={modalForm.Company_Head_Amount_3}
 //                             disabled
-//                             style={{
-//                               ...inputBase,
-//                               background: `${T.purple}10`,
-//                               fontWeight: 700,
-//                               color: T.purple,
-//                               cursor: 'not-allowed'
-//                             }}
+//                             style={{ ...inputBase, background: `${T.purple}10`, fontWeight: 700, color: T.purple, cursor: 'not-allowed' }}
 //                           />
 //                         </div>
 
 //                         <div>
 //                           <label style={{ display: 'block', fontSize: 11, color: T.navyLight, marginBottom: 4 }}>
-//                             👷 Contractor Head {!isCompanyHeadModal && <span style={{ color: T.danger }}>* (Editable)</span>}
+//                             👷 Contractor Head {!isCompanyHeadModal && <span style={{ color: T.danger }}>*</span>}
 //                           </label>
 //                           <input
 //                             type="number"
@@ -630,14 +639,7 @@
 //                             onChange={(e) => handleModalChange('Contractor_Head_Amount_3', e.target.value)}
 //                             disabled={isCompanyHeadModal}
 //                             placeholder={isCompanyHeadModal ? 'N/A' : '0'}
-//                             style={{
-//                               ...inputBase,
-//                               background: isCompanyHeadModal ? T.borderLight : T.card,
-//                               fontWeight: 700,
-//                               color: !isCompanyHeadModal ? T.purple : T.textMuted,
-//                               cursor: isCompanyHeadModal ? 'not-allowed' : 'text',
-//                               borderColor: !isCompanyHeadModal ? T.purple : T.border
-//                             }}
+//                             style={{ ...inputBase, background: isCompanyHeadModal ? T.borderLight : T.card, fontWeight: 700, color: !isCompanyHeadModal ? T.purple : T.textMuted, cursor: isCompanyHeadModal ? 'not-allowed' : 'text', borderColor: !isCompanyHeadModal ? T.purple : T.border }}
 //                           />
 //                         </div>
 //                       </div>
@@ -655,6 +657,25 @@
 //                   />
 //                 </div>
 
+//                 {/* ✅ CHANGE 4: Photo Upload UI in Modal */}
+//                 <div style={{ padding: 14, border: `1px dashed ${T.navyLight}`, borderRadius: 10, background: T.borderLight }}>
+//                   <label style={{ display: 'flex', alignItems: 'center', gap: 6, fontSize: 12, fontWeight: 600, color: T.navy, marginBottom: 8 }}>
+//                     <Camera size={16} /> Upload / Capture Photo *
+//                   </label>
+//                   <input
+//                     type="file"
+//                     accept="image/*"
+//                     capture="environment"
+//                     onChange={handlePhotoChange}
+//                     style={{ ...inputBase, padding: '6px 10px', background: T.card, cursor: 'pointer' }}
+//                   />
+//                   {modalForm.Photo_3 && (
+//                     <div style={{ marginTop: 10, textAlign: 'center' }}>
+//                       <img src={modalForm.Photo_3} alt="Preview" style={{ height: 100, borderRadius: 8, border: `2px solid ${T.gold}` }} />
+//                     </div>
+//                   )}
+//                 </div>
+
 //                 {formError && (
 //                   <div style={{ padding: '10px', background: T.dangerBg, color: T.danger, borderRadius: 8, fontSize: 13, display: 'flex', alignItems: 'center', gap: 8 }}>
 //                     <AlertCircle size={16} /> {formError}
@@ -666,22 +687,51 @@
 //                 <button onClick={() => setShowModal(false)} style={{ padding: '10px 20px', borderRadius: 8, border: `1.5px solid ${T.border}`, background: T.card, cursor: 'pointer' }}>
 //                   Cancel
 //                 </button>
-//                 <button
-//                   onClick={handleModalSubmit}
-//                   disabled={isUpdatingModal || !modalForm.Status_3}
-//                   style={{
-//                     padding: '10px 24px', borderRadius: 8, border: 'none',
-//                     background: `linear-gradient(135deg, ${T.gold}, ${T.goldDark})`,
-//                     color: T.navyDark, fontWeight: 700, cursor: 'pointer',
-//                     display: 'flex', alignItems: 'center', gap: 6
-//                   }}
-//                 >
-//                   {isUpdatingModal ? (
-//                     <><Loader2 size={15} style={{ animation: 'spin 1s linear infinite' }} /> Submitting...</>
-//                   ) : (
-//                     <><Send size={15} /> Submit</>
-//                   )}
-//                 </button>
+//              <button
+//   onClick={handleModalSubmit}
+//   disabled={
+//     isUpdatingModal ||
+//     !modalForm.Status_3 ||
+//     (modalForm.Status_3 !== 'Reject' && !modalForm.Photo_3)  // ✅ Photo nahi to button disable
+//   }
+//   style={{
+//     padding: '10px 24px',
+//     borderRadius: 8,
+//     border: 'none',
+//     background: (
+//       isUpdatingModal ||
+//       !modalForm.Status_3 ||
+//       (modalForm.Status_3 !== 'Reject' && !modalForm.Photo_3)
+//     )
+//       ? T.textMuted          // Disabled look (grey)
+//       : `linear-gradient(135deg, ${T.gold}, ${T.goldDark})`,
+//     color: T.navyDark,
+//     fontWeight: 700,
+//     cursor: (
+//       isUpdatingModal ||
+//       !modalForm.Status_3 ||
+//       (modalForm.Status_3 !== 'Reject' && !modalForm.Photo_3)
+//     )
+//       ? 'not-allowed'
+//       : 'pointer',
+//     display: 'flex',
+//     alignItems: 'center',
+//     gap: 6,
+//     opacity: (
+//       isUpdatingModal ||
+//       !modalForm.Status_3 ||
+//       (modalForm.Status_3 !== 'Reject' && !modalForm.Photo_3)
+//     )
+//       ? 0.6
+//       : 1,
+//   }}
+// >
+//   {isUpdatingModal ? (
+//     <><Loader2 size={15} style={{ animation: 'spin 1s linear infinite' }} /> Submitting...</>
+//   ) : (
+//     <><Send size={15} /> Submit</>
+//   )}
+// </button>
 //               </div>
 //             </div>
 //           </>
@@ -695,7 +745,7 @@
 // const FormFields = ({
 //   data, onProjectChange, onContractorChange, onChange, onHeadChange,
 //   projectOptions, contractorOptions, labourWorkTypeOptions, labourCategoryOptions,
-//   isContractorHead, isDropdownLoading, getYesterdayDate
+//   isContractorHead, isDropdownLoading, getTodayDate // ✅ Changed prop name
 // }) => {
 //   const labelStyle = { display: 'block', fontSize: 12, fontWeight: 600, color: T.navy, marginBottom: 6 };
 //   const disabledInput = { ...inputBase, background: T.borderLight, cursor: 'not-allowed', color: T.textLight };
@@ -762,7 +812,8 @@
 
 //       <div>
 //         <label style={labelStyle}>Date of Required *</label>
-//         <input type="date" value={data.Date_Of_Required_1} onChange={(e) => onChange('Date_Of_Required_1', e.target.value)} min={getYesterdayDate()} style={inputBase} />
+//         {/* ✅ CHANGE 5: Current date applied as min */}
+//         <input type="date" value={data.Date_Of_Required_1} onChange={(e) => onChange('Date_Of_Required_1', e.target.value)} min={getTodayDate()} style={inputBase} />
 //       </div>
 
 //       <div style={{ display: 'grid', gridTemplateColumns: isContractorHead ? '1fr 1fr 1fr' : '1fr', gap: 16 }}>
@@ -815,7 +866,7 @@ import {
   useUpdateLabourReqManagementMutation,
 } from '../../redux/formSlice';
 import {
-  Loader2, Lock, Table, Plus, Pencil, X, AlertCircle, Send, Camera
+  Loader2, Lock, Table, Plus, Pencil, X, AlertCircle, Send, Camera, Image // ✅ Added Image icon
 } from 'lucide-react';
 
 // ── THEME (Navy + Gold) ──
@@ -841,7 +892,7 @@ const LabourRequirementManagement = () => {
   const [activeTab, setActiveTab] = useState('new');
   const [searchTerm, setSearchTerm] = useState('');
 
-  // ✅ CHANGE 1: Ab sirf Current Date ya Future date select ho sakti hai
+  // ✅ Ab sirf Current Date ya Future date select ho sakti hai
   const getTodayDate = () => {
     const tzOffset = (new Date()).getTimezoneOffset() * 60000;
     return new Date(Date.now() - tzOffset).toISOString().split('T')[0];
@@ -890,7 +941,7 @@ const LabourRequirementManagement = () => {
     Company_Head_Amount_3: '',
     Contractor_Head_Amount_3: '',
     Remark_3: '',
-    Photo_3: '' // ✅ CHANGE 2: Photo field add kiya
+    Photo_3: '' // ✅ Photo field
   });
   const [formError, setFormError] = useState('');
 
@@ -1091,7 +1142,7 @@ const LabourRequirementManagement = () => {
     if (formError) setFormError('');
   };
 
-  // ✅ CHANGE 3: Photo Capture / Upload handler
+  // ✅ Photo Capture / Upload handler
   const handlePhotoChange = (e) => {
     const file = e.target.files[0];
     if (!file) return;
@@ -1217,7 +1268,7 @@ const LabourRequirementManagement = () => {
                 labourCategoryOptions={labourCategoryOptions}
                 isContractorHead={isContractorHead}
                 isDropdownLoading={isDropdownLoading}
-                getTodayDate={getTodayDate} // ✅ Passed updated function
+                getTodayDate={getTodayDate} 
               />
               <div style={{ display: 'flex', gap: 12, paddingTop: 20, borderTop: `1px solid ${T.border}`, marginTop: 20 }}>
                 <button
@@ -1465,21 +1516,68 @@ const LabourRequirementManagement = () => {
                   />
                 </div>
 
-                {/* ✅ CHANGE 4: Photo Upload UI in Modal */}
-                <div style={{ padding: 14, border: `1px dashed ${T.navyLight}`, borderRadius: 10, background: T.borderLight }}>
-                  <label style={{ display: 'flex', alignItems: 'center', gap: 6, fontSize: 12, fontWeight: 600, color: T.navy, marginBottom: 8 }}>
-                    <Camera size={16} /> Upload / Capture Photo *
+                {/* ✅ CHANGE: 2 Separate Buttons for Gallery and Camera */}
+                <div style={{ padding: 14, border: `1px dashed ${T.border}`, borderRadius: 10, background: T.borderLight }}>
+                  <label style={{ display: 'block', fontSize: 12, fontWeight: 600, color: T.navyLight, marginBottom: 10 }}>
+                    Photo <span style={{ color: T.danger }}>*</span>
                   </label>
-                  <input
-                    type="file"
-                    accept="image/*"
-                    capture="environment"
-                    onChange={handlePhotoChange}
-                    style={{ ...inputBase, padding: '6px 10px', background: T.card, cursor: 'pointer' }}
-                  />
+                  
+                  <div style={{ display: 'flex', gap: 10 }}>
+                    {/* 1. Gallery Button (Choose Photo) */}
+                    <label style={{ 
+                      flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8, 
+                      padding: '12px', background: T.card, border: `1.5px solid ${T.border}`, 
+                      borderRadius: 8, cursor: 'pointer', fontSize: 13, fontWeight: 600, color: T.navy,
+                      transition: 'all 0.2s'
+                    }}
+                    onMouseEnter={e => e.currentTarget.style.borderColor = T.purple}
+                    onMouseLeave={e => e.currentTarget.style.borderColor = T.border}>
+                      <Image size={18} color={T.purple} /> Choose Photo
+                      <input
+                        type="file"
+                        accept="image/*"
+                        onChange={handlePhotoChange}
+                        style={{ display: 'none' }} // Hidden input
+                      />
+                    </label>
+
+                    {/* 2. Camera Button (Take Photo) */}
+                    <label style={{ 
+                      flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8, 
+                      padding: '12px', background: T.card, border: `1.5px solid ${T.border}`, 
+                      borderRadius: 8, cursor: 'pointer', fontSize: 13, fontWeight: 600, color: T.navy,
+                      transition: 'all 0.2s'
+                    }}
+                    onMouseEnter={e => e.currentTarget.style.borderColor = T.goldDark}
+                    onMouseLeave={e => e.currentTarget.style.borderColor = T.border}>
+                      <Camera size={18} color={T.goldDark} /> Take Photo
+                      <input
+                        type="file"
+                        accept="image/*"
+                        capture="environment" // Forces Camera
+                        onChange={handlePhotoChange}
+                        style={{ display: 'none' }} // Hidden input
+                      />
+                    </label>
+                  </div>
+
+                  {/* Image Preview */}
                   {modalForm.Photo_3 && (
-                    <div style={{ marginTop: 10, textAlign: 'center' }}>
-                      <img src={modalForm.Photo_3} alt="Preview" style={{ height: 100, borderRadius: 8, border: `2px solid ${T.gold}` }} />
+                    <div style={{ marginTop: 14, textAlign: 'center' }}>
+                      <div style={{ position: 'relative', display: 'inline-block' }}>
+                        <img src={modalForm.Photo_3} alt="Preview" style={{ height: 120, borderRadius: 8, border: `2px solid ${T.gold}` }} />
+                        {/* Remove Photo Button */}
+                        <button 
+                          type="button"
+                          onClick={() => setModalForm(prev => ({...prev, Photo_3: ''}))} 
+                          style={{ 
+                            position: 'absolute', top: -8, right: -8, background: T.danger, color: 'white', 
+                            border: 'none', borderRadius: '50%', width: 24, height: 24, cursor: 'pointer', 
+                            display: 'flex', alignItems: 'center', justifyContent: 'center', boxShadow: '0 2px 5px rgba(0,0,0,0.2)' 
+                          }}>
+                          <X size={14} />
+                        </button>
+                      </div>
                     </div>
                   )}
                 </div>
@@ -1495,51 +1593,51 @@ const LabourRequirementManagement = () => {
                 <button onClick={() => setShowModal(false)} style={{ padding: '10px 20px', borderRadius: 8, border: `1.5px solid ${T.border}`, background: T.card, cursor: 'pointer' }}>
                   Cancel
                 </button>
-             <button
-  onClick={handleModalSubmit}
-  disabled={
-    isUpdatingModal ||
-    !modalForm.Status_3 ||
-    (modalForm.Status_3 !== 'Reject' && !modalForm.Photo_3)  // ✅ Photo nahi to button disable
-  }
-  style={{
-    padding: '10px 24px',
-    borderRadius: 8,
-    border: 'none',
-    background: (
-      isUpdatingModal ||
-      !modalForm.Status_3 ||
-      (modalForm.Status_3 !== 'Reject' && !modalForm.Photo_3)
-    )
-      ? T.textMuted          // Disabled look (grey)
-      : `linear-gradient(135deg, ${T.gold}, ${T.goldDark})`,
-    color: T.navyDark,
-    fontWeight: 700,
-    cursor: (
-      isUpdatingModal ||
-      !modalForm.Status_3 ||
-      (modalForm.Status_3 !== 'Reject' && !modalForm.Photo_3)
-    )
-      ? 'not-allowed'
-      : 'pointer',
-    display: 'flex',
-    alignItems: 'center',
-    gap: 6,
-    opacity: (
-      isUpdatingModal ||
-      !modalForm.Status_3 ||
-      (modalForm.Status_3 !== 'Reject' && !modalForm.Photo_3)
-    )
-      ? 0.6
-      : 1,
-  }}
->
-  {isUpdatingModal ? (
-    <><Loader2 size={15} style={{ animation: 'spin 1s linear infinite' }} /> Submitting...</>
-  ) : (
-    <><Send size={15} /> Submit</>
-  )}
-</button>
+                <button
+                  onClick={handleModalSubmit}
+                  disabled={
+                    isUpdatingModal ||
+                    !modalForm.Status_3 ||
+                    (modalForm.Status_3 !== 'Reject' && !modalForm.Photo_3) 
+                  }
+                  style={{
+                    padding: '10px 24px',
+                    borderRadius: 8,
+                    border: 'none',
+                    background: (
+                      isUpdatingModal ||
+                      !modalForm.Status_3 ||
+                      (modalForm.Status_3 !== 'Reject' && !modalForm.Photo_3)
+                    )
+                      ? T.textMuted          
+                      : `linear-gradient(135deg, ${T.gold}, ${T.goldDark})`,
+                    color: T.navyDark,
+                    fontWeight: 700,
+                    cursor: (
+                      isUpdatingModal ||
+                      !modalForm.Status_3 ||
+                      (modalForm.Status_3 !== 'Reject' && !modalForm.Photo_3)
+                    )
+                      ? 'not-allowed'
+                      : 'pointer',
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: 6,
+                    opacity: (
+                      isUpdatingModal ||
+                      !modalForm.Status_3 ||
+                      (modalForm.Status_3 !== 'Reject' && !modalForm.Photo_3)
+                    )
+                      ? 0.6
+                      : 1,
+                  }}
+                >
+                  {isUpdatingModal ? (
+                    <><Loader2 size={15} style={{ animation: 'spin 1s linear infinite' }} /> Submitting...</>
+                  ) : (
+                    <><Send size={15} /> Submit</>
+                  )}
+                </button>
               </div>
             </div>
           </>
@@ -1553,7 +1651,7 @@ const LabourRequirementManagement = () => {
 const FormFields = ({
   data, onProjectChange, onContractorChange, onChange, onHeadChange,
   projectOptions, contractorOptions, labourWorkTypeOptions, labourCategoryOptions,
-  isContractorHead, isDropdownLoading, getTodayDate // ✅ Changed prop name
+  isContractorHead, isDropdownLoading, getTodayDate 
 }) => {
   const labelStyle = { display: 'block', fontSize: 12, fontWeight: 600, color: T.navy, marginBottom: 6 };
   const disabledInput = { ...inputBase, background: T.borderLight, cursor: 'not-allowed', color: T.textLight };
@@ -1620,7 +1718,6 @@ const FormFields = ({
 
       <div>
         <label style={labelStyle}>Date of Required *</label>
-        {/* ✅ CHANGE 5: Current date applied as min */}
         <input type="date" value={data.Date_Of_Required_1} onChange={(e) => onChange('Date_Of_Required_1', e.target.value)} min={getTodayDate()} style={inputBase} />
       </div>
 
@@ -1657,6 +1754,6 @@ const FormFields = ({
       </div>
     </div>
   );
-};
+}; 
 
 export default LabourRequirementManagement;
