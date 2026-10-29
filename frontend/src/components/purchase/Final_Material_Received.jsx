@@ -955,7 +955,7 @@ const Final_Material_Received = () => {
             <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 13 }}>
               <thead style={{ position: 'sticky', top: 0, zIndex: 10 }}>
                 <tr style={{ background: T.navy }}>
-                  {['#', 'UID', 'Timestamp', 'Req No', 'Site', 'Supervisor', 'Material', 'Size', 'Specification', 'SKU', 'Brand', 'Order Qty', 'Received', 'Unit', 'Status', 'Challan', 'Vendor', 'PO No', 'PO PDF', 'Action'].map(h => (
+                  {['#', 'UID', 'Timestamp', 'Req No', 'Site', 'Supervisor', 'Material', 'Size', 'Specification', 'SKU', 'Brand','Order Qty', 'Received', 'Unit', 'Status', 'Challan', 'Vendor', 'PO No', 'PO PDF', 'Action'].map(h => (
                     <th key={h} style={{
                       padding: '12px 14px',
                       textAlign: h === 'Order Qty' || h === 'Received' ? 'right'
@@ -1019,11 +1019,31 @@ const Final_Material_Received = () => {
                       background: T.borderLight, padding: '2px 6px',
                       borderRadius: 4, color: T.textLight
                     }}>{req.skuCode}</span>}</Td>
-                    <Td maxW={110}>{req.brandName && <span style={{
-                      background: `${T.purple}15`, color: T.purple,
-                      padding: '3px 8px', borderRadius: 5,
-                      fontSize: 11, fontWeight: 600
-                    }}>{req.brandName}</span>}</Td>
+
+                  <td style={{ padding: '10px 14px', borderBottom: `1px solid ${T.border}`, maxWidth: 120, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+  {req.brandName ? (
+    <span
+      title={req.brandName}
+      style={{
+        background: `${T.purple}15`,
+        color: T.purple,
+        padding: '3px 8px',
+        borderRadius: 5,
+        fontSize: 11,
+        fontWeight: 600,
+        display: 'inline-block',
+        maxWidth: '100%',
+        overflow: 'hidden',
+        textOverflow: 'ellipsis',
+        whiteSpace: 'nowrap',
+        cursor: 'default',
+      }}
+    >
+      {req.brandName}
+    </span>
+  ) : '—'}
+</td>
+                    
                     <Td right>{req.revisedQuantity || req.orderQty}</Td>
                     <Td right>
                       <span style={{

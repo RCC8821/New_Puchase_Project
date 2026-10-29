@@ -162,28 +162,162 @@ router.get('/get-material-received-filter-data', async (req, res) => {
 });
 
 // ─── SAVE MATERIAL RECEIPT ────────────────────────────────
+// router.post('/save-material-receipt', async (req, res) => {
+//   try {
+//     // ✅ Get everything from body
+//     const body = req.body;
+
+//     // ✅ DEBUG - Log everything
+//     console.log('=== INCOMING PAYLOAD ===');
+//     console.log('UID:', body.uid);
+//     console.log('SKU Code:', body.skuCode);
+//     console.log('Material Name:', body.materialName);
+//     console.log('Material Size:', body.materialSize);
+//     console.log('Material Specification:', body.materialSpecification);
+//     console.log('Received Qty:', body.receivedQty);
+//     console.log('Received Date:', body.receivedDate);
+//     console.log('========================');
+
+//     const {
+//       uid, reqNo, siteName, supervisorName, materialType, skuCode,
+//       materialName, materialSize, materialSpecification,
+//       unitName, receivedQty, status, challanNo,
+//       qualityApproved, truckDelivery, googleFormCompleted, photo, vendorName,
+//       receivedDate,
+//     } = body;
+
+//     if (!uid || !reqNo || !siteName || !materialType || !materialName ||
+//       !unitName || !receivedQty || !status) {
+//       return res.status(400).json({ error: 'Missing required fields' });
+//     }
+
+//     const receivedQtyNum = parseFloat(receivedQty);
+//     if (isNaN(receivedQtyNum)) {
+//       return res.status(400).json({ error: 'Invalid receivedQty' });
+//     }
+
+//     let challanUrl = '';
+
+//     // Upload photo to Drive
+//     if (photo) {
+//       if (!photo.startsWith('data:image/')) {
+//         return res.status(400).json({ error: 'Invalid image format' });
+//       }
+
+//       const base64Data = photo.replace(/^data:image\/\w+;base64,/, '');
+//       const buffer = Buffer.from(base64Data, 'base64');
+//       const bufferStream = new Readable();
+//       bufferStream.push(buffer);
+//       bufferStream.push(null);
+
+//       const folderId = process.env.GOOGLE_DRIVE_FOLDER_ID || '1vma3YPHosdy4SGCI5_sORVCElk85Wflz';
+
+//       try {
+//         const file = await drive.files.create({
+//           resource: {
+//             name: `challan_${uid}_${Date.now()}.jpg`,
+//             parents: [folderId],
+//           },
+//           media: { mimeType: 'image/jpeg', body: bufferStream },
+//           fields: 'id, webViewLink',
+//           supportsAllDrives: true,
+//         });
+
+//         await drive.permissions.create({
+//           fileId: file.data.id,
+//           requestBody: { role: 'reader', type: 'anyone' },
+//           supportsAllDrives: true,
+//         });
+
+//         challanUrl = file.data.webViewLink;
+//         console.log('✅ Photo uploaded:', challanUrl);
+//       } catch (uploadError) {
+//         console.error('Upload error:', uploadError.message);
+//         return res.status(500).json({ error: 'Failed to upload photo' });
+//       }
+//     }
+
+//     // Timestamp
+//     const now = new Date();
+//     const timestamp = now.toLocaleString('en-IN', {
+//       timeZone: 'Asia/Kolkata',
+//       day: '2-digit', month: '2-digit', year: 'numeric',
+//       hour: '2-digit', minute: '2-digit', second: '2-digit',
+//       hour12: false,
+//     }).replace(/, /g, ' ');
+
+//     const cleanUid = String(uid).replace(/,/g, '').trim();
+
+//     // ✅ NEW COLUMN STRUCTURE (A to T):
+//     const values = [
+//       timestamp,                                    // A: Timestamp
+//       cleanUid,                                     // B: UID
+//       String(reqNo || ''),                          // C: Req No
+//       String(siteName || ''),                       // D: Project_Name_1
+//       String(supervisorName || ''),                 // E: Project_Engineer_Name_1
+//       String(materialType || ''),                   // F: Material_Type_1
+//       String(materialName || ''),                   // G: Material_Name_1
+//       String(materialSize || ''),                   // H: Material_Size_1
+//       String(materialSpecification || ''),          // I: Material_Specification_1
+//       receivedQtyNum,                               // J: Received_Qty
+//       String(unitName || ''),                       // K: Unit_Name
+//       String(skuCode || ''),                        // ✅ L: SKU Code
+//       String(status || ''),                         // M: Status
+//       String(challanUrl || ''),                     // N: Challan_NO. (Photo URL)
+//       String(receivedDate || ''),                   // O: Challan/Material_Received_Date
+//       String(vendorName || ''),                     // P: Vendor Name
+//       String(truckDelivery || ''),                  // Q: IF THE TRUCK DELIVERS
+//       String(googleFormCompleted || ''),            // R: Google Form
+//       String(challanNo || ''),                      // S: Challan_No (Number)
+//       String(qualityApproved || ''),                // T: Quality_appoved
+//     ];
+
+//     // ✅ Debug values array
+//     console.log('=== VALUES ARRAY ===');
+//     console.log('Position 11 (L - SKU):', values[11]);
+//     console.log('====================');
+
+//     // Find next empty row
+//     const sheetData = await sheets.spreadsheets.values.get({
+//       spreadsheetId,
+//       range: 'Material_Received!A:A',
+//     });
+
+//     const lastRow = (sheetData.data.values?.length || 0) + 1;
+
+//     // ✅ Save with range A to T
+//     await sheets.spreadsheets.values.update({
+//       spreadsheetId,
+//       range: `Material_Received!A${lastRow}:T${lastRow}`,
+//       valueInputOption: 'RAW',
+//       resource: { values: [values] },
+//     });
+
+//     console.log(`✅ Saved to Material_Received row ${lastRow}, UID: ${cleanUid}, SKU: ${skuCode}, Date: ${receivedDate}`);
+
+//     return res.json({
+//       success: true,
+//       message: 'Receipt saved successfully',
+//       challanUrl,
+//     });
+//   } catch (error) {
+//     console.error('Error:', error.message);
+//     return res.status(500).json({ error: 'Failed to save', details: error.message });
+//   }
+// });
+
+
+
 router.post('/save-material-receipt', async (req, res) => {
   try {
-    // ✅ Get everything from body
     const body = req.body;
-
-    // ✅ DEBUG - Log everything
-    console.log('=== INCOMING PAYLOAD ===');
-    console.log('UID:', body.uid);
-    console.log('SKU Code:', body.skuCode);
-    console.log('Material Name:', body.materialName);
-    console.log('Material Size:', body.materialSize);
-    console.log('Material Specification:', body.materialSpecification);
-    console.log('Received Qty:', body.receivedQty);
-    console.log('Received Date:', body.receivedDate);
-    console.log('========================');
 
     const {
       uid, reqNo, siteName, supervisorName, materialType, skuCode,
       materialName, materialSize, materialSpecification,
       unitName, receivedQty, status, challanNo,
       qualityApproved, truckDelivery, googleFormCompleted, photo, vendorName,
-      receivedDate,
+      receivedDate, brandName // ✅ NEW: Receiving brandName from frontend
     } = body;
 
     if (!uid || !reqNo || !siteName || !materialType || !materialName ||
@@ -230,14 +364,12 @@ router.post('/save-material-receipt', async (req, res) => {
         });
 
         challanUrl = file.data.webViewLink;
-        console.log('✅ Photo uploaded:', challanUrl);
       } catch (uploadError) {
         console.error('Upload error:', uploadError.message);
         return res.status(500).json({ error: 'Failed to upload photo' });
       }
     }
 
-    // Timestamp
     const now = new Date();
     const timestamp = now.toLocaleString('en-IN', {
       timeZone: 'Asia/Kolkata',
@@ -248,7 +380,7 @@ router.post('/save-material-receipt', async (req, res) => {
 
     const cleanUid = String(uid).replace(/,/g, '').trim();
 
-    // ✅ NEW COLUMN STRUCTURE (A to T):
+    // ✅ NEW COLUMN STRUCTURE (A to V):
     const values = [
       timestamp,                                    // A: Timestamp
       cleanUid,                                     // B: UID
@@ -261,7 +393,7 @@ router.post('/save-material-receipt', async (req, res) => {
       String(materialSpecification || ''),          // I: Material_Specification_1
       receivedQtyNum,                               // J: Received_Qty
       String(unitName || ''),                       // K: Unit_Name
-      String(skuCode || ''),                        // ✅ L: SKU Code
+      String(skuCode || ''),                        // L: SKU Code
       String(status || ''),                         // M: Status
       String(challanUrl || ''),                     // N: Challan_NO. (Photo URL)
       String(receivedDate || ''),                   // O: Challan/Material_Received_Date
@@ -270,12 +402,9 @@ router.post('/save-material-receipt', async (req, res) => {
       String(googleFormCompleted || ''),            // R: Google Form
       String(challanNo || ''),                      // S: Challan_No (Number)
       String(qualityApproved || ''),                // T: Quality_appoved
+      '',                                           // U: (Empty/Skipped to match V index)
+      String(brandName || ''),                      // V: Brand Name ✅ (Index 21)
     ];
-
-    // ✅ Debug values array
-    console.log('=== VALUES ARRAY ===');
-    console.log('Position 11 (L - SKU):', values[11]);
-    console.log('====================');
 
     // Find next empty row
     const sheetData = await sheets.spreadsheets.values.get({
@@ -285,15 +414,15 @@ router.post('/save-material-receipt', async (req, res) => {
 
     const lastRow = (sheetData.data.values?.length || 0) + 1;
 
-    // ✅ Save with range A to T
+    // ✅ SAVE RANGE UPDATED TO V
     await sheets.spreadsheets.values.update({
       spreadsheetId,
-      range: `Material_Received!A${lastRow}:T${lastRow}`,
+      range: `Material_Received!A${lastRow}:V${lastRow}`,
       valueInputOption: 'RAW',
       resource: { values: [values] },
     });
 
-    console.log(`✅ Saved to Material_Received row ${lastRow}, UID: ${cleanUid}, SKU: ${skuCode}, Date: ${receivedDate}`);
+    console.log(`✅ Saved to Material_Received row ${lastRow}, UID: ${cleanUid}, Brand: ${brandName}`);
 
     return res.json({
       success: true,
@@ -305,5 +434,6 @@ router.post('/save-material-receipt', async (req, res) => {
     return res.status(500).json({ error: 'Failed to save', details: error.message });
   }
 });
+
 
 module.exports = router;

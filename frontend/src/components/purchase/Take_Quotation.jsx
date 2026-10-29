@@ -183,6 +183,7 @@
 //       deliveryDate: '', billType: '', paymentTerms: '', creditInDays: '',
 //       transportRequired: '', expectedTransportCharges: '',
 //       freightCharges: '', expectedFreightCharges: '',
+//       vendorRemark: '', // NEW FIELD ADDED
 //     }]);
 //     setAddedMaterials(prev => prev.map(mat => ({
 //       ...mat,
@@ -365,6 +366,7 @@
 //           Final_Remark: finalRemark || '',
 //           REVISED_QUANTITY_2: num(mat.Revised_Quantity),
 //           Total_Value: num(totalValue),
+//           Vendor_Remark: vendor.vendorRemark || '', // NEW FIELD ADDED IN PAYLOAD
 //         });
 //       }
 //     }
@@ -983,12 +985,22 @@
 //                           </Field>
 //                         )}
 //                       </div>
-//                       <div style={{ marginTop: 10 }}>
+//                       <div style={{ marginTop: 10, display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10 }}>
 //                         <Field label="Address">
 //                           <textarea
 //                             value={vendor.address}
 //                             onChange={(e) => handleVendorChange(vIdx, 'address', e.target.value)}
 //                             rows={2} style={{ ...inputBase, resize: 'vertical' }}
+//                             onFocus={focusGold} onBlur={blurNormal}
+//                           />
+//                         </Field>
+//                         {/* ── NEW VENDOR REMARK FIELD ADDED ── */}
+//                         <Field label="Vendor Remark">
+//                           <textarea
+//                             value={vendor.vendorRemark || ''}
+//                             onChange={(e) => handleVendorChange(vIdx, 'vendorRemark', e.target.value)}
+//                             rows={2} style={{ ...inputBase, resize: 'vertical' }}
+//                             placeholder="Any specific remark for this vendor..."
 //                             onFocus={focusGold} onBlur={blurNormal}
 //                           />
 //                         </Field>
@@ -1351,6 +1363,10 @@
 //                                 <strong>{val || '—'}</strong>
 //                               </div>
 //                             ))}
+//                             <div style={{ gridColumn: 'span 2', marginTop: 4 }}>
+//                               <span style={{ color: T.textMuted }}>Remark: </span>
+//                               <strong>{v.vendorRemark || '—'}</strong>
+//                             </div>
 //                           </div>
 //                         </div>
 //                       ))}
@@ -1600,6 +1616,8 @@
 
 
 
+
+
 import React, { useState, useEffect } from "react";
 import {
   Loader2, AlertCircle, CheckCircle, X, ChevronDown,
@@ -1782,7 +1800,7 @@ const Take_Quotation = () => {
       deliveryDate: '', billType: '', paymentTerms: '', creditInDays: '',
       transportRequired: '', expectedTransportCharges: '',
       freightCharges: '', expectedFreightCharges: '',
-      vendorRemark: '', // NEW FIELD ADDED
+      vendorRemark: '',
     }]);
     setAddedMaterials(prev => prev.map(mat => ({
       ...mat,
@@ -1790,7 +1808,7 @@ const Take_Quotation = () => {
         ...mat.vendorRates,
         {
           rate: '',
-          brandName: mat['DECIDED_BRAND/COMPANY_NAME_2'] || '',
+          brandName: '', // ✅ CHANGE 1: Empty by default
           discount: '',
         },
       ],
@@ -1832,10 +1850,10 @@ const Take_Quotation = () => {
       Material_Specification: req.Specification || '',
       Revised_Quantity: req.REVISED_QTY_2 || req.REVISED_QUANTITY_2 || '',
       Unit_Name: req.Unit_Name || '',
-      'DECIDED_BRAND/COMPANY_NAME_2': decidedBrand,
+      'DECIDED_BRAND/COMPANY_NAME_2': decidedBrand, // Save decided brand here for placeholder
       cgst: '', sgst: '', igst: '',
       vendorRates: selectedVendors.map(() => ({
-        rate: '', brandName: decidedBrand, discount: '',
+        rate: '', brandName: '', discount: '', // ✅ CHANGE 2: Empty by default
       })),
     }]);
   };
@@ -1904,7 +1922,10 @@ const Take_Quotation = () => {
     }
     if (addedMaterials.length === 0) return false;
     for (const mat of addedMaterials) {
-      for (const vr of mat.vendorRates) { if (!vr.rate) return false; }
+      for (const vr of mat.vendorRates) { 
+        // ✅ CHANGE 3: Rate aur Brand dono compulsory hain
+        if (!vr.rate || !String(vr.brandName).trim()) return false; 
+      }
     }
     return true;
   };
@@ -1923,8 +1944,8 @@ const Take_Quotation = () => {
         const vendor = selectedVendors[vIdx];
         const vr = mat.vendorRates[vIdx];
         const { final: finalRate, total: totalValue } = calcFinal(mat, vIdx);
-        if (!finalRate || num(totalValue) <= 0) {
-          setSaveError('Fill Rate for all materials x vendors.');
+        if (!finalRate || num(totalValue) <= 0 || !String(vr.brandName).trim()) {
+          setSaveError('Fill Rate and Brand for all materials x vendors.');
           return;
         }
         entries.push({
@@ -1965,7 +1986,7 @@ const Take_Quotation = () => {
           Final_Remark: finalRemark || '',
           REVISED_QUANTITY_2: num(mat.Revised_Quantity),
           Total_Value: num(totalValue),
-          Vendor_Remark: vendor.vendorRemark || '', // NEW FIELD ADDED IN PAYLOAD
+          Vendor_Remark: vendor.vendorRemark || '',
         });
       }
     }
@@ -2593,7 +2614,6 @@ const Take_Quotation = () => {
                             onFocus={focusGold} onBlur={blurNormal}
                           />
                         </Field>
-                        {/* ── NEW VENDOR REMARK FIELD ADDED ── */}
                         <Field label="Vendor Remark">
                           <textarea
                             value={vendor.vendorRemark || ''}
@@ -2676,11 +2696,9 @@ const Take_Quotation = () => {
                               <tr style={{ background: T.navy }}>
                                 <th style={{ padding: '8px 10px', color: T.gold, fontSize: 10, fontWeight: 700, textAlign: 'left' }}>Vendor</th>
                                 <th style={{ padding: '8px 10px', color: T.gold, fontSize: 10, fontWeight: 700, textAlign: 'center' }}>Rate ₹ *</th>
+                                {/* ✅ CHANGE 4: Brand Column is now required (*) */}
                                 <th style={{ padding: '8px 10px', color: T.gold, fontSize: 10, fontWeight: 700, textAlign: 'left' }}>
-                                  Brand
-                                  <span style={{ fontSize: 9, color: `${T.gold}99`, marginLeft: 4, fontWeight: 400 }}>
-                                    (pre-filled, editable)
-                                  </span>
+                                  Brand *
                                 </th>
                                 <th style={{ padding: '8px 10px', color: T.gold, fontSize: 10, fontWeight: 700, textAlign: 'center' }}>Discount %</th>
                                 <th style={{ padding: '8px 10px', color: T.gold, fontSize: 10, fontWeight: 700, textAlign: 'center' }}>Final Rate</th>
@@ -2707,23 +2725,35 @@ const Take_Quotation = () => {
                                           borderRadius: 5, outline: 'none', textAlign: 'center',
                                           fontWeight: 600, boxSizing: 'border-box'
                                         }}
-                                        onFocus={focusGold} onBlur={blurNormal}
+                                        onFocus={focusGold}
+                                        onBlur={(e) => {
+                                          e.target.style.boxShadow = 'none';
+                                          e.target.style.background = T.borderLight;
+                                          e.target.style.borderColor = !mat.vendorRates[vIdx]?.rate ? T.danger : T.border;
+                                        }}
                                       />
                                     </td>
                                     <td style={{ padding: '6px 8px' }}>
+                                      {/* ✅ CHANGE 5: Brand Input with Placeholder and Red Border if empty */}
                                       <input
                                         type="text"
                                         value={mat.vendorRates[vIdx]?.brandName || ''}
                                         onChange={(e) => handleVendorRate(mIdx, vIdx, 'brandName', e.target.value)}
-                                        placeholder="Brand name"
+                                        placeholder={mat['DECIDED_BRAND/COMPANY_NAME_2'] || 'Enter Brand'}
                                         style={{
                                           width: 120, padding: '5px 6px', fontSize: 11,
-                                          border: `1.5px solid ${T.border}`, borderRadius: 5,
+                                          border: `1.5px solid ${!mat.vendorRates[vIdx]?.brandName ? T.danger : T.border}`,
+                                          borderRadius: 5,
                                           outline: 'none', boxSizing: 'border-box',
-                                          background: mat.vendorRates[vIdx]?.brandName ? `${T.gold}12` : T.borderLight,
+                                          background: T.borderLight,
                                           color: T.text,
                                         }}
-                                        onFocus={focusGold} onBlur={blurNormal}
+                                        onFocus={focusGold}
+                                        onBlur={(e) => {
+                                          e.target.style.boxShadow = 'none';
+                                          e.target.style.background = T.borderLight;
+                                          e.target.style.borderColor = !mat.vendorRates[vIdx]?.brandName ? T.danger : T.border;
+                                        }}
                                       />
                                     </td>
                                     <td style={{ padding: '6px 8px', textAlign: 'center' }}>
@@ -3102,7 +3132,8 @@ const Take_Quotation = () => {
             <div>
               {currentStep === 3 && selectedVendors.length > 0 && !validateStep3() && (
                 <p style={{ fontSize: 11, color: T.danger, display: 'flex', alignItems: 'center', gap: 4, margin: 0 }}>
-                  <AlertCircle size={12} /> Fill all fields + Rate
+                  {/* ✅ CHANGE 6: Updated error text */}
+                  <AlertCircle size={12} /> Fill all fields, Rate & Brand
                 </p>
               )}
               {currentStep === 3 && validateStep3() && (

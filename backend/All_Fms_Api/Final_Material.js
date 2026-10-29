@@ -186,6 +186,9 @@
 
 
 
+
+
+
 const express = require('express');
 const { sheets, spreadsheetId } = require('../config/googleSheet');
 const router = express.Router();
@@ -254,7 +257,7 @@ router.get('/get-Final-material-received', async (req, res) => {
 
     const materialResponse = await sheets.spreadsheets.values.get({
       spreadsheetId,
-      range: 'Material_Received!A2:Q',
+      range: 'Material_Received!A2:V',
     });
 
     const materialData = materialResponse.data.values || [];
@@ -287,6 +290,7 @@ router.get('/get-Final-material-received', async (req, res) => {
       Challan_url:            row[13]?.toString().trim() || '',   // ✅ N column (index 13)
       challanNo:              row[15]?.toString().trim() || '',
       qualityApproved:        row[16]?.toString().trim() || '',
+      BrandName:              row[21]?.toString().trim() || '',
       revisedQuantity:        purchaseData.revisedQuantity || '',
       orderQty:               purchaseData.orderQty || '',
       planned8:               purchaseData.planned8 || '',
