@@ -42,21 +42,16 @@
 // };
 
 // const Material_Received = () => {
-//   // ═══════════════════════════════════════════════
-//   // ✅ USER TYPE DETECTION
-//   // ═══════════════════════════════════════════════
 //   const userType = sessionStorage.getItem('userType');
 //   const isSignatureReqUser = userType === 'Signature Requirement';
 //   const LOCKED_SITE = 'Signature Heritage PRJ024';
 
-//   // Dropdowns
 //   const [siteNames, setSiteNames] = useState([]);
 //   const [siteSupervisorMap, setSiteSupervisorMap] = useState({});
 //   const [availableSupervisors, setAvailableSupervisors] = useState([]);
 //   const [selectedSiteName, setSelectedSiteName] = useState('');
 //   const [selectedSupervisorName, setSelectedSupervisorName] = useState('');
 
-//   // Data
 //   const [allRequests, setAllRequests] = useState([]);
 //   const [requests, setRequests] = useState([]);
 
@@ -68,16 +63,15 @@
 //   const [loading, setLoading] = useState(false);
 //   const [error, setError] = useState(null);
 
-//   // UID Modal
 //   const [isUIDModalOpen, setIsUIDModalOpen] = useState(false);
 //   const [uidModalItems, setUidModalItems] = useState([]);
 //   const [selectedUIDs, setSelectedUIDs] = useState([]);
 //   const [currentPOForModal, setCurrentPOForModal] = useState('');
 
-//   // Receipt Form
 //   const [isModalOpen, setIsModalOpen] = useState(false);
 //   const [selectedRequest, setSelectedRequest] = useState(null);
 //   const [receivedQuantities, setReceivedQuantities] = useState({});
+//   const [receivedBrands, setReceivedBrands] = useState({});
 //   const [materialStatus, setMaterialStatus] = useState('');
 //   const [qualityCheck, setQualityCheck] = useState('');
 //   const [challanNo, setChallanNo] = useState('');
@@ -93,9 +87,6 @@
 //   const canvasRef = useRef(null);
 //   const streamRef = useRef(null);
 
-//   // ═══════════════════════════════════════════════
-//   // Fetch Dropdowns + Auto-Set for Signature User
-//   // ═══════════════════════════════════════════════
 //   useEffect(() => {
 //     const fetchDropdowns = async () => {
 //       try {
@@ -107,7 +98,6 @@
 //         const all = Object.values(data.siteSupervisorMap || {}).flat().filter(Boolean).sort();
 //         setAvailableSupervisors(all);
 
-//         // ✅ Auto-set for Signature Requirement user
 //         if (isSignatureReqUser) {
 //           setSelectedSiteName(LOCKED_SITE);
 //           const supervisors = data.siteSupervisorMap?.[LOCKED_SITE.trim().toLowerCase()] || [];
@@ -120,18 +110,14 @@
 //     fetchDropdowns();
 //   }, []);
 
-//   // ✅ Auto-trigger filter for Signature Requirement user
 //   useEffect(() => {
 //     if (isSignatureReqUser && selectedSiteName && selectedSupervisorName) {
 //       handleFilter();
 //     }
-//     // eslint-disable-next-line
 //   }, [isSignatureReqUser, selectedSiteName, selectedSupervisorName]);
 
 //   useEffect(() => {
-//     // ✅ Skip for signature user (already locked)
 //     if (isSignatureReqUser) return;
-
 //     if (!selectedSiteName) {
 //       setAvailableSupervisors(Object.values(siteSupervisorMap).flat().filter(Boolean).sort());
 //       return;
@@ -140,7 +126,6 @@
 //     setSelectedSupervisorName('');
 //   }, [selectedSiteName, siteSupervisorMap, isSignatureReqUser]);
 
-//   // Main Filter
 //   const handleFilter = async () => {
 //     try {
 //       setLoading(true); setError(null);
@@ -224,8 +209,15 @@
 //     setIsUIDModalOpen(false);
 
 //     const qtyMap = {};
-//     selectedUIDs.forEach(uid => { qtyMap[uid] = ''; });
+//     const brandMap = {};
+//     selectedUIDs.forEach(uid => { 
+//       qtyMap[uid] = ''; 
+//       // ✅ Brand default pre-fill from backend item
+//       const item = uidModalItems.find(i => i.uid === uid);
+//       brandMap[uid] = item?.brandName || '';
+//     });
 //     setReceivedQuantities(qtyMap);
+//     setReceivedBrands(brandMap);
 
 //     setMaterialStatus(''); setQualityCheck(''); setChallanNo('');
 //     setTruckDelivery(''); setGoogleFormCompleted('');
@@ -240,10 +232,16 @@
 //     setIsSaving(false); setShowSuccess(false);
 //   };
 
+//   // ✅ Camera with fallback to prevent OverconstrainedError
 //   const startCamera = async (facingMode) => {
 //     try {
 //       if (streamRef.current) streamRef.current.getTracks().forEach(t => t.stop());
-//       const stream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: { exact: facingMode } } });
+//       let stream;
+//       try {
+//         stream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: { exact: facingMode } } });
+//       } catch {
+//         stream = await navigator.mediaDevices.getUserMedia({ video: true });
+//       }
 //       streamRef.current = stream;
 //       if (videoRef.current) {
 //         videoRef.current.srcObject = stream;
@@ -274,11 +272,16 @@
 //     if (!materialStatus || !qualityCheck || !challanNo || !truckDelivery || !photoData || !receivedDate) return false;
 //     if (truckDelivery === 'Yes' && !googleFormCompleted) return false;
 //     const uids = selectedRequest?.selectedUIDs || [];
-//     return uids.every(uid => receivedQuantities[uid] && parseFloat(receivedQuantities[uid]) > 0);
+    
+//     return uids.every(uid => {
+//       const qty = receivedQuantities[uid];
+//       const brand = receivedBrands[uid];
+//       return qty && parseFloat(qty) > 0 && brand && brand.trim() !== '';
+//     });
 //   };
 
 //   const handleSave = async () => {
-//     if (!validate()) { setError('Fill all fields, date & qty for each UID.'); return; }
+//     if (!validate()) { setError('Fill all fields, date, qty & BRAND for each UID.'); return; }
 //     const uids = selectedRequest.selectedUIDs || [selectedRequest.uid];
 
 //     try {
@@ -298,6 +301,7 @@
 //           materialSpecification: item.materialSpecification || '',
 //           unitName: item.unitName || '',
 //           receivedQty: parseFloat(receivedQuantities[uid]),
+//           brandName: receivedBrands[uid],
 //           status: materialStatus,
 //           challanNo: challanNo,
 //           qualityApproved: qualityCheck,
@@ -329,7 +333,6 @@
 
 //   return (
 //     <div style={{ maxWidth: 1400, margin: '0 auto', padding: '0 8px' }}>
-
 //       {/* Header */}
 //       <div style={{
 //         background: T.card, borderRadius: 10, border: `1px solid ${T.border}`,
@@ -364,8 +367,6 @@
 //         <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 12, paddingBottom: 8, borderBottom: `1px solid ${T.border}` }}>
 //           <Filter size={16} color={T.gold} />
 //           <span style={{ fontSize: 14, fontWeight: 700, color: T.navy }}>Filter</span>
-
-//           {/* ✅ Locked User Badge */}
 //           {isSignatureReqUser && (
 //             <span style={{
 //               marginLeft: 'auto', display: 'flex', alignItems: 'center', gap: 4,
@@ -379,44 +380,19 @@
 //         </div>
 
 //         <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr auto', gap: 10, alignItems: 'end', marginBottom: 10 }}>
-
-//           {/* ═══════════════════════════════════════════════ */}
-//           {/* ✅ SITE - Locked for Signature Requirement User */}
-//           {/* ═══════════════════════════════════════════════ */}
 //           <div>
 //             <label style={labelStyle}>
 //               <MapPin size={12} style={{ display: 'inline', marginRight: 4 }} />
 //               Site
 //               {isSignatureReqUser && (
-//                 <span style={{
-//                   marginLeft: 6, fontSize: 9, color: T.gold,
-//                   background: `${T.gold}15`, padding: '2px 6px',
-//                   borderRadius: 6, fontWeight: 700,
-//                 }}>🔒 LOCKED</span>
+//                 <span style={{ marginLeft: 6, fontSize: 9, color: T.gold, background: `${T.gold}15`, padding: '2px 6px', borderRadius: 6, fontWeight: 700 }}>🔒 LOCKED</span>
 //               )}
 //             </label>
-
 //             {isSignatureReqUser ? (
-//               // ✅ Locked - Read-only input
-//               <input
-//                 type="text"
-//                 value={selectedSiteName}
-//                 readOnly
-//                 style={{
-//                   ...inputBase,
-//                   borderLeft: `3px solid ${T.gold}`,
-//                   background: `${T.gold}08`,
-//                   color: T.navy,
-//                   fontWeight: 600,
-//                   cursor: 'not-allowed',
-//                 }}
-//               />
+//               <input type="text" value={selectedSiteName} readOnly style={{ ...inputBase, borderLeft: `3px solid ${T.gold}`, background: `${T.gold}08`, color: T.navy, fontWeight: 600, cursor: 'not-allowed' }} />
 //             ) : (
-//               // Normal - Dropdown
 //               <div style={{ position: 'relative' }}>
-//                 <select value={selectedSiteName} onChange={e => setSelectedSiteName(e.target.value)}
-//                   style={{ ...inputBase, paddingRight: 30, appearance: 'none', cursor: 'pointer' }}
-//                   onFocus={focusGold} onBlur={blurNormal}>
+//                 <select value={selectedSiteName} onChange={e => setSelectedSiteName(e.target.value)} style={{ ...inputBase, paddingRight: 30, appearance: 'none', cursor: 'pointer' }} onFocus={focusGold} onBlur={blurNormal}>
 //                   <option value="">All Sites</option>
 //                   {siteNames.map((s, i) => <option key={i} value={s}>{s}</option>)}
 //                 </select>
@@ -425,44 +401,19 @@
 //             )}
 //           </div>
 
-//           {/* ═══════════════════════════════════════════════ */}
-//           {/* ✅ SUPERVISOR - Locked for Signature Requirement User */}
-//           {/* ═══════════════════════════════════════════════ */}
 //           <div>
 //             <label style={labelStyle}>
 //               <User size={12} style={{ display: 'inline', marginRight: 4 }} />
 //               Supervisor
 //               {isSignatureReqUser && (
-//                 <span style={{
-//                   marginLeft: 6, fontSize: 9, color: T.gold,
-//                   background: `${T.gold}15`, padding: '2px 6px',
-//                   borderRadius: 6, fontWeight: 700,
-//                 }}>🔒 LOCKED</span>
+//                 <span style={{ marginLeft: 6, fontSize: 9, color: T.gold, background: `${T.gold}15`, padding: '2px 6px', borderRadius: 6, fontWeight: 700 }}>🔒 LOCKED</span>
 //               )}
 //             </label>
-
 //             {isSignatureReqUser ? (
-//               // ✅ Locked - Read-only input
-//               <input
-//                 type="text"
-//                 value={selectedSupervisorName || 'Loading...'}
-//                 readOnly
-//                 style={{
-//                   ...inputBase,
-//                   borderLeft: `3px solid ${T.gold}`,
-//                   background: `${T.gold}08`,
-//                   color: T.navy,
-//                   fontWeight: 600,
-//                   cursor: 'not-allowed',
-//                 }}
-//               />
+//               <input type="text" value={selectedSupervisorName || 'Loading...'} readOnly style={{ ...inputBase, borderLeft: `3px solid ${T.gold}`, background: `${T.gold}08`, color: T.navy, fontWeight: 600, cursor: 'not-allowed' }} />
 //             ) : (
-//               // Normal - Dropdown
 //               <div style={{ position: 'relative' }}>
-//                 <select value={selectedSupervisorName} onChange={e => setSelectedSupervisorName(e.target.value)}
-//                   disabled={!availableSupervisors.length}
-//                   style={{ ...inputBase, paddingRight: 30, appearance: 'none', cursor: 'pointer' }}
-//                   onFocus={focusGold} onBlur={blurNormal}>
+//                 <select value={selectedSupervisorName} onChange={e => setSelectedSupervisorName(e.target.value)} disabled={!availableSupervisors.length} style={{ ...inputBase, paddingRight: 30, appearance: 'none', cursor: 'pointer' }} onFocus={focusGold} onBlur={blurNormal}>
 //                   <option value="">All</option>
 //                   {availableSupervisors.map((s, i) => <option key={i} value={s}>{s}</option>)}
 //                 </select>
@@ -489,9 +440,7 @@
 //               <div>
 //                 <label style={labelStyle}>🏭 Vendor</label>
 //                 <div style={{ position: 'relative' }}>
-//                   <select value={selectedVendor} onChange={e => handleVendorChange(e.target.value)}
-//                     style={{ ...inputBase, paddingRight: 30, appearance: 'none', cursor: 'pointer' }}
-//                     onFocus={focusGold} onBlur={blurNormal}>
+//                   <select value={selectedVendor} onChange={e => handleVendorChange(e.target.value)} style={{ ...inputBase, paddingRight: 30, appearance: 'none', cursor: 'pointer' }} onFocus={focusGold} onBlur={blurNormal}>
 //                     <option value="">All Vendors</option>
 //                     {vendorOptions.map((v, i) => <option key={i} value={v}>{v}</option>)}
 //                   </select>
@@ -502,9 +451,7 @@
 //               <div>
 //                 <label style={labelStyle}>📋 PO No</label>
 //                 <div style={{ position: 'relative' }}>
-//                   <select value={selectedPO} onChange={e => handlePOChange(e.target.value)}
-//                     style={{ ...inputBase, paddingRight: 30, appearance: 'none', cursor: 'pointer' }}
-//                     onFocus={focusGold} onBlur={blurNormal}>
+//                   <select value={selectedPO} onChange={e => handlePOChange(e.target.value)} style={{ ...inputBase, paddingRight: 30, appearance: 'none', cursor: 'pointer' }} onFocus={focusGold} onBlur={blurNormal}>
 //                     <option value="">All POs</option>
 //                     {poOptions.map((p, i) => <option key={i} value={p}>{p}</option>)}
 //                   </select>
@@ -525,14 +472,13 @@
 //         )}
 //       </div>
 
-//       {/* Error */}
 //       {error && !isModalOpen && !isUIDModalOpen && (
 //         <div style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '10px 14px', background: T.dangerBg, border: `1px solid ${T.dangerBorder}`, borderRadius: 8, marginBottom: 12, fontSize: 13, color: T.danger }}>
 //           <AlertCircle size={16} /> {error}
 //         </div>
 //       )}
 
-//       {/* Table & rest same as before */}
+//       {/* Table & Mobile Cards */}
 //       <div style={{ background: T.card, borderRadius: 10, border: `1px solid ${T.border}`, overflow: 'hidden' }}>
 //         {requests.length === 0 ? (
 //           <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', padding: '50px 20px' }}>
@@ -543,13 +489,9 @@
 //           </div>
 //         ) : (
 //           <>
-//             {/* MOBILE CARDS */}
 //             <div className="mobile-cards" style={{ display: 'none' }}>
 //               {requests.map((req, idx) => (
-//                 <div key={req.uid + idx} style={{
-//                   padding: '14px 16px', borderBottom: `1px solid ${T.border}`,
-//                   background: idx % 2 === 0 ? T.card : T.borderLight,
-//                 }}>
+//                 <div key={req.uid + idx} style={{ padding: '14px 16px', borderBottom: `1px solid ${T.border}`, background: idx % 2 === 0 ? T.card : T.borderLight }}>
 //                   <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 10 }}>
 //                     <div style={{ flex: 1 }}>
 //                       <div style={{ display: 'flex', gap: 6, alignItems: 'center', marginBottom: 4, flexWrap: 'wrap' }}>
@@ -563,39 +505,22 @@
 //                         {req.materialSpecification && <span style={{ fontSize: 11, color: T.purple, background: `${T.purple}15`, padding: '1px 6px', borderRadius: 4 }}>📋 {req.materialSpecification}</span>}
 //                       </div>
 //                     </div>
-//                     <button onClick={() => openUIDModal(req)} style={{
-//                       width: 40, height: 40, borderRadius: 10,
-//                       border: `2px solid ${T.gold}`, background: `${T.gold}15`,
-//                       color: T.goldDark, cursor: 'pointer',
-//                       display: 'flex', alignItems: 'center', justifyContent: 'center',
-//                       flexShrink: 0, marginLeft: 10,
-//                     }}>
+//                     <button onClick={() => openUIDModal(req)} style={{ width: 40, height: 40, borderRadius: 10, border: `2px solid ${T.gold}`, background: `${T.gold}15`, color: T.goldDark, cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0, marginLeft: 10 }}>
 //                       <Edit3 size={18} />
 //                     </button>
 //                   </div>
-
 //                   <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '6px 12px', fontSize: 12 }}>
 //                     <div><span style={{ color: T.textMuted }}>Site:</span> <strong>{req.siteName}</strong></div>
 //                     <div><span style={{ color: T.textMuted }}>Supervisor:</span> <strong>{req.supervisorName}</strong></div>
 //                     <div><span style={{ color: T.textMuted }}>Vendor:</span> <strong>{req.vendorName}</strong></div>
 //                     <div><span style={{ color: T.textMuted }}>Type:</span> {req.materialType}</div>
-//                     <div>
-//                       <span style={{ color: T.textMuted }}>Order Qty:</span>
-//                       <strong> {req.revisedQty || req.orderQty} {req.unitName}</strong>
-//                     </div>
-//                     <div>
-//                       <span style={{ color: T.textMuted }}>Received:</span>
-//                       <strong style={{ color: parseFloat(req.receivedQty) > 0 ? T.success : T.textMuted }}>
-//                         {' '}{req.receivedQty || 0}
-//                       </strong>
-//                     </div>
+//                     <div><span style={{ color: T.textMuted }}>Order Qty:</span><strong> {req.revisedQty || req.orderQty} {req.unitName}</strong></div>
+//                     <div><span style={{ color: T.textMuted }}>Received:</span><strong style={{ color: parseFloat(req.receivedQty) > 0 ? T.success : T.textMuted }}>{' '}{req.receivedQty || 0}</strong></div>
 //                     {req.brandName && <div><span style={{ color: T.textMuted }}>Brand:</span> <span style={{ color: T.purple, fontWeight: 600 }}>{req.brandName}</span></div>}
 //                     {req.skuCode && <div><span style={{ color: T.textMuted }}>SKU:</span> <span style={{ fontFamily: 'monospace', fontSize: 11 }}>{req.skuCode}</span></div>}
 //                   </div>
-
 //                   {req.pdfPO && (
-//                     <a href={req.pdfPO} target="_blank" rel="noopener noreferrer"
-//                       style={{ display: 'inline-flex', alignItems: 'center', gap: 4, marginTop: 8, padding: '4px 10px', borderRadius: 6, background: T.navy, color: T.gold, fontSize: 11, fontWeight: 700, textDecoration: 'none' }}>
+//                     <a href={req.pdfPO} target="_blank" rel="noopener noreferrer" style={{ display: 'inline-flex', alignItems: 'center', gap: 4, marginTop: 8, padding: '4px 10px', borderRadius: 6, background: T.navy, color: T.gold, fontSize: 11, fontWeight: 700, textDecoration: 'none' }}>
 //                       <FileText size={11} /> View PO PDF
 //                     </a>
 //                   )}
@@ -603,75 +528,37 @@
 //               ))}
 //             </div>
 
-//             {/* DESKTOP TABLE */}
 //             <div className="desktop-table" style={{ overflowX: 'auto', maxHeight: '65vh', overflowY: 'auto' }}>
 //               <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 13 }}>
 //                 <thead style={{ position: 'sticky', top: 0, zIndex: 10 }}>
 //                   <tr style={{ background: T.navy }}>
 //                     {['#', 'UID', 'Req No', 'Site', 'Supervisor', 'Type', 'Material', 'Size', 'Specification', 'SKU', 'Brand', 'Order Qty', 'Received', 'Unit', 'Vendor', 'PO No', 'PO PDF', 'Action'].map(h => (
-//                       <th key={h} style={{
-//                         padding: '12px 14px', textAlign: h === 'Action' ? 'center' : h.includes('Qty') || h === 'Received' ? 'right' : 'left',
-//                         color: T.goldLight, fontSize: 11, fontWeight: 700, textTransform: 'uppercase',
-//                         letterSpacing: 0.5, whiteSpace: 'nowrap', borderBottom: `2px solid ${T.gold}`,
-//                       }}>{h}</th>
+//                       <th key={h} style={{ padding: '12px 14px', textAlign: h === 'Action' ? 'center' : h.includes('Qty') || h === 'Received' ? 'right' : 'left', color: T.goldLight, fontSize: 11, fontWeight: 700, textTransform: 'uppercase', letterSpacing: 0.5, whiteSpace: 'nowrap', borderBottom: `2px solid ${T.gold}` }}>{h}</th>
 //                     ))}
 //                   </tr>
 //                 </thead>
 //                 <tbody>
 //                   {requests.map((req, idx) => (
-//                     <tr key={req.uid + idx}
-//                       style={{ background: idx % 2 === 0 ? T.card : T.borderLight }}
-//                       onMouseEnter={e => { e.currentTarget.style.background = `${T.gold}08`; }}
-//                       onMouseLeave={e => { e.currentTarget.style.background = idx % 2 === 0 ? T.card : T.borderLight; }}>
-//                       <td style={{ padding: '10px 14px', borderBottom: `1px solid ${T.border}` }}>
-//                         <span style={{ display: 'inline-flex', alignItems: 'center', justifyContent: 'center', width: 26, height: 26, borderRadius: 6, background: T.borderLight, fontSize: 12, fontWeight: 600, color: T.textLight }}>{idx + 1}</span>
-//                       </td>
-//                       <td style={{ padding: '10px 14px', borderBottom: `1px solid ${T.border}` }}>
-//                         <span style={{ background: `${T.navy}15`, color: T.navy, padding: '3px 8px', borderRadius: 6, fontSize: 12, fontWeight: 700 }}>{req.uid}</span>
-//                       </td>
-//                       <td style={{ padding: '10px 14px', borderBottom: `1px solid ${T.border}` }}>
-//                         <span style={{ background: `${T.gold}15`, color: T.goldDark, padding: '3px 8px', borderRadius: 6, fontSize: 12, fontWeight: 600 }}>{req.reqNo}</span>
-//                       </td>
+//                     <tr key={req.uid + idx} style={{ background: idx % 2 === 0 ? T.card : T.borderLight }} onMouseEnter={e => { e.currentTarget.style.background = `${T.gold}08`; }} onMouseLeave={e => { e.currentTarget.style.background = idx % 2 === 0 ? T.card : T.borderLight; }}>
+//                       <td style={{ padding: '10px 14px', borderBottom: `1px solid ${T.border}` }}><span style={{ display: 'inline-flex', alignItems: 'center', justifyContent: 'center', width: 26, height: 26, borderRadius: 6, background: T.borderLight, fontSize: 12, fontWeight: 600, color: T.textLight }}>{idx + 1}</span></td>
+//                       <td style={{ padding: '10px 14px', borderBottom: `1px solid ${T.border}` }}><span style={{ background: `${T.navy}15`, color: T.navy, padding: '3px 8px', borderRadius: 6, fontSize: 12, fontWeight: 700 }}>{req.uid}</span></td>
+//                       <td style={{ padding: '10px 14px', borderBottom: `1px solid ${T.border}` }}><span style={{ background: `${T.gold}15`, color: T.goldDark, padding: '3px 8px', borderRadius: 6, fontSize: 12, fontWeight: 600 }}>{req.reqNo}</span></td>
 //                       <td style={{ padding: '10px 14px', borderBottom: `1px solid ${T.border}`, maxWidth: 130, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{req.siteName || '—'}</td>
 //                       <td style={{ padding: '10px 14px', borderBottom: `1px solid ${T.border}`, maxWidth: 110, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{req.supervisorName || '—'}</td>
 //                       <td style={{ padding: '10px 14px', borderBottom: `1px solid ${T.border}` }}>{req.materialType || '—'}</td>
 //                       <td style={{ padding: '10px 14px', borderBottom: `1px solid ${T.border}`, fontWeight: 600, maxWidth: 150, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{req.materialName || '—'}</td>
-//                       <td style={{ padding: '10px 14px', borderBottom: `1px solid ${T.border}` }}>
-//                         {req.materialSize ? <span style={{ background: `${T.gold}15`, color: T.goldDark, padding: '2px 8px', borderRadius: 4, fontSize: 11, fontWeight: 600 }}>📏 {req.materialSize}</span> : '—'}
-//                       </td>
-//                       <td style={{ padding: '10px 14px', borderBottom: `1px solid ${T.border}`, maxWidth: 140, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
-//                         {req.materialSpecification ? (
-//                           <span style={{ background: `${T.purple}15`, color: T.purple, padding: '2px 8px', borderRadius: 4, fontSize: 11, fontWeight: 600 }}>
-//                             📋 {req.materialSpecification}
-//                           </span>
-//                         ) : '—'}
-//                       </td>
-//                       <td style={{ padding: '10px 14px', borderBottom: `1px solid ${T.border}` }}>
-//                         {req.skuCode ? <span style={{ fontFamily: 'monospace', fontSize: 11, background: T.borderLight, padding: '2px 6px', borderRadius: 4, color: T.textLight }}>{req.skuCode}</span> : '—'}
-//                       </td>
-//                       <td style={{ padding: '10px 14px', borderBottom: `1px solid ${T.border}` }}>
-//                         {req.brandName ? <span style={{ background: `${T.purple}15`, color: T.purple, padding: '3px 8px', borderRadius: 5, fontSize: 11, fontWeight: 600 }}>{req.brandName}</span> : '—'}
-//                       </td>
+//                       <td style={{ padding: '10px 14px', borderBottom: `1px solid ${T.border}` }}>{req.materialSize ? <span style={{ background: `${T.gold}15`, color: T.goldDark, padding: '2px 8px', borderRadius: 4, fontSize: 11, fontWeight: 600 }}>📏 {req.materialSize}</span> : '—'}</td>
+//                       <td style={{ padding: '10px 14px', borderBottom: `1px solid ${T.border}`, maxWidth: 140, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{req.materialSpecification ? (<span style={{ background: `${T.purple}15`, color: T.purple, padding: '2px 8px', borderRadius: 4, fontSize: 11, fontWeight: 600 }}>📋 {req.materialSpecification}</span>) : '—'}</td>
+//                       <td style={{ padding: '10px 14px', borderBottom: `1px solid ${T.border}` }}>{req.skuCode ? <span style={{ fontFamily: 'monospace', fontSize: 11, background: T.borderLight, padding: '2px 6px', borderRadius: 4, color: T.textLight }}>{req.skuCode}</span> : '—'}</td>
+//                       <td style={{ padding: '10px 14px', borderBottom: `1px solid ${T.border}` }}>{req.brandName ? <span style={{ background: `${T.purple}15`, color: T.purple, padding: '3px 8px', borderRadius: 5, fontSize: 11, fontWeight: 600 }}>{req.brandName}</span> : '—'}</td>
 //                       <td style={{ padding: '10px 14px', borderBottom: `1px solid ${T.border}`, textAlign: 'right', fontWeight: 600 }}>{req.revisedQty || req.orderQty || '—'}</td>
-//                       <td style={{ padding: '10px 14px', borderBottom: `1px solid ${T.border}`, textAlign: 'right' }}>
-//                         <span style={{ background: parseFloat(req.receivedQty) > 0 ? `${T.success}15` : T.borderLight, color: parseFloat(req.receivedQty) > 0 ? T.success : T.textMuted, padding: '3px 10px', borderRadius: 6, fontSize: 12, fontWeight: 700 }}>{req.receivedQty || 0}</span>
-//                       </td>
+//                       <td style={{ padding: '10px 14px', borderBottom: `1px solid ${T.border}`, textAlign: 'right' }}><span style={{ background: parseFloat(req.receivedQty) > 0 ? `${T.success}15` : T.borderLight, color: parseFloat(req.receivedQty) > 0 ? T.success : T.textMuted, padding: '3px 10px', borderRadius: 6, fontSize: 12, fontWeight: 700 }}>{req.receivedQty || 0}</span></td>
 //                       <td style={{ padding: '10px 14px', borderBottom: `1px solid ${T.border}` }}>{req.unitName || '—'}</td>
 //                       <td style={{ padding: '10px 14px', borderBottom: `1px solid ${T.border}`, maxWidth: 130, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{req.vendorName || '—'}</td>
-//                       <td style={{ padding: '10px 14px', borderBottom: `1px solid ${T.border}` }}>
-//                         {req.poNumber ? <span style={{ background: T.navy, color: T.gold, padding: '3px 10px', borderRadius: 6, fontSize: 11, fontWeight: 700 }}>{req.poNumber}</span> : '—'}
-//                       </td>
+//                       <td style={{ padding: '10px 14px', borderBottom: `1px solid ${T.border}` }}>{req.poNumber ? <span style={{ background: T.navy, color: T.gold, padding: '3px 10px', borderRadius: 6, fontSize: 11, fontWeight: 700 }}>{req.poNumber}</span> : '—'}</td>
+//                       <td style={{ padding: '10px 14px', borderBottom: `1px solid ${T.border}`, textAlign: 'center' }}>{req.pdfPO ? <a href={req.pdfPO} target="_blank" rel="noopener noreferrer" style={{ display: 'inline-flex', alignItems: 'center', gap: 3, padding: '4px 8px', borderRadius: 5, background: T.navy, color: T.gold, fontSize: 11, fontWeight: 700, textDecoration: 'none' }}><FileText size={11} /> PDF</a> : '—'}</td>
 //                       <td style={{ padding: '10px 14px', borderBottom: `1px solid ${T.border}`, textAlign: 'center' }}>
-//                         {req.pdfPO ? <a href={req.pdfPO} target="_blank" rel="noopener noreferrer" style={{ display: 'inline-flex', alignItems: 'center', gap: 3, padding: '4px 8px', borderRadius: 5, background: T.navy, color: T.gold, fontSize: 11, fontWeight: 700, textDecoration: 'none' }}><FileText size={11} /> PDF</a> : '—'}
-//                       </td>
-//                       <td style={{ padding: '10px 14px', borderBottom: `1px solid ${T.border}`, textAlign: 'center' }}>
-//                         <button onClick={() => openUIDModal(req)} style={{
-//                           width: 34, height: 34, borderRadius: 8, border: `1.5px solid ${T.gold}40`,
-//                           background: `${T.gold}10`, color: T.goldDark, cursor: 'pointer',
-//                           display: 'inline-flex', alignItems: 'center', justifyContent: 'center', transition: 'all 0.2s',
-//                         }}
-//                           onMouseEnter={e => { e.currentTarget.style.background = T.gold; e.currentTarget.style.color = T.navyDark; }}
-//                           onMouseLeave={e => { e.currentTarget.style.background = `${T.gold}10`; e.currentTarget.style.color = T.goldDark; }}>
+//                         <button onClick={() => openUIDModal(req)} style={{ width: 34, height: 34, borderRadius: 8, border: `1.5px solid ${T.gold}40`, background: `${T.gold}10`, color: T.goldDark, cursor: 'pointer', display: 'inline-flex', alignItems: 'center', justifyContent: 'center', transition: 'all 0.2s' }} onMouseEnter={e => { e.currentTarget.style.background = T.gold; e.currentTarget.style.color = T.navyDark; }} onMouseLeave={e => { e.currentTarget.style.background = `${T.gold}10`; e.currentTarget.style.color = T.goldDark; }}>
 //                           <Edit3 size={15} />
 //                         </button>
 //                       </td>
@@ -684,21 +571,14 @@
 //         )}
 //       </div>
 
-//       {/* MODAL 1: UID Selection - Same as before */}
+//       {/* MODAL 1: UID Selection */}
 //       {isUIDModalOpen && (
 //         <>
 //           <div onClick={() => setIsUIDModalOpen(false)} style={{ position: 'fixed', inset: 0, background: 'rgba(15,23,42,0.5)', backdropFilter: 'blur(2px)', zIndex: 100 }} />
-//           <div style={{
-//             position: 'fixed', top: '50%', left: '50%', transform: 'translate(-50%, -50%)',
-//             width: '95%', maxWidth: 700, background: T.card, borderRadius: 14,
-//             boxShadow: '0 20px 60px rgba(0,0,0,0.2)', zIndex: 101,
-//             display: 'flex', flexDirection: 'column', maxHeight: '85vh',
-//           }}>
+//           <div style={{ position: 'fixed', top: '50%', left: '50%', transform: 'translate(-50%, -50%)', width: '95%', maxWidth: 700, background: T.card, borderRadius: 14, boxShadow: '0 20px 60px rgba(0,0,0,0.2)', zIndex: 101, display: 'flex', flexDirection: 'column', maxHeight: '85vh' }}>
 //             <div style={{ background: T.navy, padding: '14px 16px', borderBottom: `2px solid ${T.gold}`, display: 'flex', alignItems: 'center', justifyContent: 'space-between', borderRadius: '14px 14px 0 0' }}>
 //               <div>
-//                 <h3 style={{ fontSize: 15, fontWeight: 700, color: 'white', margin: 0 }}>
-//                   PO: <span style={{ color: T.gold }}>{currentPOForModal}</span>
-//                 </h3>
+//                 <h3 style={{ fontSize: 15, fontWeight: 700, color: 'white', margin: 0 }}>PO: <span style={{ color: T.gold }}>{currentPOForModal}</span></h3>
 //                 <p style={{ fontSize: 11, color: T.textMuted, margin: 0 }}>{selectedUIDs.length}/{uidModalItems.length} selected</p>
 //               </div>
 //               <button onClick={() => setIsUIDModalOpen(false)} style={{ width: 30, height: 30, borderRadius: 6, border: 'none', background: 'rgba(255,255,255,0.1)', color: 'white', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center' }}><X size={16} /></button>
@@ -706,42 +586,25 @@
 
 //             <div style={{ flex: 1, overflowY: 'auto', padding: '12px 16px' }}>
 //               <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 10, padding: '8px 10px', background: T.borderLight, borderRadius: 8 }}>
-//                 <input type="checkbox" onChange={handleSelectAllUIDs}
-//                   checked={selectedUIDs.length === uidModalItems.length && uidModalItems.length > 0}
-//                   style={{ width: 18, height: 18 }} />
+//                 <input type="checkbox" onChange={handleSelectAllUIDs} checked={selectedUIDs.length === uidModalItems.length && uidModalItems.length > 0} style={{ width: 18, height: 18 }} />
 //                 <span style={{ fontSize: 13, fontWeight: 600, color: T.navy }}>Select All ({uidModalItems.length})</span>
 //               </div>
 
 //               {uidModalItems.map((item) => (
-//                 <div key={item.uid} onClick={() => handleUIDToggle(item.uid)}
-//                   style={{
-//                     padding: '12px 14px', marginBottom: 8, borderRadius: 8, cursor: 'pointer',
-//                     border: `2px solid ${selectedUIDs.includes(item.uid) ? T.success : T.border}`,
-//                     background: selectedUIDs.includes(item.uid) ? `${T.success}08` : T.card,
-//                     transition: 'all 0.2s',
-//                   }}>
+//                 <div key={item.uid} onClick={() => handleUIDToggle(item.uid)} style={{ padding: '12px 14px', marginBottom: 8, borderRadius: 8, cursor: 'pointer', border: `2px solid ${selectedUIDs.includes(item.uid) ? T.success : T.border}`, background: selectedUIDs.includes(item.uid) ? `${T.success}08` : T.card, transition: 'all 0.2s' }}>
 //                   <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
-//                     <input type="checkbox" checked={selectedUIDs.includes(item.uid)} readOnly
-//                       style={{ width: 18, height: 18, flexShrink: 0 }} />
+//                     <input type="checkbox" checked={selectedUIDs.includes(item.uid)} readOnly style={{ width: 18, height: 18, flexShrink: 0 }} />
 //                     <div style={{ flex: 1 }}>
 //                       <div style={{ display: 'flex', gap: 6, alignItems: 'center', marginBottom: 4, flexWrap: 'wrap' }}>
 //                         <span style={{ background: `${T.navy}15`, color: T.navy, padding: '2px 7px', borderRadius: 5, fontWeight: 700, fontSize: 12 }}>{item.uid}</span>
 //                         <span style={{ fontWeight: 600, fontSize: 13 }}>{item.materialName}</span>
-//                         {item.materialSpecification && (
-//                           <span style={{ background: `${T.purple}15`, color: T.purple, padding: '2px 7px', borderRadius: 5, fontSize: 11, fontWeight: 600 }}>
-//                             📋 {item.materialSpecification}
-//                           </span>
-//                         )}
+//                         {item.materialSpecification && <span style={{ background: `${T.purple}15`, color: T.purple, padding: '2px 7px', borderRadius: 5, fontSize: 11, fontWeight: 600 }}>📋 {item.materialSpecification}</span>}
 //                       </div>
 //                       <div style={{ display: 'flex', gap: 12, fontSize: 11, color: T.textLight, flexWrap: 'wrap' }}>
 //                         {item.materialSize && <span>📏 {item.materialSize}</span>}
 //                         <span>Qty: <strong>{item.revisedQty || item.orderQty} {item.unitName}</strong></span>
 //                         <span>Rec: <strong style={{ color: parseFloat(item.receivedQty) > 0 ? T.success : T.textMuted }}>{item.receivedQty || 0}</strong></span>
-//                         {item.status8 && <span style={{
-//                           background: item.status8 === 'Full Material' ? `${T.success}15` : `${T.warning}20`,
-//                           color: item.status8 === 'Full Material' ? T.success : '#92400e',
-//                           padding: '1px 6px', borderRadius: 4, fontWeight: 600,
-//                         }}>{item.status8}</span>}
+//                         {item.status8 && <span style={{ background: item.status8 === 'Full Material' ? `${T.success}15` : `${T.warning}20`, color: item.status8 === 'Full Material' ? T.success : '#92400e', padding: '1px 6px', borderRadius: 4, fontWeight: 600 }}>{item.status8}</span>}
 //                       </div>
 //                     </div>
 //                   </div>
@@ -751,13 +614,7 @@
 
 //             <div style={{ padding: '12px 16px', borderTop: `1px solid ${T.border}`, background: T.borderLight, display: 'flex', justifyContent: 'space-between', borderRadius: '0 0 14px 14px' }}>
 //               <button onClick={() => setIsUIDModalOpen(false)} style={{ padding: '10px 20px', borderRadius: 8, border: `1.5px solid ${T.border}`, background: T.card, color: T.textLight, fontSize: 13, fontWeight: 600, cursor: 'pointer' }}>Cancel</button>
-//               <button onClick={goToReceiptForm} disabled={selectedUIDs.length === 0}
-//                 style={{
-//                   display: 'flex', alignItems: 'center', gap: 5, padding: '10px 20px', borderRadius: 8, border: 'none',
-//                   background: selectedUIDs.length > 0 ? `linear-gradient(135deg, ${T.gold}, ${T.goldDark})` : T.border,
-//                   color: selectedUIDs.length > 0 ? T.navyDark : T.textMuted,
-//                   fontSize: 13, fontWeight: 700, cursor: selectedUIDs.length > 0 ? 'pointer' : 'not-allowed',
-//                 }}>
+//               <button onClick={goToReceiptForm} disabled={selectedUIDs.length === 0} style={{ display: 'flex', alignItems: 'center', gap: 5, padding: '10px 20px', borderRadius: 8, border: 'none', background: selectedUIDs.length > 0 ? `linear-gradient(135deg, ${T.gold}, ${T.goldDark})` : T.border, color: selectedUIDs.length > 0 ? T.navyDark : T.textMuted, fontSize: 13, fontWeight: 700, cursor: selectedUIDs.length > 0 ? 'pointer' : 'not-allowed' }}>
 //                 Next ({selectedUIDs.length}) <ArrowRight size={14} />
 //               </button>
 //             </div>
@@ -765,22 +622,15 @@
 //         </>
 //       )}
 
-//       {/* MODAL 2: Receipt Form - Same as before */}
+//       {/* MODAL 2: Receipt Form */}
 //       {isModalOpen && selectedRequest && (
 //         <>
 //           <div onClick={closeModal} style={{ position: 'fixed', inset: 0, background: 'rgba(15,23,42,0.5)', backdropFilter: 'blur(2px)', zIndex: 100 }} />
-//           <div style={{
-//             position: 'fixed', top: '50%', left: '50%', transform: 'translate(-50%, -50%)',
-//             width: '95%', maxWidth: 650, background: T.card, borderRadius: 14,
-//             boxShadow: '0 20px 60px rgba(0,0,0,0.2)', zIndex: 101,
-//             display: 'flex', flexDirection: 'column', maxHeight: '92vh',
-//           }}>
+//           <div style={{ position: 'fixed', top: '50%', left: '50%', transform: 'translate(-50%, -50%)', width: '95%', maxWidth: 650, background: T.card, borderRadius: 14, boxShadow: '0 20px 60px rgba(0,0,0,0.2)', zIndex: 101, display: 'flex', flexDirection: 'column', maxHeight: '92vh' }}>
 //             <div style={{ background: T.navy, padding: '14px 16px', borderBottom: `2px solid ${T.gold}`, display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexShrink: 0, borderRadius: '14px 14px 0 0' }}>
 //               <div>
 //                 <h3 style={{ fontSize: 15, fontWeight: 700, color: 'white', margin: 0 }}>Material Receipt</h3>
-//                 <p style={{ fontSize: 11, color: T.textMuted, margin: 0 }}>
-//                   {(selectedRequest.selectedUIDs?.length || 1)} UIDs | PO: {selectedRequest.poNumber}
-//                 </p>
+//                 <p style={{ fontSize: 11, color: T.textMuted, margin: 0 }}>{(selectedRequest.selectedUIDs?.length || 1)} UIDs | PO: {selectedRequest.poNumber}</p>
 //               </div>
 //               <button onClick={closeModal} disabled={isSaving} style={{ width: 30, height: 30, borderRadius: 6, border: 'none', background: 'rgba(255,255,255,0.1)', color: 'white', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center' }}><X size={16} /></button>
 //             </div>
@@ -791,52 +641,82 @@
 
 //               <div>
 //                 <label style={{ ...labelStyle, fontSize: 13 }}>
-//                   📦 Qty Per Material <span style={{ color: T.danger }}>*</span>
+//                   📦 Qty & Brand Per Material <span style={{ color: T.danger }}>*</span>
 //                 </label>
 
 //                 {(selectedRequest.selectedUIDs || []).map((uid) => {
 //                   const item = selectedRequest.uidModalItems?.find(it => it.uid === uid) || selectedRequest;
+                  
 //                   const qty = receivedQuantities[uid];
-//                   const isFilled = qty && parseFloat(qty) > 0;
+//                   const brand = receivedBrands[uid];
+//                   const qtyFilled = qty && parseFloat(qty) > 0;
+//                   const brandFilled = brand && brand.trim() !== '';
+//                   const isFilled = qtyFilled && brandFilled;
+
 //                   return (
 //                     <div key={uid} style={{
-//                       padding: '10px 12px', marginBottom: 8, borderRadius: 8,
-//                       border: `1.5px solid ${isFilled ? T.success : T.danger}20`,
+//                       padding: '10px 12px', marginBottom: 12, borderRadius: 8,
+//                       border: `1.5px solid ${isFilled ? T.success : T.danger}40`,
 //                       background: isFilled ? `${T.success}05` : T.card,
 //                     }}>
 //                       <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 6, flexWrap: 'wrap' }}>
 //                         <span style={{ background: `${T.navy}15`, color: T.navy, padding: '2px 7px', borderRadius: 5, fontWeight: 700, fontSize: 12 }}>{uid}</span>
 //                         <span style={{ fontSize: 13, fontWeight: 600, flex: 1 }}>{item.materialName}</span>
-//                         {item.materialSpecification && (
-//                           <span style={{ background: `${T.purple}15`, color: T.purple, padding: '2px 7px', borderRadius: 5, fontSize: 11, fontWeight: 600 }}>
-//                             📋 {item.materialSpecification}
-//                           </span>
-//                         )}
+//                         {item.materialSpecification && <span style={{ background: `${T.purple}15`, color: T.purple, padding: '2px 7px', borderRadius: 5, fontSize: 11, fontWeight: 600 }}>📋 {item.materialSpecification}</span>}
 //                       </div>
-//                       <div style={{ display: 'flex', gap: 10, alignItems: 'center', flexWrap: 'wrap' }}>
-//                         <div style={{ display: 'flex', gap: 8, fontSize: 11, color: T.textLight }}>
-//                           {item.materialSize && <span>📏 {item.materialSize}</span>}
-//                           <span>Order: <strong>{item.revisedQty || item.orderQty}</strong></span>
-//                           <span>Rec: <strong style={{ color: T.success }}>{item.receivedQty || 0}</strong></span>
+                      
+//                       <div style={{ display: 'flex', gap: 10, fontSize: 11, color: T.textLight, marginBottom: 8 }}>
+//                         {item.materialSize && <span>📏 {item.materialSize}</span>}
+//                         <span>Order: <strong>{item.revisedQty || item.orderQty}</strong></span>
+//                         <span>Rec: <strong style={{ color: T.success }}>{item.receivedQty || 0}</strong></span>
+//                       </div>
+
+//                       {/* Brand & Qty Input Container */}
+//                       <div style={{ display: 'flex', gap: 10, alignItems: 'flex-end', flexWrap: 'wrap' }}>
+                        
+//                         <div style={{ flex: 1, minWidth: 150 }}>
+//                           <label style={{ fontSize: 11, fontWeight: 600, color: T.navyLight, display: 'block', marginBottom: 4 }}>
+//                             Brand Name <span style={{ color: T.danger }}>*</span>
+//                           </label>
+//                           <input
+//                             type="text"
+//                             value={receivedBrands[uid] || ''}
+//                             onChange={e => setReceivedBrands(prev => ({ ...prev, [uid]: e.target.value }))}
+//                             disabled={isSaving}
+//                             placeholder="Enter Brand"
+//                             style={{
+//                               width: '100%', padding: '8px 10px', fontSize: 13, fontWeight: 600,
+//                               border: `2px solid ${brandFilled ? T.success : T.danger}`,
+//                               borderRadius: 8, outline: 'none', background: T.card,
+//                             }}
+//                             onFocus={e => { e.target.style.borderColor = T.gold; e.target.style.boxShadow = `0 0 0 3px ${T.gold}20`; }}
+//                             onBlur={e => { e.target.style.borderColor = brandFilled ? T.success : T.danger; e.target.style.boxShadow = 'none'; }}
+//                           />
 //                         </div>
-//                         <input
-//                           type="number"
-//                           value={receivedQuantities[uid] || ''}
-//                           onChange={e => setReceivedQuantities(prev => ({ ...prev, [uid]: e.target.value }))}
-//                           disabled={isSaving}
-//                           placeholder="Enter Qty"
-//                           min="0" step="0.01"
-//                           style={{
-//                             width: 120, textAlign: 'center', padding: '8px 10px',
-//                             fontSize: 14, fontWeight: 700,
-//                             border: `2px solid ${isFilled ? T.success : T.danger}`,
-//                             borderRadius: 8, outline: 'none', background: T.card,
-//                             marginLeft: 'auto',
-//                           }}
-//                           onFocus={e => { e.target.style.borderColor = T.gold; e.target.style.boxShadow = `0 0 0 3px ${T.gold}20`; }}
-//                           onBlur={e => { e.target.style.borderColor = isFilled ? T.success : T.danger; e.target.style.boxShadow = 'none'; }}
-//                         />
+
+//                         <div style={{ width: 120 }}>
+//                           <label style={{ fontSize: 11, fontWeight: 600, color: T.navyLight, display: 'block', marginBottom: 4 }}>
+//                             Received Qty <span style={{ color: T.danger }}>*</span>
+//                           </label>
+//                           <input
+//                             type="number"
+//                             value={receivedQuantities[uid] || ''}
+//                             onChange={e => setReceivedQuantities(prev => ({ ...prev, [uid]: e.target.value }))}
+//                             disabled={isSaving}
+//                             placeholder="Enter Qty"
+//                             min="0" step="0.01"
+//                             style={{
+//                               width: '100%', textAlign: 'center', padding: '8px 10px',
+//                               fontSize: 14, fontWeight: 700,
+//                               border: `2px solid ${qtyFilled ? T.success : T.danger}`,
+//                               borderRadius: 8, outline: 'none', background: T.card,
+//                             }}
+//                             onFocus={e => { e.target.style.borderColor = T.gold; e.target.style.boxShadow = `0 0 0 3px ${T.gold}20`; }}
+//                             onBlur={e => { e.target.style.borderColor = qtyFilled ? T.success : T.danger; e.target.style.boxShadow = 'none'; }}
+//                           />
+//                         </div>
 //                       </div>
+
 //                     </div>
 //                   );
 //                 })}
@@ -852,69 +732,44 @@
 //               </div>
 
 //               <div style={{ padding: '14px', background: `${T.gold}08`, borderRadius: 10, border: `1px dashed ${T.gold}50` }}>
-//                 <p style={{ fontSize: 12, fontWeight: 700, color: T.goldDark, margin: '0 0 12px 0' }}>
-//                   ⚡ Common Fields — All {(selectedRequest.selectedUIDs || []).length} UIDs
-//                 </p>
-
+//                 <p style={{ fontSize: 12, fontWeight: 700, color: T.goldDark, margin: '0 0 12px 0' }}>⚡ Common Fields — All {(selectedRequest.selectedUIDs || []).length} UIDs</p>
 //                 <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
 //                   <div>
 //                     <label style={labelStyle}>Status <span style={{ color: T.danger }}>*</span></label>
-//                     <select value={materialStatus} onChange={e => setMaterialStatus(e.target.value)}
-//                       disabled={isSaving} style={{ ...inputBase, appearance: 'none', cursor: 'pointer' }} onFocus={focusGold} onBlur={blurNormal}>
+//                     <select value={materialStatus} onChange={e => setMaterialStatus(e.target.value)} disabled={isSaving} style={{ ...inputBase, appearance: 'none', cursor: 'pointer' }} onFocus={focusGold} onBlur={blurNormal}>
 //                       <option value="">-- Select --</option>
 //                       <option value="Partition">⚠️ Partition</option>
 //                       <option value="Full Material">✅ Full Material</option>
 //                     </select>
-//                     {materialStatus === 'Full Material' && <p style={{ fontSize: 11, color: T.success, marginTop: 4, fontWeight: 600 }}>✅ UIDs removed after save</p>}
-//                     {materialStatus === 'Partition' && <p style={{ fontSize: 11, color: '#92400e', marginTop: 4, fontWeight: 600 }}>⚠️ UIDs stay for next delivery</p>}
 //                   </div>
-
 //                   <div>
-//                     <label style={labelStyle}>
-//                       <Calendar size={12} style={{ display: 'inline', marginRight: 4 }} />
-//                       Received Date <span style={{ color: T.danger }}>*</span>
-//                       <span style={{ marginLeft: 8, fontSize: 10, color: T.textMuted, background: T.borderLight, padding: '2px 6px', borderRadius: 4 }}>
-//                         → Column R
-//                       </span>
-//                     </label>
-//                     <input type="date" value={receivedDate}
-//                       onChange={e => setReceivedDate(e.target.value)}
-//                       disabled={isSaving}
-//                       style={{ ...inputBase, borderColor: !receivedDate ? T.danger : T.border }}
-//                       onFocus={focusGold} onBlur={blurNormal} />
+//                     <label style={labelStyle}><Calendar size={12} style={{ display: 'inline', marginRight: 4 }} />Received Date <span style={{ color: T.danger }}>*</span><span style={{ marginLeft: 8, fontSize: 10, color: T.textMuted, background: T.borderLight, padding: '2px 6px', borderRadius: 4 }}>→ Column R</span></label>
+//                     <input type="date" value={receivedDate} onChange={e => setReceivedDate(e.target.value)} disabled={isSaving} style={{ ...inputBase, borderColor: !receivedDate ? T.danger : T.border }} onFocus={focusGold} onBlur={blurNormal} />
 //                   </div>
-
 //                   <div>
 //                     <label style={labelStyle}>Quality <span style={{ color: T.danger }}>*</span></label>
-//                     <select value={qualityCheck} onChange={e => setQualityCheck(e.target.value)}
-//                       disabled={isSaving} style={{ ...inputBase, appearance: 'none', cursor: 'pointer' }} onFocus={focusGold} onBlur={blurNormal}>
+//                     <select value={qualityCheck} onChange={e => setQualityCheck(e.target.value)} disabled={isSaving} style={{ ...inputBase, appearance: 'none', cursor: 'pointer' }} onFocus={focusGold} onBlur={blurNormal}>
 //                       <option value="">-- Select --</option>
 //                       <option value="Approved">✅ Approved</option>
 //                       <option value="Reject">❌ Reject</option>
 //                     </select>
 //                   </div>
-
 //                   <div>
 //                     <label style={labelStyle}>Challan No <span style={{ color: T.danger }}>*</span></label>
-//                     <input type="text" value={challanNo} onChange={e => setChallanNo(e.target.value)}
-//                       disabled={isSaving} placeholder="Challan number" style={inputBase} onFocus={focusGold} onBlur={blurNormal} />
+//                     <input type="text" value={challanNo} onChange={e => setChallanNo(e.target.value)} disabled={isSaving} placeholder="Challan number" style={inputBase} onFocus={focusGold} onBlur={blurNormal} />
 //                   </div>
-
 //                   <div>
 //                     <label style={labelStyle}>Truck Delivery <span style={{ color: T.danger }}>*</span></label>
-//                     <select value={truckDelivery} onChange={e => setTruckDelivery(e.target.value)}
-//                       disabled={isSaving} style={{ ...inputBase, appearance: 'none', cursor: 'pointer' }} onFocus={focusGold} onBlur={blurNormal}>
+//                     <select value={truckDelivery} onChange={e => setTruckDelivery(e.target.value)} disabled={isSaving} style={{ ...inputBase, appearance: 'none', cursor: 'pointer' }} onFocus={focusGold} onBlur={blurNormal}>
 //                       <option value="">-- Select --</option>
 //                       <option value="Yes">Yes</option>
 //                       <option value="No">No</option>
 //                     </select>
 //                   </div>
-
 //                   {truckDelivery === 'Yes' && (
 //                     <div>
 //                       <label style={labelStyle}>Google Form? <span style={{ color: T.danger }}>*</span></label>
-//                       <select value={googleFormCompleted} onChange={e => setGoogleFormCompleted(e.target.value)}
-//                         disabled={isSaving} style={{ ...inputBase, appearance: 'none', cursor: 'pointer' }} onFocus={focusGold} onBlur={blurNormal}>
+//                       <select value={googleFormCompleted} onChange={e => setGoogleFormCompleted(e.target.value)} disabled={isSaving} style={{ ...inputBase, appearance: 'none', cursor: 'pointer' }} onFocus={focusGold} onBlur={blurNormal}>
 //                         <option value="">-- Select --</option>
 //                         <option value="Yes">✅ Yes</option>
 //                         <option value="No">❌ No</option>
@@ -928,55 +783,28 @@
 //                 <label style={labelStyle}><Camera size={12} style={{ display: 'inline', marginRight: 4 }} />Challan Photo <span style={{ color: T.danger }}>*</span></label>
 //                 {!photoData && !streamRef.current && (
 //                   <div style={{ display: 'flex', gap: 8, marginBottom: 8 }}>
-//                     <button onClick={() => startCamera('environment')} disabled={isSaving}
-//                       style={{ flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6, padding: '12px', borderRadius: 8, border: 'none', background: T.navy, color: 'white', fontSize: 13, fontWeight: 600, cursor: 'pointer' }}>
-//                       <Camera size={16} /> Back Camera
-//                     </button>
-//                     <button onClick={() => startCamera('user')} disabled={isSaving}
-//                       style={{ flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6, padding: '12px', borderRadius: 8, border: 'none', background: T.navyLight, color: 'white', fontSize: 13, fontWeight: 600, cursor: 'pointer' }}>
-//                       <Camera size={16} /> Front
-//                     </button>
+//                     <button onClick={() => startCamera('environment')} disabled={isSaving} style={{ flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6, padding: '12px', borderRadius: 8, border: 'none', background: T.navy, color: 'white', fontSize: 13, fontWeight: 600, cursor: 'pointer' }}><Camera size={16} /> Back Camera</button>
+//                     <button onClick={() => startCamera('user')} disabled={isSaving} style={{ flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6, padding: '12px', borderRadius: 8, border: 'none', background: T.navyLight, color: 'white', fontSize: 13, fontWeight: 600, cursor: 'pointer' }}><Camera size={16} /> Front</button>
 //                   </div>
 //                 )}
 //                 <video ref={videoRef} style={{ width: '100%', borderRadius: 8, display: photoData ? 'none' : (isCameraReady ? 'block' : 'none') }} autoPlay playsInline />
 //                 <canvas ref={canvasRef} style={{ display: 'none' }} />
 //                 {isCameraReady && !photoData && (
-//                   <button onClick={capturePhoto} style={{
-//                     width: '100%', marginTop: 8, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6,
-//                     padding: '12px', borderRadius: 8, border: 'none',
-//                     background: `linear-gradient(135deg, ${T.gold}, ${T.goldDark})`,
-//                     color: T.navyDark, fontSize: 14, fontWeight: 700, cursor: 'pointer',
-//                   }}><Camera size={16} /> Capture</button>
+//                   <button onClick={capturePhoto} style={{ width: '100%', marginTop: 8, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6, padding: '12px', borderRadius: 8, border: 'none', background: `linear-gradient(135deg, ${T.gold}, ${T.goldDark})`, color: T.navyDark, fontSize: 14, fontWeight: 700, cursor: 'pointer' }}><Camera size={16} /> Capture</button>
 //                 )}
 //                 {photoData && (
 //                   <div>
 //                     <img src={photoData} alt="Challan" style={{ width: '100%', borderRadius: 8, marginBottom: 8, border: `2px solid ${T.successBorder}` }} />
-//                     <button onClick={() => setPhotoData(null)} style={{
-//                       display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6,
-//                       padding: '8px 16px', borderRadius: 8, border: 'none',
-//                       background: T.dangerBg, color: T.danger, fontSize: 13, fontWeight: 600, cursor: 'pointer',
-//                     }}><Trash2 size={14} /> Retake</button>
+//                     <button onClick={() => setPhotoData(null)} style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6, padding: '8px 16px', borderRadius: 8, border: 'none', background: T.dangerBg, color: T.danger, fontSize: 13, fontWeight: 600, cursor: 'pointer' }}><Trash2 size={14} /> Retake</button>
 //                   </div>
 //                 )}
 //               </div>
 //             </div>
 
 //             <div style={{ padding: '12px 16px', borderTop: `1px solid ${T.border}`, background: T.borderLight, flexShrink: 0, display: 'flex', justifyContent: 'space-between', gap: 10, borderRadius: '0 0 14px 14px' }}>
-//               <button onClick={() => { closeModal(); setIsUIDModalOpen(true); }} disabled={isSaving}
-//                 style={{ padding: '10px 18px', borderRadius: 8, border: `1.5px solid ${T.border}`, background: T.card, color: T.textLight, fontSize: 13, fontWeight: 600, cursor: 'pointer' }}>
-//                 ← Back
-//               </button>
-//               <button onClick={handleSave} disabled={isSaving || !validate()}
-//                 style={{
-//                   display: 'flex', alignItems: 'center', gap: 6,
-//                   padding: '10px 22px', borderRadius: 8, border: 'none',
-//                   background: validate() && !isSaving ? `linear-gradient(135deg, ${T.gold}, ${T.goldDark})` : T.border,
-//                   color: validate() && !isSaving ? T.navyDark : T.textMuted,
-//                   fontSize: 13, fontWeight: 700, cursor: validate() && !isSaving ? 'pointer' : 'not-allowed',
-//                 }}>
-//                 {isSaving
-//                   ? <><Loader2 size={15} style={{ animation: 'spin 0.8s linear infinite' }} /> Saving...</>
-//                   : <><CheckCircle size={15} /> Save ({(selectedRequest.selectedUIDs || []).length})</>}
+//               <button onClick={() => { closeModal(); setIsUIDModalOpen(true); }} disabled={isSaving} style={{ padding: '10px 18px', borderRadius: 8, border: `1.5px solid ${T.border}`, background: T.card, color: T.textLight, fontSize: 13, fontWeight: 600, cursor: 'pointer' }}>← Back</button>
+//               <button onClick={handleSave} disabled={isSaving || !validate()} style={{ display: 'flex', alignItems: 'center', gap: 6, padding: '10px 22px', borderRadius: 8, border: 'none', background: validate() && !isSaving ? `linear-gradient(135deg, ${T.gold}, ${T.goldDark})` : T.border, color: validate() && !isSaving ? T.navyDark : T.textMuted, fontSize: 13, fontWeight: 700, cursor: validate() && !isSaving ? 'pointer' : 'not-allowed' }}>
+//                 {isSaving ? <><Loader2 size={15} style={{ animation: 'spin 0.8s linear infinite' }} /> Saving...</> : <><CheckCircle size={15} /> Save ({(selectedRequest.selectedUIDs || []).length})</>}
 //               </button>
 //             </div>
 //           </div>
@@ -1004,12 +832,16 @@
 
 
 
+
+
+
+
 import React, { useState, useEffect, useRef } from 'react';
 import {
   Loader2, AlertCircle, CheckCircle, X, ChevronDown,
   RotateCcw, Package, FileText, Edit3,
   Camera, Trash2, Filter, MapPin, User, Search, ArrowRight,
-  Calendar, Lock
+  Calendar, Lock, Truck
 } from 'lucide-react';
 
 const T = {
@@ -1082,6 +914,7 @@ const Material_Received = () => {
   const [truckDelivery, setTruckDelivery] = useState('');
   const [googleFormCompleted, setGoogleFormCompleted] = useState('');
   const [receivedDate, setReceivedDate] = useState('');
+  const [vehicleNo, setVehicleNo] = useState(''); // ✅ NEW: Vehicle No state (optional)
   const [photoData, setPhotoData] = useState(null);
   const [isSaving, setIsSaving] = useState(false);
   const [showSuccess, setShowSuccess] = useState(false);
@@ -1216,7 +1049,6 @@ const Material_Received = () => {
     const brandMap = {};
     selectedUIDs.forEach(uid => { 
       qtyMap[uid] = ''; 
-      // ✅ Brand default pre-fill from backend item
       const item = uidModalItems.find(i => i.uid === uid);
       brandMap[uid] = item?.brandName || '';
     });
@@ -1226,6 +1058,7 @@ const Material_Received = () => {
     setMaterialStatus(''); setQualityCheck(''); setChallanNo('');
     setTruckDelivery(''); setGoogleFormCompleted('');
     setReceivedDate('');
+    setVehicleNo(''); // ✅ Reset Vehicle No
     setPhotoData(null); setIsModalOpen(true);
     setShowSuccess(false); setError(null); setIsCameraReady(false);
   };
@@ -1236,7 +1069,6 @@ const Material_Received = () => {
     setIsSaving(false); setShowSuccess(false);
   };
 
-  // ✅ Camera with fallback to prevent OverconstrainedError
   const startCamera = async (facingMode) => {
     try {
       if (streamRef.current) streamRef.current.getTracks().forEach(t => t.stop());
@@ -1314,6 +1146,7 @@ const Material_Received = () => {
           photo: photoData,
           vendorName: item.vendorName || '',
           receivedDate: receivedDate,
+          vehicleNo: vehicleNo, // ✅ NEW: sending Vehicle No to backend
         };
 
         const response = await fetch(`${import.meta.env.VITE_BACKEND_URL}/api/save-material-receipt`, {
@@ -1518,7 +1351,7 @@ const Material_Received = () => {
                     <div><span style={{ color: T.textMuted }}>Supervisor:</span> <strong>{req.supervisorName}</strong></div>
                     <div><span style={{ color: T.textMuted }}>Vendor:</span> <strong>{req.vendorName}</strong></div>
                     <div><span style={{ color: T.textMuted }}>Type:</span> {req.materialType}</div>
-                    <div><span style={{ color: T.textMuted }}>Order Qty:</span><strong> {req.revisedQty || req.orderQty} {req.unitName}</strong></div>
+                    <div><span style={{ color: T.textMuted }}>Order Qty:</span> <strong>{req.revisedQty || req.orderQty} {req.unitName}</strong></div>
                     <div><span style={{ color: T.textMuted }}>Received:</span><strong style={{ color: parseFloat(req.receivedQty) > 0 ? T.success : T.textMuted }}>{' '}{req.receivedQty || 0}</strong></div>
                     {req.brandName && <div><span style={{ color: T.textMuted }}>Brand:</span> <span style={{ color: T.purple, fontWeight: 600 }}>{req.brandName}</span></div>}
                     {req.skuCode && <div><span style={{ color: T.textMuted }}>SKU:</span> <span style={{ fontFamily: 'monospace', fontSize: 11 }}>{req.skuCode}</span></div>}
@@ -1780,6 +1613,26 @@ const Material_Received = () => {
                       </select>
                     </div>
                   )}
+
+                  {/* ✅ NEW: Vehicle No Input Field (Optional) */}
+                  <div>
+                    <label style={labelStyle}>
+                      <Truck size={12} style={{ display: 'inline', marginRight: 4 }} />
+                      Vehicle No 
+                      <span style={{ marginLeft: 6, fontSize: 10, color: T.textMuted, fontWeight: 500, fontStyle: 'italic' }}>(Optional)</span>
+                      <span style={{ marginLeft: 8, fontSize: 10, color: T.textMuted, background: T.borderLight, padding: '2px 6px', borderRadius: 4 }}>→ Column X</span>
+                    </label>
+                    <input
+                      type="text"
+                      value={vehicleNo}
+                      onChange={e => setVehicleNo(e.target.value.toUpperCase())}
+                      disabled={isSaving}
+                      placeholder="e.g. MH 12 AB 1234"
+                      style={{ ...inputBase, textTransform: 'uppercase', letterSpacing: 1 }}
+                      onFocus={focusGold}
+                      onBlur={blurNormal}
+                    />
+                  </div>
                 </div>
               </div>
 

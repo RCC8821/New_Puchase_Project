@@ -5,6 +5,7 @@
 // const { sheets, spreadsheetId, drive } = require('../config/googleSheet');
 // const router = express.Router();
 // require('dotenv').config();
+// const retry = require('async-retry');
 // const { jsPDF } = require('jspdf');
 
 // try { require('jspdf-autotable'); } catch (err) {
@@ -15,6 +16,26 @@
 //   }
 // }
 
+// // ═══════════════════════════════════════════════════════════
+// //  COMPANY CONFIGURATION (RCC / VRN)
+// // ═══════════════════════════════════════════════════════════
+// const COMPANIES = {
+//   RCC: {
+//     name: "R.C.C Infrastructures",
+//     address: "310 Saket Nagar, 9B Near Sagar Public School, Bhopal, 462026",
+//     contact: "Contact: 9753432126 | Email: mayank@rcinfrastructure.com",
+//     gst: "GST: 23AARPC4273A2Z4",
+//     footer: "@ 2025 R.C.C Infrastructures."
+//   },
+//   VRN: {
+//     name: "VRN INC",
+//     address: "PLOT NO 18-19 Kolar Castle , Kolar Road Signature Group, Bhopal Madhya Pradesh , 462016",
+//     contact: "Contact: 7869962504 | Email: vrnsystem902@gmail.com",
+//     gst: "GST: 23BNUPC2040J1Z6",
+//     footer: "@ 2025 VRN INC."
+//   }
+// };
+
 // // ─── GET MRN DATA ─────────────────────────────────────────
 // router.get('/get-MRN-Data', async (req, res) => {
 //   try {
@@ -24,7 +45,17 @@
 //     });
 
 //     const rows = response.data.values || [];
-//     if (!rows.length) return res.status(404).json({ error: 'No data found' });
+//     console.log('Total rows:', rows.length);
+
+//     if (!rows.length) {
+//       return res.status(404).json({ error: 'No data found' });
+//     }
+
+//     if (rows[0]) {
+//       console.log('Row length:', rows[0].length);
+//       console.log('DJ(113):', rows[0][113]);
+//       console.log('DK(114):', rows[0][114]);
+//     }
 
 //     const PLANNED_9_IDX = 113;
 //     const ACTUAL_9_IDX = 114;
@@ -44,9 +75,10 @@
 //         materialType: (row[5] || '').trim(),
 //         materialName: (row[6] || '').trim(),
 //         materialSize: (row[7] || '').trim(),
-//         materialSpecification: (row[8] || '').trim(),  // ✅ NEW - I column
+//         materialSpecification: (row[8] || '').trim(),
 //         skuCode: (row[10] || '').trim(),
 //         unitName: (row[12] || '').trim(),
+//         companyName: (row[17] || '').trim(), // Added Company Name (Col R)
 //         revisedQuantity: (row[24] || '').trim(),
 //         brandName: (row[25] || '').trim(),
 //         contractorName: (row[15] || '').trim(),
@@ -61,6 +93,8 @@
 //         finalReceivedQty: (row[105] || '').trim(),
 //         planned9: (row[PLANNED_9_IDX] || '').trim(),
 //       }));
+
+//     console.log(`Filtered rows: ${filteredData.length}`);
 
 //     res.json({ success: true, data: filteredData });
 //   } catch (error) {
@@ -86,6 +120,7 @@
 //     });
 //     return `MRN_${String(maxNum + 1).padStart(3, '0')}`;
 //   } catch (error) {
+//     console.error('Error generating MRN number:', error);
 //     throw error;
 //   }
 // }
@@ -101,7 +136,7 @@
 // };
 
 // // ─── PDF GENERATION ───────────────────────────────────────
-// const generateMRNPDF = (rowDatas, mrnNo, poNumber, indentNo, deliveryDate) => {
+// const generateMRNPDF = (rowDatas, mrnNo, poNumber, indentNo, deliveryDate, companyKey = 'RCC') => {
 //   const doc = new jsPDF();
 //   if (typeof doc.autoTable !== 'function') throw new Error('autoTable not loaded');
 
@@ -110,17 +145,19 @@
 //   const margin = 15;
 //   const bottomMargin = 35;
 
+//   const company = COMPANIES[companyKey] || COMPANIES.RCC; // Dynamic Company Select
+
 //   // ── Header ──
 //   doc.setTextColor(0, 0, 0);
 //   doc.setFontSize(18);
 //   doc.setFont('helvetica', 'bold');
-//   doc.text('R.C.C Infrastructures', pageWidth / 2, 15, { align: 'center' });
+//   doc.text(company.name, pageWidth / 2, 15, { align: 'center' }); // Dynamic Name
 
 //   doc.setFontSize(10);
 //   doc.setFont('helvetica', 'normal');
-//   doc.text('310 Saket Nagar, 9B Near Sagar Public School, Bhopal, 462026', pageWidth / 2, 22, { align: 'center' });
-//   doc.text('Contact: 9753432126 | Email: mayank@rcinfrastructure.com', pageWidth / 2, 28, { align: 'center' });
-//   doc.text('GST: 23ABHFR3130L1ZA', pageWidth / 2, 34, { align: 'center' });
+//   doc.text(company.address, pageWidth / 2, 22, { align: 'center' }); // Dynamic Address
+//   doc.text(company.contact, pageWidth / 2, 28, { align: 'center' }); // Dynamic Contact
+//   doc.text(company.gst, pageWidth / 2, 34, { align: 'center' }); // Dynamic GST
 
 //   doc.setFontSize(16);
 //   doc.setFont('helvetica', 'bold');
@@ -179,35 +216,35 @@
 //   doc.setFont('helvetica', 'normal');
 //   doc.text(contractorName, pageWidth / 2 + 50, infoY + 21);
 
-//   // ✅ Material Details thoda upar (infoY + 28 ke baad)
 //   const materialDetailsY = infoY + 30;
 //   doc.setFontSize(12);
 //   doc.setFont('helvetica', 'bold');
 //   doc.setTextColor(220, 53, 69);
 //   doc.text('Material Details', margin, materialDetailsY);
 
-//   // ✅ NEW TABLE - sirf: Sr No, UID, Material Name, Size, Specification, Unit, Final Qty, Challan No, Vehicle No
+//   // ✅ Table with Received Date column at end
 //   const tableBody = rowDatas.map((rowData, index) => [
 //     index + 1,
 //     cleanText(rowData.uid),
 //     cleanText(rowData.materialName),
-//     cleanText(rowData.materialSize),           // ✅ Size
-//     cleanText(rowData.materialSpecification),  // ✅ Specification
+//     cleanText(rowData.materialSize),
+//     cleanText(rowData.materialSpecification),
 //     cleanText(rowData.unit),
 //     cleanText(rowData.finalReceivedQuantity),
 //     cleanText(rowData.challanNo),
 //     cleanText(rowData.vehicleNo),
+//     cleanText(rowData.receivedDate),  // ✅ NEW - Received Date
 //   ]);
 
 //   doc.autoTable({
-//     head: [['Sr No.', 'UID', 'Material Name', 'Size', 'Specification', 'Unit', 'Final Qty', 'Challan No.', 'Vehicle No.']],
+//     head: [['Sr No.', 'UID', 'Material Name', 'Size', 'Specification', 'Unit', 'Final Qty', 'Challan No.', 'Vehicle No.', 'Received Date']],
 //     body: tableBody,
 //     startY: materialDetailsY + 4,
 //     theme: 'grid',
 //     tableWidth: 'auto',
 //     styles: {
-//       fontSize: 9,
-//       cellPadding: 3,
+//       fontSize: 8.5,
+//       cellPadding: 2.5,
 //       font: 'helvetica',
 //       textColor: [0, 0, 0],
 //       lineColor: [0, 0, 0],
@@ -223,30 +260,30 @@
 //       fillColor: [235, 235, 235],
 //       textColor: [0, 0, 0],
 //       fontStyle: 'bold',
-//       fontSize: 9,
+//       fontSize: 8.5,
 //       halign: 'center',
-//       cellPadding: 3,
+//       cellPadding: 2.5,
 //       lineWidth: 0.4,
 //     },
-//     // ✅ Total width = 182mm (page 210 - margin 28)
+//     // ✅ Total = 182mm (page 210 - margin 28)
 //     columnStyles: {
-//       0: { cellWidth: 14, halign: 'center' },   // Sr No
-//       1: { cellWidth: 16, halign: 'center' },   // UID
-//       2: { cellWidth: 36, halign: 'left' },     // Material Name
-//       3: { cellWidth: 22, halign: 'center' },   // Size
-//       4: { cellWidth: 30, halign: 'left' },     // Specification
-//       5: { cellWidth: 14, halign: 'center' },   // Unit
-//       6: { cellWidth: 18, halign: 'right' },    // Final Qty
+//       0: { cellWidth: 12, halign: 'center' },   // Sr No
+//       1: { cellWidth: 14, halign: 'center' },   // UID
+//       2: { cellWidth: 32, halign: 'left' },     // Material Name
+//       3: { cellWidth: 20, halign: 'center' },   // Size
+//       4: { cellWidth: 26, halign: 'left' },     // Specification
+//       5: { cellWidth: 12, halign: 'center' },   // Unit
+//       6: { cellWidth: 14, halign: 'right' },    // Final Qty
 //       7: { cellWidth: 18, halign: 'center' },   // Challan No
 //       8: { cellWidth: 14, halign: 'center' },   // Vehicle No
+//       9: { cellWidth: 20, halign: 'center' },   // ✅ Received Date
 //     },
 //     alternateRowStyles: { fillColor: [250, 250, 250] },
 //     margin: { left: margin, right: margin, bottom: bottomMargin },
 //     pageBreak: 'auto',
-//     showHead: 'everyPage',     // ✅ Har page pe header
-//     rowPageBreak: 'avoid',     // ✅ Row split na ho
+//     showHead: 'everyPage',
+//     rowPageBreak: 'avoid',
 //     didDrawPage: (data) => {
-//       // ── Footer (har page pe) ──
 //       doc.setFontSize(10);
 //       doc.setFont('helvetica', 'bold');
 //       doc.setTextColor(0, 0, 0);
@@ -258,11 +295,11 @@
 //       doc.setFontSize(8);
 //       doc.setTextColor(100, 100, 100);
 //       doc.text('Auto-generated document. No signature required.', margin, pageHeight - 15);
-//       doc.text('@ 2025 R.C.C Infrastructures.', pageWidth / 2, pageHeight - 8, { align: 'center' });
+//       doc.text(company.footer, pageWidth / 2, pageHeight - 8, { align: 'center' }); // Dynamic Footer
 //     },
 //   });
 
-//   // ✅ Page Numbers (jaisa PO me)
+//   // Page Numbers
 //   const totalPages = doc.internal.getNumberOfPages();
 //   for (let i = 1; i <= totalPages; i++) {
 //     doc.setPage(i);
@@ -296,19 +333,30 @@
 //     });
 //     const rows = sheetResponse.data.values || [];
 
+//     // ✅ Range A:R (R column = Received Date)
 //     const materialResponse = await sheets.spreadsheets.values.get({
 //       spreadsheetId,
-//       range: 'Material_Received!A2:Q',
+//       range: 'Material_Received!A2:U',
 //     });
 //     const materialRows = materialResponse.data.values || [];
 
 //     const uidToChallanMap = new Map();
+//     const uidToDateMap = new Map();  // ✅ NEW
+
 //     materialRows.forEach(row => {
 //       const uid = (row[1] || '').trim();
-//       const challan = (row[15] || '').trim();
+//       const challan = (row[18] || '').trim();  // ✅ S column = index 18 (Challan Number)
+//       const receivedDate = (row[14] || '').trim(); // ✅ R column = index 17
+
 //       if (uid && challan) {
 //         if (!uidToChallanMap.has(uid)) uidToChallanMap.set(uid, new Set());
 //         uidToChallanMap.get(uid).add(challan);
+//       }
+
+//       // ✅ Date map
+//       if (uid && receivedDate) {
+//         if (!uidToDateMap.has(uid)) uidToDateMap.set(uid, new Set());
+//         uidToDateMap.get(uid).add(receivedDate);
 //       }
 //     });
 
@@ -316,6 +364,7 @@
 //     const rowDatas = [];
 //     let indentNo = '-';
 //     let commonDeliveryDate = deliveryDate || '-';
+//     let companyKey = 'RCC'; // Variable to store company name
 
 //     for (let i = 0; i < purchaseFmsUIDs.length; i++) {
 //       const uid = purchaseFmsUIDs[i];
@@ -341,6 +390,10 @@
 //       const challanSet = uidToChallanMap.get(String(uid).trim()) || new Set();
 //       const challanNos = Array.from(challanSet).join(', ');
 
+//       // ✅ Get received dates for this UID
+//       const dateSet = uidToDateMap.get(String(uid).trim()) || new Set();
+//       const receivedDates = Array.from(dateSet).join(', ');
+
 //       rowDatas.push({
 //         uid: (row[1] || '').trim(),
 //         siteName: (row[3] || '').trim(),
@@ -349,30 +402,34 @@
 //         materialType: (row[5] || '').trim(),
 //         skuCode: (row[10] || '').trim(),
 //         materialName: (row[6] || '').trim(),
-//         materialSize: (row[7] || '').trim(),                  // ✅ Size
-//         materialSpecification: (row[8] || '').trim(),         // ✅ Specification
+//         materialSize: (row[7] || '').trim(),
+//         materialSpecification: (row[8] || '').trim(),
 //         unit: (row[12] || '').trim(),
 //         brand: (row[25] || '').trim(),
 //         finalReceivedQuantity: finalQty || (row[105] || '').trim(),
 //         challanNo: challanNos || '-',
 //         vehicleNo: vehicleNo || '-',
+//         receivedDate: receivedDates || '-',  // ✅ NEW
 //         deliveryDate: (row[84] || deliveryDate || '').trim(),
 //       });
 
+//       // Picking Company Info from the first iteration
 //       if (i === 0) {
 //         indentNo = (row[36] || '').trim();
 //         commonDeliveryDate = (row[84] || deliveryDate || '').trim();
+//         companyKey = (row[17] || 'RCC').trim().toUpperCase(); // Column R index 17
 //       }
 //     }
 
-//     const pdfDataUri = generateMRNPDF(rowDatas, mrnNo, poNumber, indentNo, commonDeliveryDate);
+//     // PDF ab company key receive karega aur usi basis par Header set karega
+//     const pdfDataUri = generateMRNPDF(rowDatas, mrnNo, poNumber, indentNo, commonDeliveryDate, companyKey);
 //     const base64Data = pdfDataUri.replace('data:application/pdf;base64,', '');
 //     const pdfBuffer = Buffer.from(base64Data, 'base64');
 
 //     const { Readable } = require('stream');
 //     const file = await drive.files.create({
 //       resource: {
-//         name: `mrn_${mrnNo}_${Date.now()}.pdf`,
+//         name: `mrn_${companyKey}_${mrnNo}_${Date.now()}.pdf`,
 //         parents: [process.env.GOOGLE_DRIVE_FOLDER_ID],
 //         mimeType: 'application/pdf',
 //       },
@@ -388,6 +445,8 @@
 //       supportsAllDrives: true,
 //     });
 
+//     console.log(`✅ PDF: ${pdfUrl}`);
+
 //     const today = new Date().toLocaleDateString('en-IN', {
 //       timeZone: 'Asia/Kolkata',
 //       day: '2-digit', month: '2-digit', year: 'numeric',
@@ -399,7 +458,7 @@
 //       const finalQty = finalReceivedQuantities[i] || rowDatas[i].finalReceivedQuantity;
 
 //       batchData.push(
-//         { range: `Purchase_FMS!DK${sheetRow}`, values: [[today]] },
+//         // { range: `Purchase_FMS!DK${sheetRow}`, values: [[today]] },
 //         { range: `Purchase_FMS!DL${sheetRow}`, values: [['Done']] },
 //         { range: `Purchase_FMS!DM${sheetRow}`, values: [[mrnNo]] },
 //         { range: `Purchase_FMS!DN${sheetRow}`, values: [[pdfUrl]] },
@@ -411,6 +470,8 @@
 //       spreadsheetId,
 //       resource: { valueInputOption: 'USER_ENTERED', data: batchData },
 //     });
+
+//     console.log(`✅ Updated rows: ${rowIndices.join(', ')}`);
 
 //     res.status(200).json({
 //       message: 'MRN saved successfully',
@@ -424,6 +485,8 @@
 // });
 
 // module.exports = router;
+
+
 
 
 
@@ -444,6 +507,26 @@ try { require('jspdf-autotable'); } catch (err) {
   }
 }
 
+// ═══════════════════════════════════════════════════════════
+//  COMPANY CONFIGURATION (RCC / VRN)
+// ═══════════════════════════════════════════════════════════
+const COMPANIES = {
+  RCC: {
+    name: "R.C.C Infrastructures",
+    address: "310 Saket Nagar, 9B Near Sagar Public School, Bhopal, 462026",
+    contact: "Contact: 9753432126 | Email: mayank@rcinfrastructure.com",
+    gst: "GST: 23AARPC4273A2Z4",
+    footer: "@ 2025 R.C.C Infrastructures."
+  },
+  VRN: {
+    name: "VRN INC",
+    address: "PLOT NO 18-19 Kolar Castle , Kolar Road Signature Group, Bhopal Madhya Pradesh , 462016",
+    contact: "Contact: 7869962504 | Email: vrnsystem902@gmail.com",
+    gst: "GST: 23BNUPC2040J1Z6",
+    footer: "@ 2025 VRN INC."
+  }
+};
+
 // ─── GET MRN DATA ─────────────────────────────────────────
 router.get('/get-MRN-Data', async (req, res) => {
   try {
@@ -457,12 +540,6 @@ router.get('/get-MRN-Data', async (req, res) => {
 
     if (!rows.length) {
       return res.status(404).json({ error: 'No data found' });
-    }
-
-    if (rows[0]) {
-      console.log('Row length:', rows[0].length);
-      console.log('DJ(113):', rows[0][113]);
-      console.log('DK(114):', rows[0][114]);
     }
 
     const PLANNED_9_IDX = 113;
@@ -486,6 +563,7 @@ router.get('/get-MRN-Data', async (req, res) => {
         materialSpecification: (row[8] || '').trim(),
         skuCode: (row[10] || '').trim(),
         unitName: (row[12] || '').trim(),
+        companyName: (row[17] || '').trim(), 
         revisedQuantity: (row[24] || '').trim(),
         brandName: (row[25] || '').trim(),
         contractorName: (row[15] || '').trim(),
@@ -501,8 +579,6 @@ router.get('/get-MRN-Data', async (req, res) => {
         planned9: (row[PLANNED_9_IDX] || '').trim(),
       }));
 
-    console.log(`Filtered rows: ${filteredData.length}`);
-
     res.json({ success: true, data: filteredData });
   } catch (error) {
     console.error('Error:', error.message);
@@ -511,21 +587,36 @@ router.get('/get-MRN-Data', async (req, res) => {
 });
 
 // ─── GENERATE MRN NUMBER ──────────────────────────────────
-async function generateMRNNumber() {
+async function generateMRNNumber(companyKey, rows = []) {
   try {
-    const response = await sheets.spreadsheets.values.get({
-      spreadsheetId,
-      range: 'Purchase_FMS!DM:DM',
-    });
-    const rows = response.data.values || [];
     let maxNum = 0;
+
     rows.forEach(row => {
-      if (row[0] && row[0].startsWith('MRN_')) {
-        const num = parseInt(row[0].substring(4), 10);
-        if (!isNaN(num) && num > maxNum) maxNum = num;
+      const rowCompany = (row[17] || 'RCC').trim().toUpperCase(); // Column R index 17
+      const rowMRN = (row[116] || '').trim();                     // Column DM index 116
+
+      if (companyKey === 'VRN') {
+        // VRN Format check: MRN/VRN/0001 or MRN/
+        if (rowCompany === 'VRN' && rowMRN.startsWith('MRN/')) {
+          const parts = rowMRN.split('/');
+          const lastNumStr = parts[parts.length - 1];
+          const num = parseInt(lastNumStr, 10);
+          if (!isNaN(num) && num > maxNum) maxNum = num;
+        }
+      } else {
+        // RCC Format check: MRN_001
+        if (rowCompany !== 'VRN' && rowMRN.startsWith('MRN_')) {
+          const num = parseInt(rowMRN.replace('MRN_', ''), 10);
+          if (!isNaN(num) && num > maxNum) maxNum = num;
+        }
       }
     });
-    return `MRN_${String(maxNum + 1).padStart(3, '0')}`;
+
+    if (companyKey === 'VRN') {
+      return `MRN/VRN/${String(maxNum + 1).padStart(4, '0')}`;
+    } else {
+      return `MRN_${String(maxNum + 1).padStart(3, '0')}`;
+    }
   } catch (error) {
     console.error('Error generating MRN number:', error);
     throw error;
@@ -543,7 +634,7 @@ const cleanText = (text, isSiteName = false) => {
 };
 
 // ─── PDF GENERATION ───────────────────────────────────────
-const generateMRNPDF = (rowDatas, mrnNo, poNumber, indentNo, deliveryDate) => {
+const generateMRNPDF = (rowDatas, mrnNo, poNumber, indentNo, deliveryDate, companyKey = 'RCC') => {
   const doc = new jsPDF();
   if (typeof doc.autoTable !== 'function') throw new Error('autoTable not loaded');
 
@@ -552,17 +643,19 @@ const generateMRNPDF = (rowDatas, mrnNo, poNumber, indentNo, deliveryDate) => {
   const margin = 15;
   const bottomMargin = 35;
 
+  const company = COMPANIES[companyKey] || COMPANIES.RCC; 
+
   // ── Header ──
   doc.setTextColor(0, 0, 0);
   doc.setFontSize(18);
   doc.setFont('helvetica', 'bold');
-  doc.text('R.C.C Infrastructures', pageWidth / 2, 15, { align: 'center' });
+  doc.text(company.name, pageWidth / 2, 15, { align: 'center' }); 
 
   doc.setFontSize(10);
   doc.setFont('helvetica', 'normal');
-  doc.text('310 Saket Nagar, 9B Near Sagar Public School, Bhopal, 462026', pageWidth / 2, 22, { align: 'center' });
-  doc.text('Contact: 9753432126 | Email: mayank@rcinfrastructure.com', pageWidth / 2, 28, { align: 'center' });
-  doc.text('GST: 23AARPC4273A2Z4', pageWidth / 2, 34, { align: 'center' });
+  doc.text(company.address, pageWidth / 2, 22, { align: 'center' }); 
+  doc.text(company.contact, pageWidth / 2, 28, { align: 'center' }); 
+  doc.text(company.gst, pageWidth / 2, 34, { align: 'center' }); 
 
   doc.setFontSize(16);
   doc.setFont('helvetica', 'bold');
@@ -627,7 +720,6 @@ const generateMRNPDF = (rowDatas, mrnNo, poNumber, indentNo, deliveryDate) => {
   doc.setTextColor(220, 53, 69);
   doc.text('Material Details', margin, materialDetailsY);
 
-  // ✅ Table with Received Date column at end
   const tableBody = rowDatas.map((rowData, index) => [
     index + 1,
     cleanText(rowData.uid),
@@ -638,7 +730,7 @@ const generateMRNPDF = (rowDatas, mrnNo, poNumber, indentNo, deliveryDate) => {
     cleanText(rowData.finalReceivedQuantity),
     cleanText(rowData.challanNo),
     cleanText(rowData.vehicleNo),
-    cleanText(rowData.receivedDate),  // ✅ NEW - Received Date
+    cleanText(rowData.receivedDate),  
   ]);
 
   doc.autoTable({
@@ -670,18 +762,17 @@ const generateMRNPDF = (rowDatas, mrnNo, poNumber, indentNo, deliveryDate) => {
       cellPadding: 2.5,
       lineWidth: 0.4,
     },
-    // ✅ Total = 182mm (page 210 - margin 28)
     columnStyles: {
-      0: { cellWidth: 12, halign: 'center' },   // Sr No
-      1: { cellWidth: 14, halign: 'center' },   // UID
-      2: { cellWidth: 32, halign: 'left' },     // Material Name
-      3: { cellWidth: 20, halign: 'center' },   // Size
-      4: { cellWidth: 26, halign: 'left' },     // Specification
-      5: { cellWidth: 12, halign: 'center' },   // Unit
-      6: { cellWidth: 14, halign: 'right' },    // Final Qty
-      7: { cellWidth: 18, halign: 'center' },   // Challan No
-      8: { cellWidth: 14, halign: 'center' },   // Vehicle No
-      9: { cellWidth: 20, halign: 'center' },   // ✅ Received Date
+      0: { cellWidth: 12, halign: 'center' },   
+      1: { cellWidth: 14, halign: 'center' },   
+      2: { cellWidth: 32, halign: 'left' },     
+      3: { cellWidth: 20, halign: 'center' },   
+      4: { cellWidth: 26, halign: 'left' },     
+      5: { cellWidth: 12, halign: 'center' },   
+      6: { cellWidth: 14, halign: 'right' },    
+      7: { cellWidth: 18, halign: 'center' },   
+      8: { cellWidth: 14, halign: 'center' },   
+      9: { cellWidth: 20, halign: 'center' },   
     },
     alternateRowStyles: { fillColor: [250, 250, 250] },
     margin: { left: margin, right: margin, bottom: bottomMargin },
@@ -700,11 +791,10 @@ const generateMRNPDF = (rowDatas, mrnNo, poNumber, indentNo, deliveryDate) => {
       doc.setFontSize(8);
       doc.setTextColor(100, 100, 100);
       doc.text('Auto-generated document. No signature required.', margin, pageHeight - 15);
-      doc.text('@ 2025 R.C.C Infrastructures.', pageWidth / 2, pageHeight - 8, { align: 'center' });
+      doc.text(company.footer, pageWidth / 2, pageHeight - 8, { align: 'center' }); 
     },
   });
 
-  // Page Numbers
   const totalPages = doc.internal.getNumberOfPages();
   for (let i = 1; i <= totalPages; i++) {
     doc.setPage(i);
@@ -729,16 +819,23 @@ router.post('/save-MRN-data', async (req, res) => {
     if (!purchaseFmsUIDs.length) throw new Error('purchaseFmsUIDs required');
     if (finalReceivedQuantities.length !== purchaseFmsUIDs.length) throw new Error('Quantities mismatch');
 
-    const mrnNo = await generateMRNNumber();
-    console.log(`MRN: ${mrnNo}`);
-
     const sheetResponse = await sheets.spreadsheets.values.get({
       spreadsheetId,
       range: 'Purchase_FMS!A2:DQ',
     });
     const rows = sheetResponse.data.values || [];
 
-    // ✅ Range A:R (R column = Received Date)
+    // FIND COMPANY KEY FIRST
+    let companyKey = 'RCC';
+    const firstUID = purchaseFmsUIDs[0];
+    const matchedFirstRow = rows.find(r => (r[1] || '').trim() === String(firstUID).trim());
+    if (matchedFirstRow) {
+      companyKey = (matchedFirstRow[17] || 'RCC').trim().toUpperCase();
+    }
+
+    const mrnNo = await generateMRNNumber(companyKey, rows);
+    console.log(`MRN: ${mrnNo} (${companyKey})`);
+
     const materialResponse = await sheets.spreadsheets.values.get({
       spreadsheetId,
       range: 'Material_Received!A2:U',
@@ -746,19 +843,17 @@ router.post('/save-MRN-data', async (req, res) => {
     const materialRows = materialResponse.data.values || [];
 
     const uidToChallanMap = new Map();
-    const uidToDateMap = new Map();  // ✅ NEW
+    const uidToDateMap = new Map();  
 
     materialRows.forEach(row => {
       const uid = (row[1] || '').trim();
-     const challan = (row[18] || '').trim();  // ✅ S column = index 18 (Challan Number)
-const receivedDate = (row[14] || '').trim(); // ✅ R column = index 17
+      const challan = (row[18] || '').trim();  
+      const receivedDate = (row[14] || '').trim(); 
 
       if (uid && challan) {
         if (!uidToChallanMap.has(uid)) uidToChallanMap.set(uid, new Set());
         uidToChallanMap.get(uid).add(challan);
       }
-
-      // ✅ Date map
       if (uid && receivedDate) {
         if (!uidToDateMap.has(uid)) uidToDateMap.set(uid, new Set());
         uidToDateMap.get(uid).add(receivedDate);
@@ -794,7 +889,6 @@ const receivedDate = (row[14] || '').trim(); // ✅ R column = index 17
       const challanSet = uidToChallanMap.get(String(uid).trim()) || new Set();
       const challanNos = Array.from(challanSet).join(', ');
 
-      // ✅ Get received dates for this UID
       const dateSet = uidToDateMap.get(String(uid).trim()) || new Set();
       const receivedDates = Array.from(dateSet).join(', ');
 
@@ -813,7 +907,7 @@ const receivedDate = (row[14] || '').trim(); // ✅ R column = index 17
         finalReceivedQuantity: finalQty || (row[105] || '').trim(),
         challanNo: challanNos || '-',
         vehicleNo: vehicleNo || '-',
-        receivedDate: receivedDates || '-',  // ✅ NEW
+        receivedDate: receivedDates || '-',  
         deliveryDate: (row[84] || deliveryDate || '').trim(),
       });
 
@@ -823,14 +917,14 @@ const receivedDate = (row[14] || '').trim(); // ✅ R column = index 17
       }
     }
 
-    const pdfDataUri = generateMRNPDF(rowDatas, mrnNo, poNumber, indentNo, commonDeliveryDate);
+    const pdfDataUri = generateMRNPDF(rowDatas, mrnNo, poNumber, indentNo, commonDeliveryDate, companyKey);
     const base64Data = pdfDataUri.replace('data:application/pdf;base64,', '');
     const pdfBuffer = Buffer.from(base64Data, 'base64');
 
     const { Readable } = require('stream');
     const file = await drive.files.create({
       resource: {
-        name: `mrn_${mrnNo}_${Date.now()}.pdf`,
+        name: `mrn_${companyKey}_${mrnNo.replace(/\//g, '_')}_${Date.now()}.pdf`,
         parents: [process.env.GOOGLE_DRIVE_FOLDER_ID],
         mimeType: 'application/pdf',
       },
@@ -846,20 +940,11 @@ const receivedDate = (row[14] || '').trim(); // ✅ R column = index 17
       supportsAllDrives: true,
     });
 
-    console.log(`✅ PDF: ${pdfUrl}`);
-
-    const today = new Date().toLocaleDateString('en-IN', {
-      timeZone: 'Asia/Kolkata',
-      day: '2-digit', month: '2-digit', year: 'numeric',
-    });
-
     const batchData = [];
     for (let i = 0; i < rowIndices.length; i++) {
       const sheetRow = rowIndices[i];
       const finalQty = finalReceivedQuantities[i] || rowDatas[i].finalReceivedQuantity;
-
       batchData.push(
-        // { range: `Purchase_FMS!DK${sheetRow}`, values: [[today]] },
         { range: `Purchase_FMS!DL${sheetRow}`, values: [['Done']] },
         { range: `Purchase_FMS!DM${sheetRow}`, values: [[mrnNo]] },
         { range: `Purchase_FMS!DN${sheetRow}`, values: [[pdfUrl]] },
@@ -871,8 +956,6 @@ const receivedDate = (row[14] || '').trim(); // ✅ R column = index 17
       spreadsheetId,
       resource: { valueInputOption: 'USER_ENTERED', data: batchData },
     });
-
-    console.log(`✅ Updated rows: ${rowIndices.join(', ')}`);
 
     res.status(200).json({
       message: 'MRN saved successfully',

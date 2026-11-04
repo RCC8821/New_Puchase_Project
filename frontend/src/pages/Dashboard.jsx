@@ -27,6 +27,7 @@ import Bill_Checked_18Step from '../components/purchase/Bill_Checked_18Step';
 import ContractorPurchseForm from '../components/ContractorPurchase/ContractorPurchseForm';
 import OutStanding from '../components/purchase/OutStanding';
 import Advance_payment from '../components/purchase/Advance_payment';
+import No_Indent from '../components/purchase/No_Indent';  
 
 import Approvel1 from '../components/Labour/Approvel1';
 import LabourManagment from '../components/Labour/LabourManagment';
@@ -98,6 +99,7 @@ const Dashboard = () => {
     { id: 'contractor-purchase-form', name: 'Contractor Purchase Form', icon: FileText, component: ContractorPurchseForm, path: '/dashboard/contractor-purchase-form', allowedUserTypes: ['admin', 'Site Engineer', 'Material Received'] },
     { id: 'outstanding', name: 'Without System Bill Entry', icon: DollarSign, component: OutStanding, path: '/dashboard/outstanding', allowedUserTypes: ['admin', 'Govind Ram Nagar'] },
     { id: 'Advance_payment', name: 'Advance Payment', icon: DollarSign, component: Advance_payment, path: '/dashboard/Advance_payment', allowedUserTypes: ['admin', 'Govind Ram Nagar'] },
+      { id: 'No_Indent', name: 'No Indent', icon: Package, component: No_Indent, path: '/dashboard/No_Indent', allowedUserTypes: ['admin','Ravi Rajak'] },
     { id: 'OfficeLabourForm', name: 'Office Labour Form', icon: HardHat, component: OfficeLabourForm, path: '/dashboard/OfficeLabourForm', allowedUserTypes: ['admin', 'Labour Form'] },
   ];
 
@@ -188,6 +190,7 @@ const Dashboard = () => {
     'contractor-purchase-form': 'Contractor Purchase Form',
     outstanding: 'Without System Bill Entry',
     Advance_payment: 'Advance Payment',
+     No_Indent: 'No Indent',    
     OfficeLabourForm: 'Office Labour Form',
     'LabourRequirementManagement': 'Labour Requirement Management',
     Approvel1: 'Labour Approval',

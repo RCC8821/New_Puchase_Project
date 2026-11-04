@@ -38,6 +38,7 @@ const Advancesection = require('./All_Fms_Api/Advance_payment');
 const SignatureRequirement = require('./All_Fms_Api/signatureRoutes');
 const HeritageRequirement = require('./All_Fms_Api/heritageRequirement');
 
+const NoIndent = require('./All_Fms_Api/No_Indent');  
 // ✅ NEW - Paradise Routes
 const ParadiseRoutes = require('./All_Fms_Api/Paradise/paradiseRoutes');
 
@@ -125,6 +126,8 @@ app.use('/api/heritage-requirement', HeritageRequirement);
 // ✅ NEW - Paradise Routes (JV Project)
 app.use('/api/paradise', ParadiseRoutes);
 
+
+app.use('/api', NoIndent);     
 
 // ===== 7. Global Error Handler =====
 app.use((err, req, res, next) => {

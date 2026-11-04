@@ -317,7 +317,8 @@ router.post('/save-material-receipt', async (req, res) => {
       materialName, materialSize, materialSpecification,
       unitName, receivedQty, status, challanNo,
       qualityApproved, truckDelivery, googleFormCompleted, photo, vendorName,
-      receivedDate, brandName // ✅ NEW: Receiving brandName from frontend
+      receivedDate, brandName, 
+      vehicleNo // ✅ NEW: Receiving Vehicle No from frontend
     } = body;
 
     if (!uid || !reqNo || !siteName || !materialType || !materialName ||
@@ -380,7 +381,7 @@ router.post('/save-material-receipt', async (req, res) => {
 
     const cleanUid = String(uid).replace(/,/g, '').trim();
 
-    // ✅ NEW COLUMN STRUCTURE (A to V):
+    // ✅ NEW COLUMN STRUCTURE (A to X):
     const values = [
       timestamp,                                    // A: Timestamp
       cleanUid,                                     // B: UID
@@ -402,8 +403,10 @@ router.post('/save-material-receipt', async (req, res) => {
       String(googleFormCompleted || ''),            // R: Google Form
       String(challanNo || ''),                      // S: Challan_No (Number)
       String(qualityApproved || ''),                // T: Quality_appoved
-      '',                                           // U: (Empty/Skipped to match V index)
-      String(brandName || ''),                      // V: Brand Name ✅ (Index 21)
+      '',                                           // U: (Empty)
+      String(brandName || ''),                      // V: Brand Name (Index 21)
+      '',                                           // W: (Empty)
+      String(vehicleNo || '')                       // X: Vehicle No ✅ (Index 23)
     ];
 
     // Find next empty row
@@ -414,15 +417,15 @@ router.post('/save-material-receipt', async (req, res) => {
 
     const lastRow = (sheetData.data.values?.length || 0) + 1;
 
-    // ✅ SAVE RANGE UPDATED TO V
+    // ✅ SAVE RANGE UPDATED TO X
     await sheets.spreadsheets.values.update({
       spreadsheetId,
-      range: `Material_Received!A${lastRow}:V${lastRow}`,
+      range: `Material_Received!A${lastRow}:X${lastRow}`,
       valueInputOption: 'RAW',
       resource: { values: [values] },
     });
 
-    console.log(`✅ Saved to Material_Received row ${lastRow}, UID: ${cleanUid}, Brand: ${brandName}`);
+    console.log(`✅ Saved to Material_Received row ${lastRow}, UID: ${cleanUid}, Vehicle: ${vehicleNo}`);
 
     return res.json({
       success: true,

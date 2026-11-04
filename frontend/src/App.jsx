@@ -147,6 +147,7 @@ import LabourPDF from './components/Labour/LabourPDF';
 import SiteApprovel from './components/SiteExpenses/SiteApprovel';
 import SitePaidAmount from './components/SiteExpenses/SitePaidAmount';
 import SignatureRequirement from './components/purchase/SignatureRequirement';
+import No_Indent from './components/purchase/No_Indent';  
 
 // ✅ HERITAGE IMPORTS
 import HeritageDashboard from './components/Heritage/HeritageDashboard';
@@ -200,6 +201,7 @@ const App = () => {
           {/* ✅ NEW - Office Labour Form (Purchase menu me) */}
           <Route path='OfficeLabourForm' element={<OfficeLabourForm />} />
           <Route path='LabourRequirementManagement' element={<LabourRequirementManagement />} />
+            <Route path='No_Indent' element={<No_Indent />} />  
 
           {/* Labour Routes */}
           <Route path='Approvel1' element={<Approvel1 />} />
