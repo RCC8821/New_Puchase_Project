@@ -9,6 +9,7 @@ import {
 } from 'lucide-react';
 
 const BASE_URL = 'https://new-puchase-project-silk.vercel.app/api/labour/pdf';
+// const BASE_URL = 'http://localhost:5001/api/labour/pdf';
 
 const T = {
   navy: '#1e293b', navyLight: '#334155', navyDark: '#0f172a',

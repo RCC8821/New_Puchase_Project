@@ -355,6 +355,7 @@
 //     if (!companyLabourData.Work_Type_1) return showAlert('error', 'Work Type required hai');
 //     if (!companyLabourData.Work_Description_1.trim()) return showAlert('error', 'Work Description required hai');
 //     if (!companyLabourData.Head_Of_Contractor_Company_1) return showAlert('error', 'Head Of Contractor/Company required hai');
+//     if (!companyLabourData.Attendance_Photo_1) return showAlert('error', 'Attendance Photo required hai');
 //     if (isCompanyPhotoLoading) return showAlert('error', 'Photo abhi process ho rahi hai.');
 
 //     if (isCompanyLabourContractorHead) {
@@ -575,7 +576,11 @@
 
 //               {/* ONLY CAPTURE CAMERA BUTTON */}
 //               <div>
-//                 <label className="block text-sm font-semibold text-gray-700 mb-2"><Camera className="w-4 h-4 inline mr-1" />Attendance Photo <span className="text-xs text-gray-400 ml-2 font-normal">(Watermark added auto)</span></label>
+//                 <label className="block text-sm font-semibold text-gray-700 mb-2">
+//                   <Camera className="w-4 h-4 inline mr-1" />
+//                   Attendance Photo <span className="text-red-500">*</span>
+//                   <span className="text-xs text-gray-400 ml-2 font-normal">(Watermark added auto)</span>
+//                 </label>
                 
 //                 <input ref={companyCameraInputRef} type="file" accept="image/*" capture="environment" onChange={handleCompanyPhotoChange} className="hidden" />
 
@@ -608,8 +613,26 @@
 //               <div><label className="block text-sm font-semibold text-gray-700 mb-2">Remark</label><input type="text" value={companyLabourData.Remark_1} onChange={(e) => handleCompanyLabourChange('Remark_1', e.target.value)} className="w-full px-4 py-3 border rounded-xl" /></div>
 
 //               <div className="flex gap-4 pt-4 border-t">
-//                 <button type="button" onClick={resetCompanyLabourForm} className="flex-1 py-3 border rounded-xl font-medium flex justify-center gap-2">Reset</button>
-//                 <button type="submit" disabled={isCompanyLabourLoading || isCompanyPhotoLoading} className="flex-1 py-3 bg-gradient-to-r from-orange-600 to-red-600 text-white rounded-xl font-medium flex justify-center gap-2"><Send className="w-4 h-4" /> Submit</button>
+//                 <button type="button" onClick={resetCompanyLabourForm} className="flex-1 py-3 border rounded-xl font-medium flex justify-center gap-2">
+//                   <RefreshCw className="w-4 h-4" /> Reset
+//                 </button>
+//                 <button 
+//                   type="submit" 
+//                   disabled={isCompanyLabourLoading || isCompanyPhotoLoading || !companyLabourData.Attendance_Photo_1} 
+//                   className={`flex-1 py-3 rounded-xl font-medium flex justify-center items-center gap-2 text-white transition-all ${
+//                     !companyLabourData.Attendance_Photo_1 || isCompanyLabourLoading || isCompanyPhotoLoading
+//                       ? 'bg-gray-400 cursor-not-allowed opacity-60'
+//                       : 'bg-gradient-to-r from-orange-600 to-red-600 hover:shadow-lg'
+//                   }`}
+//                 >
+//                   {isCompanyLabourLoading ? (
+//                     <><Loader2 className="w-4 h-4 animate-spin" /> Submitting...</>
+//                   ) : !companyLabourData.Attendance_Photo_1 ? (
+//                     <><Camera className="w-4 h-4" /> Photo Required</>
+//                   ) : (
+//                     <><Send className="w-4 h-4" /> Submit</>
+//                   )}
+//                 </button>
 //               </div>
 //             </form>
 //           )}
@@ -621,9 +644,6 @@
 // };
 
 // export default SiteExpensesForm;
-
-
-
 
 
 
@@ -1123,8 +1143,14 @@ const SiteExpensesForm = () => {
                 </div>
               </div>
               <div className="flex gap-4 pt-4 border-t">
-                <button type="button" onClick={resetSiteExpensesForm} className="flex-1 py-3 border rounded-xl font-medium flex justify-center gap-2"><RefreshCw className="w-4 h-4" /> Reset</button>
-                <button type="submit" disabled={isSiteLoading || isPhotoLoading} className="flex-1 py-3 bg-blue-600 text-white rounded-xl font-medium flex justify-center gap-2"><Send className="w-4 h-4" /> Submit</button>
+                <button type="button" onClick={resetSiteExpensesForm} className="flex-1 py-3 border rounded-xl font-medium flex justify-center items-center gap-2"><RefreshCw className="w-4 h-4" /> Reset</button>
+                <button type="submit" disabled={isSiteLoading || isPhotoLoading} className={`flex-1 py-3 text-white rounded-xl font-medium flex justify-center items-center gap-2 transition-all ${(isSiteLoading || isPhotoLoading) ? 'bg-blue-400 cursor-not-allowed' : 'bg-blue-600 hover:bg-blue-700'}`}>
+                  {isSiteLoading ? (
+                    <><Loader2 className="w-4 h-4 animate-spin" /> Submitting...</>
+                  ) : (
+                    <><Send className="w-4 h-4" /> Submit</>
+                  )}
+                </button>
               </div>
             </form>
           )}
@@ -1157,8 +1183,14 @@ const SiteExpensesForm = () => {
                 <div className="mt-4 bg-white p-3 rounded-xl flex justify-between font-bold"><span>Total</span><span className="text-purple-600">₹{debitData.Amount_1}</span></div>
               </div>
               <div className="flex gap-4 pt-4 border-t">
-                <button type="button" onClick={resetDebitForm} className="flex-1 py-3 border rounded-xl font-medium flex justify-center gap-2">Reset</button>
-                <button type="submit" disabled={isDebitLoading} className="flex-1 py-3 bg-purple-600 text-white rounded-xl font-medium flex justify-center gap-2">Submit</button>
+                <button type="button" onClick={resetDebitForm} className="flex-1 py-3 border rounded-xl font-medium flex justify-center items-center gap-2"><RefreshCw className="w-4 h-4" /> Reset</button>
+                <button type="submit" disabled={isDebitLoading} className={`flex-1 py-3 text-white rounded-xl font-medium flex justify-center items-center gap-2 transition-all ${isDebitLoading ? 'bg-purple-400 cursor-not-allowed' : 'bg-purple-600 hover:bg-purple-700'}`}>
+                  {isDebitLoading ? (
+                    <><Loader2 className="w-4 h-4 animate-spin" /> Submitting...</>
+                  ) : (
+                    <><Send className="w-4 h-4" /> Submit</>
+                  )}
+                </button>
               </div>
             </form>
           )}

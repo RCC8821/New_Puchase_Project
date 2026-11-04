@@ -1489,29 +1489,81 @@ const generateUIDCompany = async (sheetName, prefix = 'LATT') => {
 // ============================================================
 // HELPER: Generate next RCC Bill No
 // ============================================================
-const generateRccBillNo = async () => {
+
+
+// const generateRccBillNo = async () => {
+//   try {
+//     const year = new Date().getFullYear();
+//     const prefix = `RCC/${year}/`;
+//     const response = await sheets.spreadsheets.values.get({
+//       spreadsheetId: SiteExpeseSheetId,
+//       range: `Site_Exp_FMS!C7:C10000`,
+//     });
+//     const existing = (response.data.values || [])
+//       .flat()
+//       .filter(v => v && v.startsWith(prefix));
+//     let count = 1;
+//     let newBillNo;
+//     do {
+//       newBillNo = prefix + String(count).padStart(4, '0');
+//       count++;
+//     } while (existing.includes(newBillNo));
+//     return newBillNo;
+//   } catch (err) {
+//     console.error('Error generating RCC Bill No:', err);
+//     throw err;
+//   }
+// };
+
+
+// ============================================================
+// HELPER: Generate next RCC or VRN Bill No based on Project Name
+// ============================================================
+const generateRccBillNo = async (projectName = '') => {
   try {
     const year = new Date().getFullYear();
-    const prefix = `RCC/${year}/`;
+
+    // ✅ Project Name mein "Signature" check karo
+    let companyPrefix = 'RCC';
+    if (projectName && projectName.toLowerCase().includes('signature')) {
+      companyPrefix = 'VRN';
+    }
+
+    const prefix = `${companyPrefix}/${year}/`;
+
+    // Sheet se existing bill numbers nikaalo (Column C)
     const response = await sheets.spreadsheets.values.get({
       spreadsheetId: SiteExpeseSheetId,
       range: `Site_Exp_FMS!C7:C10000`,
     });
-    const existing = (response.data.values || [])
-      .flat()
-      .filter(v => v && v.startsWith(prefix));
-    let count = 1;
-    let newBillNo;
-    do {
-      newBillNo = prefix + String(count).padStart(4, '0');
-      count++;
-    } while (existing.includes(newBillNo));
+
+    const existing = (response.data.values || []).flat().filter(Boolean);
+
+    // Highest number find karo (sirf same prefix wale)
+    let maxNumber = 0;
+    existing.forEach(billNo => {
+      if (billNo && billNo.startsWith(prefix)) {
+        const numPart = billNo.replace(prefix, '');
+        const num = parseInt(numPart, 10);
+        if (!isNaN(num) && num > maxNumber) {
+          maxNumber = num;
+        }
+      }
+    });
+
+    // Next number = Max + 1
+    const nextNumber = maxNumber + 1;
+    const newBillNo = prefix + String(nextNumber).padStart(4, '0');
+
+    console.log(`[BILL GEN] Project: "${projectName}" | Prefix: ${prefix} | Max: ${maxNumber} | Next: ${newBillNo}`);
+
     return newBillNo;
   } catch (err) {
-    console.error('Error generating RCC Bill No:', err);
+    console.error('Error generating Bill No:', err);
     throw err;
   }
 };
+
 
 // ============================================================
 // HELPER: Compress image using Sharp
@@ -1635,6 +1687,90 @@ const uploadToGoogleDrive = async (base64Data, fileName, retries = 2) => {
 // ============================================================
 // POST /api/site-expense
 // ============================================================
+
+
+// router.post('/site-expense', async (req, res) => {
+//   const contentLength = parseInt(req.headers['content-length'] || '0');
+//   console.log(`\n[REQUEST] Size: ${(contentLength / 1024 / 1024).toFixed(2)}MB`);
+
+//   try {
+//     const { items = [], ...common } = req.body;
+
+//     if (!Array.isArray(items) || items.length === 0) {
+//       return res.status(400).json({ success: false, message: 'Items array bhejna zaroori hai' });
+//     }
+
+//     const validItems = items.filter(item => item.Exp_Head_1 && item.Amount_1);
+//     if (validItems.length === 0) {
+//       return res.status(400).json({ success: false, message: 'Koi valid item nahi mila' });
+//     }
+
+//     const [Rcc_Bill_No_1, startRow] = await Promise.all([
+//       generateRccBillNo(),
+//       getNextEmptyRow('Site_Exp_FMS'),
+//     ]);
+
+//     const timestamp = getTimestamp();
+//     console.log(`[INFO] Bill: ${Rcc_Bill_No_1}, Start Row: ${startRow}`);
+
+//     const [billPhotoUrl, ...uids] = await Promise.all([
+//       common.Bill_Photo_1
+//         ? uploadToGoogleDrive(common.Bill_Photo_1, `Bill_${Rcc_Bill_No_1}_${Date.now()}.jpg`)
+//         : Promise.resolve(''),
+//       ...validItems.map(() => generateUID('Site_Exp_FMS', 'SITE')),
+//     ]);
+
+//     console.log(`[PHOTO URL] ${billPhotoUrl || 'No photo'}`);
+//     const saved = [];
+
+//     for (let i = 0; i < validItems.length; i++) {
+//       const { Exp_Head_1 = '', Details_of_Work_1 = '', Amount_1 = '' } = validItems[i];
+//       const currentRow = startRow + i;
+//       const UID = uids[i];
+
+//       const rowValues = [[
+//         timestamp, UID, Rcc_Bill_No_1,
+//         common.Vendor_Payee_Name_1     || '',
+//         common.Project_Name_1          || '',
+//         common.Project_Engineer_Name_1 || '',
+//         Exp_Head_1, Details_of_Work_1, Amount_1,
+//         common.Bill_No_1               || '',
+//         common.Bill_Date_1             || '',
+//         billPhotoUrl,
+//         common.Head_Type_1             || '',
+//         common.Contractor_Name_1       || '',
+//         common.Contractor_Firm_Name_1  || '',
+//         common.Remark_1                || '',
+//       ]];
+
+//       await sheets.spreadsheets.values.update({
+//         spreadsheetId: SiteExpeseSheetId,
+//         range: `Site_Exp_FMS!A${currentRow}`,
+//         valueInputOption: 'USER_ENTERED',
+//         requestBody: { values: rowValues },
+//       });
+
+//       saved.push({ uid: UID, row: currentRow });
+//       console.log(`[SAVED] Row ${currentRow} | UID: ${UID}`);
+//     }
+
+//     return res.status(200).json({
+//       success: true,
+//       message: `${validItems.length} item(s) save ho gaye`,
+//       billNo: Rcc_Bill_No_1,
+//       billPhotoUrl: billPhotoUrl || '',
+//       saved,
+//     });
+//   } catch (error) {
+//     console.error('❌ Site Expense Error:', error);
+//     return res.status(500).json({ success: false, message: 'Server error: ' + error.message });
+//   }
+// });
+
+
+// ============================================================
+// POST /api/site-expense
+// ============================================================
 router.post('/site-expense', async (req, res) => {
   const contentLength = parseInt(req.headers['content-length'] || '0');
   console.log(`\n[REQUEST] Size: ${(contentLength / 1024 / 1024).toFixed(2)}MB`);
@@ -1651,13 +1787,14 @@ router.post('/site-expense', async (req, res) => {
       return res.status(400).json({ success: false, message: 'Koi valid item nahi mila' });
     }
 
+    // ✅ Yahan Project_Name_1 pass kiya hai — Signature check ke liye
     const [Rcc_Bill_No_1, startRow] = await Promise.all([
-      generateRccBillNo(),
+      generateRccBillNo(common.Project_Name_1 || ''),
       getNextEmptyRow('Site_Exp_FMS'),
     ]);
 
     const timestamp = getTimestamp();
-    console.log(`[INFO] Bill: ${Rcc_Bill_No_1}, Start Row: ${startRow}`);
+    console.log(`[INFO] Bill: ${Rcc_Bill_No_1}, Start Row: ${startRow}, Project: ${common.Project_Name_1}`);
 
     const [billPhotoUrl, ...uids] = await Promise.all([
       common.Bill_Photo_1
@@ -1712,6 +1849,7 @@ router.post('/site-expense', async (req, res) => {
     return res.status(500).json({ success: false, message: 'Server error: ' + error.message });
   }
 });
+
 
 // ============================================================
 // POST /api/labour-request → Labour_Requirement sheet
