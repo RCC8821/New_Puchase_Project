@@ -566,7 +566,7 @@ const HeritageRequirementForm = () => {
       {/* ═══ SECTION 1: Project Info ═══ */}
       <div style={S.card}>
         <div style={S.sectionTitle}>
-          <div style={S.goldBar} /> Heritage Project Information
+          <div style={S.goldBar} />  Project Information
         </div>
         <div style={{
           display: 'grid',

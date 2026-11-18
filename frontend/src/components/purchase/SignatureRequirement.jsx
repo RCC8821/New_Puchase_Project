@@ -77,9 +77,11 @@ const SearchableSelect = ({
 
   return (
     <div style={{ position: "relative", width: "100%" }}>
-      <label style={S.label}>
-        {label} {required && <span style={S.req}>*</span>}
-      </label>
+      {label && (
+        <label style={S.label}>
+          {label} {required && <span style={S.req}>*</span>}
+        </label>
+      )}
       <div style={{ position: "relative" }}>
         <input
           type="text"
@@ -208,18 +210,19 @@ const SignatureRequirement = () => {
   const [submitRequirement, { isLoading: isSubmitting }] =
     useSubmitSignatureRequirementMutation();
 
-  // ✅ contractorName added to formData state
+  // ✅ Location moved to formData (Project Information)
   const [formData, setFormData] = useState({
     projectName: isAdmin ? "" : FIXED_PROJECT,
     engineerName: "",
     cluster: "",
-    activity: "",
+    location: "",          // ✅ Location in Project Info
     remark: "",            // Slip No
-    contractorName: "",    // ✅ NEW - Contractor Dropdown
+    contractorName: "",    // Contractor Dropdown
   });
 
+  // ✅ Activity moved into items
   const emptyItem = {
-    location: "",
+    activity: "",          // ✅ Activity inside each item
     materialType: "",
     materialName: "",
     materialSize: "",
@@ -238,20 +241,31 @@ const SignatureRequirement = () => {
   const engineerOptions = maps?.projectToEngineers?.[projectKey] || [];
 
   const clusterOptions = uv?.clusters || [];
-  const activityOptions = uv?.activities || [];
-  const contractorOptions = uv?.contractors || []; // ✅ Contractor options from Column O
+  const contractorOptions = uv?.contractors || [];
 
   // Locations filtered by selected Cluster
   const locationOptions = formData.cluster
     ? (maps?.clusterToLocations?.[formData.cluster.toLowerCase()] || [])
     : (uv?.locations || []);
 
-  const setField = (field, value) => {
-    setFormData((prev) => ({ ...prev, [field]: value }));
+  // ✅ Activity options filtered by selected Location
+  const activityOptions = formData.location
+    ? (maps?.locationToActivities?.[formData.location.toLowerCase()] || uv?.activities || [])
+    : (uv?.activities || []);
 
-    // Cluster change → Clear all items' location
-    if (field === "cluster") {
-      setItems((prev) => prev.map(item => ({ ...item, location: "" })));
+  const setField = (field, value) => {
+    setFormData((prev) => {
+      const next = { ...prev, [field]: value };
+      // Cluster change → Clear Location
+      if (field === "cluster") {
+        next.location = "";
+      }
+      return next;
+    });
+
+    // Cluster or Location change → Reset items' activity
+    if (field === "cluster" || field === "location") {
+      setItems((prev) => prev.map(item => ({ ...item, activity: "" })));
     }
   };
 
@@ -260,7 +274,7 @@ const SignatureRequirement = () => {
     updated[index] = { ...updated[index] };
     updated[index][field] = value;
 
-    // Material Type change → Reset everything below
+    // Material Type change → Reset below
     if (field === "materialType") {
       updated[index] = {
         ...updated[index],
@@ -323,17 +337,17 @@ const SignatureRequirement = () => {
     if (items.length > 1) setItems((prev) => prev.filter((_, idx) => idx !== i));
   };
 
-  // ✅ Validation updated with contractorName
+  // ✅ Validation updated
   const isFormValid = useMemo(() => {
     if (!formData.projectName?.trim()) return false;
     if (!formData.engineerName?.trim()) return false;
     if (!formData.cluster?.trim()) return false;
-    if (!formData.activity?.trim()) return false;
+    if (!formData.location?.trim()) return false;       // ✅ Location Required
     if (!formData.remark?.trim()) return false;
     if (!formData.contractorName?.trim()) return false; // ✅ Contractor Required
 
     for (const it of items) {
-      if (!it.location?.trim()) return false;
+      if (!it.activity?.trim()) return false;           // ✅ Activity Required
       if (!it.materialType?.trim()) return false;
       if (!it.materialName?.trim()) return false;
       if (!it.materialSize?.trim()) return false;
@@ -392,7 +406,7 @@ const SignatureRequirement = () => {
 
       setFormData({
         projectName: isAdmin ? "" : FIXED_PROJECT,
-        engineerName: "", cluster: "", activity: "", remark: "", contractorName: "",
+        engineerName: "", cluster: "", location: "", remark: "", contractorName: "",
       });
       setItems([{ ...emptyItem }]);
     } catch (err) {
@@ -415,18 +429,17 @@ const SignatureRequirement = () => {
     />
   );
 
-  // ✅ Progress updated: 6 formData (with contractorName) + 9 per item
   const totalRequired = 6 + items.length * 9;
   const filledCount = (() => {
     let c = 0;
     if (formData.projectName?.trim()) c++;
     if (formData.engineerName?.trim()) c++;
     if (formData.cluster?.trim()) c++;
-    if (formData.activity?.trim()) c++;
+    if (formData.location?.trim()) c++; // ✅ Location
     if (formData.remark?.trim()) c++;
-    if (formData.contractorName?.trim()) c++; // ✅
+    if (formData.contractorName?.trim()) c++;
     items.forEach((it) => {
-      if (it.location?.trim()) c++;
+      if (it.activity?.trim()) c++;     // ✅ Activity
       if (it.materialType?.trim()) c++;
       if (it.materialName?.trim()) c++;
       if (it.materialSize?.trim()) c++;
@@ -441,11 +454,13 @@ const SignatureRequirement = () => {
 
   return (
     <div style={{ maxWidth: 1100, margin: "0 auto", padding: "0 8px" }}>
-      {/* SECTION 1 */}
+      {/* ═══ SECTION 1: Project Information ═══ */}
+
       <div style={S.card}>
         <div style={S.sectionTitle}>
           <div style={S.goldBar} />
           <span>Project Information</span>
+          
           {!isAdmin ? (
             <span style={{
               marginLeft: "auto", fontSize: 10, fontWeight: 500,
@@ -518,18 +533,26 @@ const SignatureRequirement = () => {
             allowCustom
           />
 
+          {/* ✅ LOCATION MOVED HERE */}
           <SearchableSelect
-            label="Activity" required
-            value={formData.activity}
-            onChange={(v) => setField("activity", v)}
-            options={activityOptions}
-            placeholder="Type/select activity"
+            label="Location" required
+            value={formData.location}
+            onChange={(v) => setField("location", v)}
+            options={locationOptions}
+            placeholder={
+              formData.cluster
+                ? locationOptions.length > 0
+                  ? `Select from ${locationOptions.length} location(s)`
+                  : "No locations for this cluster"
+                : "Select cluster first"
+            }
             allowCustom
+            disabled={!formData.cluster}
           />
         </div>
       </div>
 
-      {/* SECTION 2 - Material Items */}
+      {/* ═══ SECTION 2: Material Items ═══ */}
       <div style={S.card}>
         <div style={S.sectionTitle}>
           <div style={S.goldBar} />
@@ -586,25 +609,26 @@ const SignatureRequirement = () => {
                 )}
               </div>
 
-              {/* Row 1 */}
+              {/* Row 1: Activity, Material Type, Name, Size */}
               <div style={{
                 display: "grid",
                 gridTemplateColumns: "repeat(auto-fit, minmax(180px, 1fr))",
                 gap: 12, marginBottom: 12,
               }}>
-               <SearchableSelect
-                  label="Location" required
-                  value={item.location}
-                  onChange={(val) => handleItemChange(idx, "location", val)}
-                  options={locationOptions}
+                {/* ✅ ACTIVITY MOVED HERE (Filtered by selected Location) */}
+                <SearchableSelect
+                  label="Activity" required
+                  value={item.activity}
+                  onChange={(val) => handleItemChange(idx, "activity", val)}
+                  options={activityOptions}
                   placeholder={
-                    formData.cluster
-                      ? locationOptions.length > 0
-                        ? `Select from ${locationOptions.length} location(s)`
-                        : "No locations for this cluster"
-                      : "Select cluster first"
+                    formData.location
+                      ? activityOptions.length > 0
+                        ? `Select from ${activityOptions.length} activity(ies)`
+                        : "No activities for this location"
+                      : "Select location first"
                   }
-                  disabled={!formData.cluster}
+                  disabled={!formData.location}
                   allowCustom
                 />
                 <SearchableSelect
@@ -632,7 +656,7 @@ const SignatureRequirement = () => {
                 />
               </div>
 
-              {/* Row 2 */}
+              {/* Row 2: Specification, SKU Code */}
               <div style={{
                 display: "grid",
                 gridTemplateColumns: "repeat(auto-fit, minmax(180px, 1fr))",
@@ -668,7 +692,7 @@ const SignatureRequirement = () => {
                 </div>
               </div>
 
-              {/* Row 3 */}
+              {/* Row 3: Qty, Unit, Description */}
               <div style={{
                 display: "grid",
                 gridTemplateColumns: "repeat(auto-fit, minmax(180px, 1fr))",
@@ -740,7 +764,7 @@ const SignatureRequirement = () => {
         })}
       </div>
 
-      {/* ✅ SECTION 3 - Updated with Contractor Name dropdown side-by-side with Slip No */}
+      {/* ═══ SECTION 3: Additional Information ═══ */}
       <div style={S.card}>
         <div style={S.sectionTitle}>
           <div style={S.goldBar} />
@@ -763,7 +787,6 @@ const SignatureRequirement = () => {
             />
           </div>
 
-          {/* ✅ Contractor Name drop-down (fetched from unique values Column O) */}
           <SearchableSelect
             label="Contractor Name" required
             value={formData.contractorName}
@@ -775,7 +798,7 @@ const SignatureRequirement = () => {
         </div>
       </div>
 
-      {/* ACTIONS */}
+      {/* ═══ SECTION 4: Actions ═══ */}
       <div style={{ ...S.card, display: "flex", alignItems: "center", justifyContent: "space-between", gap: 12, flexWrap: "wrap" }}>
         {!isFormValid ? (
           <div style={{ flex: "1 1 220px" }}>
@@ -795,7 +818,7 @@ const SignatureRequirement = () => {
             onClick={() => {
               setFormData({
                 projectName: isAdmin ? "" : FIXED_PROJECT,
-                engineerName: "", cluster: "", activity: "", remark: "", contractorName: "",
+                engineerName: "", cluster: "", location: "", remark: "", contractorName: "",
               });
               setItems([{ ...emptyItem }]);
             }}
