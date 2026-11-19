@@ -269,20 +269,16 @@
 
 
 
-
-
-
 const express = require('express');
-const { sheets, SignatureProjectSheetId } = require('../config/googleSheet');
+const { sheets, SignatureProjectSheetId } = require('../config/googleSheet'); // Path check kar lein
 
 const router = express.Router();
 
 // ═══════════════════════════════════════════════════════════
-// GET PROJECT DATA - Dropdown Source (Project_Data tab)
+// GET PROJECT DATA (Dropdown Source)
 // ═══════════════════════════════════════════════════════════
 router.get('/project-data', async (req, res) => {
   try {
-    // ✅ Range expanded to A3:P to read Cluster, Location, Activity, Contractor
     const response = await sheets.spreadsheets.values.get({
       spreadsheetId: SignatureProjectSheetId,
       range: 'Project_Data!A3:P',
@@ -302,21 +298,11 @@ router.get('/project-data', async (req, res) => {
         specification: (row[6] || '').trim(),  // G
         skuCode:       (row[7] || '').trim(),  // H
         unitName:      (row[8] || '').trim(),  // I
-        cluster:       (row[9] || '').trim(),  // J - Cluster
-        location:      (row[10] || '').trim(), // K - Location
-        activity:      (row[11] || '').trim(), // L - Activity
-        contractor:    (row[14] || row[13] || '').trim(), // O/N - Contractor
       }));
 
-    // ── Unique Values ──
     const uniqueValues = {
       projectNames:  [...new Set(projectData.map(d => d.projectName).filter(Boolean))].sort(),
-      unitNames:     [...new Set(projectData.map(d => d.unitName).filter(Boolean))].sort(),
       materialTypes: [...new Set(projectData.map(d => d.materialType).filter(Boolean))].sort(),
-      clusters:      [...new Set(projectData.map(d => d.cluster).filter(Boolean))].sort(),
-      locations:     [...new Set(projectData.map(d => d.location).filter(Boolean))].sort(),
-      activities:    [...new Set(projectData.map(d => d.activity).filter(Boolean))].sort(),
-      contractors:   [...new Set(projectData.map(d => d.contractor).filter(Boolean))].sort(),
     };
 
     // 1. Project → Engineers
@@ -332,33 +318,7 @@ router.get('/project-data', async (req, res) => {
       projectToEngineers[k] = [...projectToEngineers[k]].sort();
     });
 
-    // 2. ✅ Cluster → Locations
-    const clusterToLocations = {};
-    projectData.forEach(d => {
-      if (d.cluster && d.location) {
-        const key = d.cluster.toLowerCase();
-        if (!clusterToLocations[key]) clusterToLocations[key] = new Set();
-        clusterToLocations[key].add(d.location);
-      }
-    });
-    Object.keys(clusterToLocations).forEach(k => {
-      clusterToLocations[k] = [...clusterToLocations[k]].sort();
-    });
-
-    // 3. ✅ NEW: Location → Activities (Location के हिसाब से Activity फ़िल्टर)
-    const locationToActivities = {};
-    projectData.forEach(d => {
-      if (d.location && d.activity) {
-        const key = d.location.toLowerCase();
-        if (!locationToActivities[key]) locationToActivities[key] = new Set();
-        locationToActivities[key].add(d.activity);
-      }
-    });
-    Object.keys(locationToActivities).forEach(k => {
-      locationToActivities[k] = [...locationToActivities[k]].sort();
-    });
-
-    // 4. Material Type → Names
+    // 2. Material Type → Names
     const typeToNames = {};
     projectData.forEach(d => {
       if (!d.materialType || !d.materialName) return;
@@ -370,7 +330,7 @@ router.get('/project-data', async (req, res) => {
       typeToNames[k] = [...typeToNames[k]].sort();
     });
 
-    // 5. Name → Sizes
+    // 3. Name → Sizes
     const nameToSizes = {};
     projectData.forEach(d => {
       if (!d.materialName || !d.materialSize) return;
@@ -382,7 +342,7 @@ router.get('/project-data', async (req, res) => {
       nameToSizes[k] = [...nameToSizes[k]].sort();
     });
 
-    // 6. Name → Specs
+    // 4. Name → Specs
     const nameToSpecs = {};
     projectData.forEach(d => {
       if (!d.materialName || !d.specification) return;
@@ -394,7 +354,7 @@ router.get('/project-data', async (req, res) => {
       nameToSpecs[k] = [...nameToSpecs[k]].sort();
     });
 
-    // 7. Name + Size → SKU
+    // 5. Name + Size → SKU
     const nameAndSizeToSKU = {};
     projectData.forEach(d => {
       if (!d.materialName || !d.materialSize) return;
@@ -404,7 +364,7 @@ router.get('/project-data', async (req, res) => {
       }
     });
 
-    // 8. SKU Code → Unit Name
+    // 6. SKU Code → Unit Name
     const skuCodeToUnit = {};
     projectData.forEach(d => {
       if (!d.skuCode || !d.unitName) return;
@@ -420,8 +380,6 @@ router.get('/project-data', async (req, res) => {
       uniqueValues,
       maps: {
         projectToEngineers,
-        clusterToLocations,
-        locationToActivities, // ✅ NEW: Location to Activity Map
         typeToNames,
         nameToSizes,
         nameToSpecs,
@@ -436,22 +394,17 @@ router.get('/project-data', async (req, res) => {
   }
 });
 
-// ═══════════════════════════════════════════════════════════
-// GET NEXT UID (S0001, S0002...)
-// ═══════════════════════════════════════════════════════════
+// Helper Function: Next UID
 async function getNextUID() {
   try {
     const response = await sheets.spreadsheets.values.get({
       spreadsheetId: SignatureProjectSheetId,
       range: 'Requriemt_Form!B:B',
     });
-
     const uids = response.data.values?.flat() || [];
-
     const numbers = uids
       .map(uid => {
-        const value = String(uid || '').trim();
-        const match = value.match(/^S(\d+)$/i);
+        const match = String(uid || '').trim().match(/^S(\d+)$/i);
         return match ? parseInt(match[1], 10) : null;
       })
       .filter(n => n !== null && !isNaN(n));
@@ -464,22 +417,17 @@ async function getNextUID() {
   }
 }
 
-// ═══════════════════════════════════════════════════════════
-// GET NEXT REQ NO (sig0001, sig0002...)
-// ═══════════════════════════════════════════════════════════
+// Helper Function: Next Req No
 async function getNextReqNo() {
   try {
     const response = await sheets.spreadsheets.values.get({
       spreadsheetId: SignatureProjectSheetId,
       range: 'Requriemt_Form!C:C',
     });
-
     const reqNos = response.data.values?.flat() || [];
-
     const numbers = reqNos
       .map(no => {
-        const value = String(no || '').trim();
-        const match = value.match(/^sig(\d+)$/i);
+        const match = String(no || '').trim().match(/^sig(\d+)$/i);
         return match ? parseInt(match[1], 10) : null;
       })
       .filter(n => n !== null && !isNaN(n));
@@ -493,22 +441,20 @@ async function getNextReqNo() {
 }
 
 // ═══════════════════════════════════════════════════════════
-// SUBMIT REQUIREMENT → Requriemt_Form tab
+// SUBMIT REQUIREMENT → Requriemt_Form tab (A to Q Mapping)
 // ═══════════════════════════════════════════════════════════
 router.post('/submit', async (req, res) => {
   try {
     const {
       projectName,
       engineerName,
-      cluster,
-      location,       // ✅ Location (From Top Form)
-      remark,         // Slip No
-      contractorName, // Contractor Name
       contractor,
+      contractorName,
+      remark,
       items,
     } = req.body;
 
-    const actualContractor = contractorName || contractor || '';
+    const actualContractor = contractor || contractorName || '';
 
     if (!projectName || !engineerName) {
       throw new Error('Project Name and Engineer Name are required');
@@ -528,10 +474,18 @@ router.post('/submit', async (req, res) => {
       hour12: false,
     }).replace(',', '');
 
+    // ✅ Map fields accurately to columns A through Q
     const values = items.map((item, i) => {
-      if (!item.materialType || !item.materialName || !item.materialSize ||
-          !item.specification || !item.skuCode || !item.quantity ||
-          !item.unit || !item.description) {
+      if (
+        !item.materialType ||
+        !item.materialName ||
+        !item.materialSize ||
+        !item.specification ||
+        !item.skuCode ||
+        !item.quantity ||
+        !item.unit ||
+        !item.description
+      ) {
         throw new Error(`Item ${i + 1}: All required fields must be filled`);
       }
 
@@ -541,27 +495,26 @@ router.post('/submit', async (req, res) => {
         now,                             // A - Timestamp
         uidForThisItem,                  // B - UID
         reqNo,                           // C - Req No
-        projectName,                     // D - Project Name
-        engineerName,                    // E - Engineer Name
-        cluster || '',                   // F - Cluster
-        location || item.location || '', // G - Location (From Top Form)
-        item.activity || '',             // H - Activity (From Item)
-        item.materialType,               // I - Material Type
-        item.materialName,               // J - Material Name
-        item.materialSize,               // K - Material Size
-        item.specification,              // L - Specification
-        item.skuCode,                    // M - SKU Code
-        item.quantity,                   // N - Quantity
-        item.unit,                       // O - Unit
-        item.description,                // P - Description
-        actualContractor,                // Q - Contractor
-        remark || '',                    // R - Slip No / Remark
+        projectName,                     // D - Project_Name_1
+        engineerName,                    // E - Project_Engineer_Name_1
+        item.materialType,               // F - Material_Type_1
+        item.materialName,               // G - Material_Name_1
+        item.materialSize,               // H - Material_Size_1
+        item.specification,              // I - Material_Specification_1
+        item.brand || '',                // J - Material_Brand_Name_1
+        item.skuCode,                    // K - SKU Code
+        item.quantity,                   // L - Quantity
+        item.unit,                       // M - Unit Name
+        item.description,                // N - Description_Of_Work_1
+        item.reqDays || '',              // O - Require Days_1
+        actualContractor,                // P - Name_Of_Contractor/Firm_1
+        remark || '',                    // Q - Remark_1
       ];
     });
 
     await sheets.spreadsheets.values.append({
       spreadsheetId: SignatureProjectSheetId,
-      range: 'Requriemt_Form!A:R',
+      range: 'Requriemt_Form!A:Q',
       valueInputOption: 'USER_ENTERED',
       resource: { values },
     });
