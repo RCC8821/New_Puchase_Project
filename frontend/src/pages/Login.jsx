@@ -993,7 +993,7 @@ const Login = () => {
         }
         else {
           // Static user type
-          frontendUserType = STATIC_USER_TYPE_MAP[result.userType] || 'user';
+                   frontendUserType = STATIC_USER_TYPE_MAP[result.userType] || result.userType;
           sessionStorage.removeItem('engineerName');
           sessionStorage.removeItem('projectLockedName');
         }

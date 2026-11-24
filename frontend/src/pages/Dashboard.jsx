@@ -1,3 +1,5 @@
+
+
 // // Dashboard.jsx
 // import React, { useState, useEffect, useRef, useCallback } from 'react';
 // import {
@@ -75,8 +77,9 @@
 //   const dropdownRef = useRef(null);
 
 //   const isSiteEngineer = userType?.startsWith('SE_');
+//   // ✅ UPDATED: Matches any Project Locked User (Signature Heritage, Shivayera Golden, etc.)
 //   const isProjectLockedUser =
-//     userType && /^signature\s+.+\s+prj\d+/i.test(userType);
+//     userType && /.+\s+prj\d+/i.test(userType);
 
 //   // ── Purchase Pages ──
 //   const allPurchasePages = [
@@ -99,7 +102,7 @@
 //     { id: 'contractor-purchase-form', name: 'Contractor Purchase Form', icon: FileText, component: ContractorPurchseForm, path: '/dashboard/contractor-purchase-form', allowedUserTypes: ['admin', 'Site Engineer', 'Material Received'] },
 //     { id: 'outstanding', name: 'Without System Bill Entry', icon: DollarSign, component: OutStanding, path: '/dashboard/outstanding', allowedUserTypes: ['admin', 'Govind Ram Nagar'] },
 //     { id: 'Advance_payment', name: 'Advance Payment', icon: DollarSign, component: Advance_payment, path: '/dashboard/Advance_payment', allowedUserTypes: ['admin', 'Govind Ram Nagar'] },
-//       { id: 'No_Indent', name: 'No Indent', icon: Package, component: No_Indent, path: '/dashboard/No_Indent', allowedUserTypes: ['admin','Ravi Rajak'] },
+//     { id: 'No_Indent', name: 'No Indent', icon: Package, component: No_Indent, path: '/dashboard/No_Indent', allowedUserTypes: ['admin','Ravi Rajak'] },
 //     { id: 'OfficeLabourForm', name: 'Office Labour Form', icon: HardHat, component: OfficeLabourForm, path: '/dashboard/OfficeLabourForm', allowedUserTypes: ['admin', 'Labour Form'] },
 //   ];
 
@@ -121,7 +124,7 @@
 //   // ✅ MERGED - Heritage AND Paradise both inside single "JV Project" Dropdown
 //   const allJvProjectPages = [
 //     { id: 'heritage', name: 'Heritage', icon: Briefcase, component: HeritageDashboard, path: '/dashboard/heritage', allowedUserTypes: ['admin', 'Signature Requirement', 'Store Inventory'], allowSiteEngineer: true },
-//     { id: 'heritage-requirement', name: ' Requirement Form', icon: ClipboardList, component: HeritageRequirementForm, path: '/dashboard/heritage/requirement-form', allowedUserTypes: ['admin', 'Signature Requirement'], allowSiteEngineer: true, allowProjectLocked: true },
+//     { id: 'heritage-requirement', name: 'Requirement Form', icon: ClipboardList, component: HeritageRequirementForm, path: '/dashboard/heritage/requirement-form', allowedUserTypes: ['admin', 'Signature Requirement'], allowSiteEngineer: true, allowProjectLocked: true },
 //     // ✅ PARADISE ENTRY POINT
 //     { id: 'paradise', name: 'Paradise', icon: Briefcase, component: ParadiseDashboard, path: '/dashboard/paradise', allowedUserTypes: ['admin', 'Signature Requirement', 'Store Inventory'], allowSiteEngineer: true },
 //   ];
@@ -190,7 +193,7 @@
 //     'contractor-purchase-form': 'Contractor Purchase Form',
 //     outstanding: 'Without System Bill Entry',
 //     Advance_payment: 'Advance Payment',
-//      No_Indent: 'No Indent',    
+//     No_Indent: 'No Indent',    
 //     OfficeLabourForm: 'Office Labour Form',
 //     'LabourRequirementManagement': 'Labour Requirement Management',
 //     Approvel1: 'Labour Approval',
@@ -203,12 +206,12 @@
 //     SitePaidAmount: 'Site Paid Amount',
 //     'no-access': 'No Access',
 
-//     // Heritage
+//     // Heritage / Project
 //     'heritage': 'JV Project — Heritage',
 //     'heritage-signature': 'Heritage Out Material',
 //     'heritage-store': 'Heritage — Store Inventory',
 //     'heritage-site': 'Heritage — Site Engineer',
-//     'heritage-requirement': 'Signature — Requirement Form',
+//     'heritage-requirement': 'Requirement Form',
 //     'heritage-boq': 'Heritage — BOQ Quantity',
 
 //     // ✅ Paradise
@@ -293,7 +296,6 @@
 
 //   // ✅ Component Mapping (including Paradise sub-routes)
 //   const getCurrentComponent = () => {
-//     // Paradise Sub-route Components:
 //     if (selectedPage === 'paradise-out-form') return ParadiseOutForm;
 //     if (selectedPage === 'paradise-store') return ParadiseStoreInventory;
 //     if (selectedPage === 'paradise-site') return ParadiseSiteEngineer;
@@ -313,7 +315,6 @@
 //     'heritage-boq',
 //   ].includes(selectedPage);
 
-//   // ✅ Paradise Sub-route Check
 //   const isParadiseSubRoute = [
 //     'paradise-out-form',
 //     'paradise-store',
@@ -663,7 +664,6 @@
 //           </div>
 
 //           <div style={{ width: '100%', minHeight: 'calc(100vh - 120px)' }}>
-//             {/* ✅ Outlet render for Heritage OR Paradise sub-routes */}
 //             {isHeritageSubRoute || isParadiseSubRoute ? (
 //               <Outlet />
 //             ) : CurrentComponent ? (
@@ -723,7 +723,6 @@
 
 
 
-
 // Dashboard.jsx
 import React, { useState, useEffect, useRef, useCallback } from 'react';
 import {
@@ -753,7 +752,9 @@ import Bill_Checked_18Step from '../components/purchase/Bill_Checked_18Step';
 import ContractorPurchseForm from '../components/ContractorPurchase/ContractorPurchseForm';
 import OutStanding from '../components/purchase/OutStanding';
 import Advance_payment from '../components/purchase/Advance_payment';
-import No_Indent from '../components/purchase/No_Indent';  
+import AdvancePettyCash from '../components/purchase/AdvancePettyCash';
+import PettyCashApproval from '../components/purchase/PettyCashApproval';
+import No_Indent from '../components/purchase/No_Indent';
 
 import Approvel1 from '../components/Labour/Approvel1';
 import LabourManagment from '../components/Labour/LabourManagment';
@@ -778,6 +779,9 @@ import ParadiseStoreInventory from '../components/Paradise/ParadiseStoreInventor
 import ParadiseSiteEngineer from '../components/Paradise/ParadiseSiteEngineer';
 import ParadiseBOQQty from '../components/Paradise/ParadiseBOQQty';
 
+// ✅ Vendor list (Petty Cash user auto-detect ke liye)
+import { useGetAdvanceDropdownDataQuery, useGetPettyCashPersonsQuery } from '../redux/advanceSlice';
+
 const T = {
   navy: '#1e293b', navyLight: '#334155', navyDark: '#0f172a',
   gold: '#f59e0b', goldLight: '#fbbf24', goldDark: '#d97706',
@@ -786,6 +790,9 @@ const T = {
   border: '#e2e8f0', borderLight: '#f1f5f9',
   success: '#10b981', danger: '#ef4444',
 };
+
+// ✅ Petty Cash approval karne wale ka userType (Users sheet Column C me yahi likho)
+const PETTY_CASH_APPROVER_TYPE = 'Petty Cash Approval';
 
 const Dashboard = () => {
   const [openDropdown, setOpenDropdown] = useState(null);
@@ -801,9 +808,27 @@ const Dashboard = () => {
   const dropdownRef = useRef(null);
 
   const isSiteEngineer = userType?.startsWith('SE_');
-  // ✅ UPDATED: Matches any Project Locked User (Signature Heritage, Shivayera Golden, etc.)
   const isProjectLockedUser =
     userType && /.+\s+prj\d+/i.test(userType);
+
+  // ✅ Petty Cash User = jiska login naam Vendor list (Advance_Dropdown_Data Column B) me hai
+  const normName = (v) => String(v || '').replace(/[\s\u00A0]+/g, ' ').trim().toLowerCase();
+
+  const { data: dropdownRes, isLoading: vendorsLoadingA } =
+    useGetAdvanceDropdownDataQuery(undefined, { skip: !userType });
+  const { data: pettyPersonsRes, isLoading: vendorsLoadingB } =
+    useGetPettyCashPersonsQuery(undefined, { skip: !userType });
+  const vendorsLoading = vendorsLoadingA || vendorsLoadingB;
+
+  const pettyNames = [
+    ...(dropdownRes?.data?.vendorFirms || []),
+    ...(pettyPersonsRes?.data || []),
+  ].map(normName);
+
+  const isPettyCashUser =
+    !!userType &&
+    normName(userType) !== 'admin' &&
+    pettyNames.includes(normName(userType));
 
   // ── Purchase Pages ──
   const allPurchasePages = [
@@ -815,7 +840,7 @@ const Dashboard = () => {
     { id: 'PO', name: 'PO', icon: Truck, component: PO, path: '/dashboard/PO', allowedUserTypes: ['admin', 'Ravi Rajak'] },
     { id: 'Vendor_FollowUp_Material', name: 'Vendor Follow Up Material', icon: Truck, component: Vendor_FollowUp_Material, path: '/dashboard/Vendor_FollowUp_Material', allowedUserTypes: ['admin', 'Neha Masani'] },
     { id: 'Material_Received', name: 'Material Received', icon: Truck, component: Material_Received, path: '/dashboard/Material_Received', allowedUserTypes: ['admin', 'Material Received', 'Neha Masani', 'Site Engineer', 'Signature Requirement'] },
-    { id: 'Final_Material_Received', name: 'Final Material Received', icon: Truck, component: Final_Material_Received, path: '/dashboard/Final_Material_Received', allowedUserTypes: ['admin', 'Final Material Received','Neha Masani'] },
+    { id: 'Final_Material_Received', name: 'Final Material Received', icon: Truck, component: Final_Material_Received, path: '/dashboard/Final_Material_Received', allowedUserTypes: ['admin', 'Final Material Received', 'Neha Masani'] },
     { id: 'MRN', name: 'MRN', icon: Truck, component: MRN, path: '/dashboard/MRN', allowedUserTypes: ['admin', 'Varsha Kahar'] },
     { id: 'Vendor_followup_billing', name: 'Vendor Followup Billing', icon: Truck, component: Vendor_followup_billing, path: '/dashboard/Vendor_followup_billing', allowedUserTypes: ['admin', 'Neha Masani'] },
     { id: 'Bill_Processing', name: 'Bill Processing', icon: Truck, component: Bill_Processing, path: '/dashboard/Bill_Processing', allowedUserTypes: ['admin', 'Varsha Kahar'] },
@@ -826,7 +851,13 @@ const Dashboard = () => {
     { id: 'contractor-purchase-form', name: 'Contractor Purchase Form', icon: FileText, component: ContractorPurchseForm, path: '/dashboard/contractor-purchase-form', allowedUserTypes: ['admin', 'Site Engineer', 'Material Received'] },
     { id: 'outstanding', name: 'Without System Bill Entry', icon: DollarSign, component: OutStanding, path: '/dashboard/outstanding', allowedUserTypes: ['admin', 'Govind Ram Nagar'] },
     { id: 'Advance_payment', name: 'Advance Payment', icon: DollarSign, component: Advance_payment, path: '/dashboard/Advance_payment', allowedUserTypes: ['admin', 'Govind Ram Nagar'] },
-    { id: 'No_Indent', name: 'No Indent', icon: Package, component: No_Indent, path: '/dashboard/No_Indent', allowedUserTypes: ['admin','Ravi Rajak'] },
+
+    // ✅ Petty Cash — Bill Entry (Vendor list wale users ko automatic)
+    { id: 'advance-petty-cash', name: 'Advance Petty Cash', icon: DollarSign, component: AdvancePettyCash, path: '/dashboard/advance-petty-cash', allowedUserTypes: ['admin'], allowPettyCash: true },
+    // ✅ Petty Cash — Approval (Users sheet me userType = "Petty Cash Approval")
+  { id: 'petty-cash-approval', name: 'Petty Cash Approval', icon: ClipboardList, component: PettyCashApproval, path: '/dashboard/petty-cash-approval', allowedUserTypes: ['admin', PETTY_CASH_APPROVER_TYPE, 'Govind Ram Nagar', 'Ashok Pandey'] },
+
+    { id: 'No_Indent', name: 'No Indent', icon: Package, component: No_Indent, path: '/dashboard/No_Indent', allowedUserTypes: ['admin', 'Ravi Rajak'] },
     { id: 'OfficeLabourForm', name: 'Office Labour Form', icon: HardHat, component: OfficeLabourForm, path: '/dashboard/OfficeLabourForm', allowedUserTypes: ['admin', 'Labour Form'] },
   ];
 
@@ -845,17 +876,17 @@ const Dashboard = () => {
     { id: 'SitePaidAmount', name: 'Site Paid Amount', icon: DollarSign, component: SitePaidAmount, path: '/dashboard/SitePaidAmount', allowedUserTypes: ['admin', 'Govind Ram Nagar', 'Varsha Kahar', 'Final Material Received'] },
   ];
 
-  // ✅ MERGED - Heritage AND Paradise both inside single "JV Project" Dropdown
   const allJvProjectPages = [
     { id: 'heritage', name: 'Heritage', icon: Briefcase, component: HeritageDashboard, path: '/dashboard/heritage', allowedUserTypes: ['admin', 'Signature Requirement', 'Store Inventory'], allowSiteEngineer: true },
     { id: 'heritage-requirement', name: 'Requirement Form', icon: ClipboardList, component: HeritageRequirementForm, path: '/dashboard/heritage/requirement-form', allowedUserTypes: ['admin', 'Signature Requirement'], allowSiteEngineer: true, allowProjectLocked: true },
-    // ✅ PARADISE ENTRY POINT
     { id: 'paradise', name: 'Paradise', icon: Briefcase, component: ParadiseDashboard, path: '/dashboard/paradise', allowedUserTypes: ['admin', 'Signature Requirement', 'Store Inventory'], allowSiteEngineer: true },
   ];
 
   const getPurchasePages = () => {
     if (isProjectLockedUser) return [];
-    return allPurchasePages.filter((p) => p.allowedUserTypes.includes(userType));
+    return allPurchasePages.filter(
+      (p) => p.allowedUserTypes.includes(userType) || (p.allowPettyCash && isPettyCashUser)
+    );
   };
 
   const getLabourPages = () => {
@@ -883,7 +914,12 @@ const Dashboard = () => {
     ...getJvProjectPages(),
   ];
 
-  const menuItems = [
+  // ✅ Agar user ke paas SIRF Petty Cash page hai → koi menu nahi dikhega, seedha wahi page
+  const allowedNow = userType ? getAllowedPages() : [];
+  const isOnlyPettyCash =
+    allowedNow.length === 1 && allowedNow[0].id === 'advance-petty-cash';
+
+  const menuItems = isOnlyPettyCash ? [] : [
     { id: 'purchase', name: 'Purchase FMS', icon: ShoppingCart, pages: getPurchasePages() },
     { id: 'labour', name: 'Labour', icon: Users, pages: getLabourPages() },
     { id: 'siteExpenses', name: 'Site Expenses', icon: DollarSign, pages: getSiteExpensesPages() },
@@ -917,7 +953,9 @@ const Dashboard = () => {
     'contractor-purchase-form': 'Contractor Purchase Form',
     outstanding: 'Without System Bill Entry',
     Advance_payment: 'Advance Payment',
-    No_Indent: 'No Indent',    
+    'advance-petty-cash': 'Advance Petty Cash',
+    'petty-cash-approval': 'Petty Cash Approval',
+    No_Indent: 'No Indent',
     OfficeLabourForm: 'Office Labour Form',
     'LabourRequirementManagement': 'Labour Requirement Management',
     Approvel1: 'Labour Approval',
@@ -938,7 +976,7 @@ const Dashboard = () => {
     'heritage-requirement': 'Requirement Form',
     'heritage-boq': 'Heritage — BOQ Quantity',
 
-    // ✅ Paradise
+    // Paradise
     'paradise': 'JV Project — Paradise',
     'paradise-out-form': 'Paradise — Store Item Out Form',
     'paradise-store': 'Paradise — Store Inventory',
@@ -977,6 +1015,8 @@ const Dashboard = () => {
 
   useEffect(() => {
     if (!userType) return;
+    if (vendorsLoading) return; // ✅ Vendor list aane tak wait (Petty Cash check ke liye)
+
     const allowed = getAllowedPages();
 
     if (allowed.length === 0) {
@@ -984,7 +1024,7 @@ const Dashboard = () => {
       return;
     }
 
-    const current = allowed.find((p) => location.pathname === p.path);
+    const current = allowed.find((p) => location.pathname.toLowerCase() === p.path.toLowerCase());
     if (current) {
       setSelectedPage(current.id);
       return;
@@ -996,7 +1036,7 @@ const Dashboard = () => {
     if (location.pathname === '/dashboard/heritage/site-engineer') { setSelectedPage('heritage-site'); return; }
     if (location.pathname === '/dashboard/heritage/boq-qty') { setSelectedPage('heritage-boq'); return; }
 
-    // ✅ Paradise sub-routes
+    // Paradise sub-routes
     if (location.pathname === '/dashboard/paradise/out-form') { setSelectedPage('paradise-out-form'); return; }
     if (location.pathname === '/dashboard/paradise/store-inventory') { setSelectedPage('paradise-store'); return; }
     if (location.pathname === '/dashboard/paradise/site-engineer') { setSelectedPage('paradise-site'); return; }
@@ -1004,7 +1044,7 @@ const Dashboard = () => {
 
     setSelectedPage(allowed[0].id);
     navigate(allowed[0].path);
-  }, [userType, location.pathname]);
+  }, [userType, location.pathname, vendorsLoading, isPettyCashUser]);
 
   const selectPage = (page) => {
     setSelectedPage(page.id);
@@ -1018,7 +1058,6 @@ const Dashboard = () => {
     navigate('/');
   };
 
-  // ✅ Component Mapping (including Paradise sub-routes)
   const getCurrentComponent = () => {
     if (selectedPage === 'paradise-out-form') return ParadiseOutForm;
     if (selectedPage === 'paradise-store') return ParadiseStoreInventory;
@@ -1048,9 +1087,7 @@ const Dashboard = () => {
 
   const displayName = isSiteEngineer
     ? userType.replace('SE_', '')
-    : isProjectLockedUser
-      ? userType
-      : userType;
+    : userType;
 
   return (
     <div style={{
@@ -1075,14 +1112,15 @@ const Dashboard = () => {
           width: '100%', padding: '0 16px',
           display: 'flex', alignItems: 'center',
           justifyContent: 'space-between', height: 56,
+          boxSizing: 'border-box',
         }}>
           {/* Logo */}
-          <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 10, minWidth: 0 }}>
             <div style={{
               width: 34, height: 34, borderRadius: 8,
               background: 'white', display: 'flex',
               alignItems: 'center', justifyContent: 'center',
-              boxShadow: `0 0 0 2px ${T.gold}40`,
+              boxShadow: `0 0 0 2px ${T.gold}40`, flexShrink: 0,
             }}>
               <img src="/rcc-logo.png" alt="RCC"
                 style={{ width: 22, height: 22, objectFit: 'contain' }}
@@ -1093,7 +1131,7 @@ const Dashboard = () => {
                 }}
               />
             </div>
-            <span style={{ color: 'white', fontSize: 15, fontWeight: 700, letterSpacing: 0.5 }}>
+            <span style={{ color: 'white', fontSize: 15, fontWeight: 700, letterSpacing: 0.5, whiteSpace: 'nowrap' }}>
               RCC <span style={{ color: T.gold }}>SYSTEMS</span>
             </span>
           </div>
@@ -1217,6 +1255,13 @@ const Dashboard = () => {
                     borderRadius: 8, fontWeight: 600,
                   }}>PROJECT</span>
                 )}
+                {isOnlyPettyCash && (
+                  <span style={{
+                    marginLeft: 6, fontSize: 9, color: T.gold,
+                    background: `${T.gold}20`, padding: '2px 6px',
+                    borderRadius: 8, fontWeight: 600,
+                  }}>PETTY CASH</span>
+                )}
               </span>
             </div>
 
@@ -1281,6 +1326,9 @@ const Dashboard = () => {
                 )}
                 {isProjectLockedUser && (
                   <span style={{ fontSize: 10, color: T.gold, fontWeight: 600 }}>PROJECT USER</span>
+                )}
+                {isOnlyPettyCash && (
+                  <span style={{ fontSize: 10, color: T.gold, fontWeight: 600 }}>PETTY CASH</span>
                 )}
               </div>
             </div>
@@ -1369,26 +1417,32 @@ const Dashboard = () => {
           paddingTop: 56,
           height: '100vh',
           overflowY: 'auto',
+          boxSizing: 'border-box',
         }}
       >
-        <div style={{ width: '100%', padding: '12px 12px 40px' }}>
-          <div style={{
-            display: 'flex', alignItems: 'center',
-            justifyContent: 'space-between', marginBottom: 12,
-          }}>
-            <div>
-              <h1 style={{ fontSize: 18, fontWeight: 700, color: T.navy, margin: 0 }}>
-                {pageContent[selectedPage] || 'Page Not Found'}
-              </h1>
-              <div style={{
-                width: 36, height: 3,
-                background: T.gold, borderRadius: 3, marginTop: 6,
-              }} />
+        <div style={{ width: '100%', padding: '12px 12px 40px', boxSizing: 'border-box' }}>
+          {/* Petty Cash only user ke liye title nahi (page me already hai) */}
+          {!isOnlyPettyCash && (
+            <div style={{
+              display: 'flex', alignItems: 'center',
+              justifyContent: 'space-between', marginBottom: 12,
+            }}>
+              <div>
+                <h1 style={{ fontSize: 18, fontWeight: 700, color: T.navy, margin: 0 }}>
+                  {pageContent[selectedPage] || 'Page Not Found'}
+                </h1>
+                <div style={{
+                  width: 36, height: 3,
+                  background: T.gold, borderRadius: 3, marginTop: 6,
+                }} />
+              </div>
             </div>
-          </div>
+          )}
 
           <div style={{ width: '100%', minHeight: 'calc(100vh - 120px)' }}>
-            {isHeritageSubRoute || isParadiseSubRoute ? (
+            {userType && vendorsLoading ? (
+              <div style={{ padding: 40, textAlign: 'center', color: T.textLight }}>⏳ Loading...</div>
+            ) : isHeritageSubRoute || isParadiseSubRoute ? (
               <Outlet />
             ) : CurrentComponent ? (
               <CurrentComponent selectedPage={selectedPage} />
