@@ -976,7 +976,7 @@ const COMPANIES = {
     name:    "R.C.C Infrastructures",
     address: "PLOT NO 18-19 Kolar Castle , Kolar Road Signature Group, Bhopal Madhya Pradesh , 462016",
     contact: "Contact: 7869962504 | Email: mayank@rcinfrastructure.com",
-    gst:     "GST: 23ABHFR3130L1ZA",
+    gst:     "GST: 23AARPC4273A2Z4",
     logoText: "RCC",
     logoSubText: "INFRASTRUCTURES",
     logoTextSize: 12,
